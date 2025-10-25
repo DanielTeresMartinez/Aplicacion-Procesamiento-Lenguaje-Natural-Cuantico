@@ -17,7 +17,7 @@ def exQCAndSim():
     print(counts)
 
 
-def simPrintVals(qc, shotsRun: int=1, text: str="result simulator"):
+def simPrintVals(qc, shotsRun: int=1, text: str="result simulation"):
     sim = AerSimulator()
     results = sim.run(transpile(qc), shots=shotsRun).result()
     cnt = results.get_counts()
@@ -48,14 +48,14 @@ def gatesAND(qc):
     qc.ccx(0, 1, 2)
 
 def gatesOR(qc):
-    # Flip qubit 2 if one of the inputs it's 1.
+    # Flip qubit 2 if one of the inputs it's |1>.
     qc.cx(0, 2)
     qc.cx(1, 2)
     # For last case, flip again qubit 2 with CCNOT
     qc.ccx(0, 1, 2)
 
 def gatesXOR(qc):
-    # If only 1 qubit is 1, then qubit num 2 should be 1.
+    # If only 1 qubit is |1>, then qubit num 2 should be |1>.
     qc.cx(0, 1)
     qc.cx(1, 2)
 
