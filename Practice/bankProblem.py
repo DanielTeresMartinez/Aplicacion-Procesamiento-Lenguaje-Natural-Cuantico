@@ -26,8 +26,9 @@ def build_model_circuit():
     θ = ParameterVector("θ", 3)
     qc = QuantumCircuit(1, 1)
 
-    qc.rz(x[0], 0)
     qc.ry(x[1], 0)
+    # No se puede empezar por Z, hay que empezar por y o x, recordar esfera Bloch
+    qc.rz(x[0], 0)
 
     qc.rx(θ[0], 0)
     qc.rz(θ[1], 0)
