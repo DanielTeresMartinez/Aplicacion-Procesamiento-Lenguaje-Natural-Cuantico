@@ -142,15 +142,25 @@ if __name__ == "__main__":
     # Visualization
     try:
         b = Bloch()
-        # Add all 32 points
-        # Bloch.add_points expects a list of lists: [[x...],[y...],[z...]] OR list of coords
-        # passing [xs, ys, zs] works for points
-        b.add_points([xs, ys, zs])
 
-        # Optional: Formatting to look like Figure 2b
-        b.vector_color = ["b"]
-        b.point_color = ["r"]
-        b.point_marker = ["o"]
+        # Generate distinct colors for 32 points using a colormap
+        cmap = plt.get_cmap("hsv")  # 'hsv' gives a nice rainbow cycle
+        colors = [cmap(i / num_words) for i in range(num_words)]
+
+        # We want to plot each point with a different color.
+        # In Qiskit/Qutip Bloch, cycling colors applies to 'sets' of points added.
+        # So we add each point as a separate set.
+
+        # Clear default point colors/markers to set our own
+        b.point_color = []
+        b.point_marker = []
+
+        for i in range(num_words):
+            # Add point i as a list of lists [[x], [y], [z]]
+            b.add_points([[xs[i]], [ys[i]], [zs[i]]])
+            # Set style for this point
+            b.point_color.append(colors[i])
+            b.point_marker.append("o")
 
         # Qiskit/Matplotlib Fix: Use render() and plt.show()
         if hasattr(b, "render"):
