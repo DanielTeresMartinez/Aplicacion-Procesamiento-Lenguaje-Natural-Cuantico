@@ -42,10 +42,10 @@ if __name__ == "__main__":
     qc.ccx(0, 1, 3, ctrl_state="01"[::-1])
 
     # Multicontroller for output0
-    qc.mcx([0, 1, 2], 4, ctrl_state="101")
+    qc.mcx([0, 1, 2], 4, ctrl_state="001"[::-1])
 
     # Multicontroller for output1
-    qc.mcx([0, 1, 3], 5, ctrl_state="101")
+    qc.mcx([0, 1, 3], 5, ctrl_state="001"[::-1])
 
     # Measure to classical readout. Recovers character
     # 'a' from position 01 of string "cab"
