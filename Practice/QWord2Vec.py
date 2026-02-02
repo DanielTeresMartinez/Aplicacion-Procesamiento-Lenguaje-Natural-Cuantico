@@ -115,7 +115,9 @@ def get_bloch_vector_for_k(k, theta_values, num_qubits, qc_ansatz):
 if __name__ == "__main__":
     # Q-word2vec Configuration for Fig 2b
     n_qubits = 5  # System size (32 words)
-    n_layers = 1  # Depth
+    # Increase layers to ensure information propagates from all input bits to the embedding qubit
+    # With L=1, qubit 0 only sees neighbors, causing clustering around ~2-4 states.
+    n_layers = 5  # Depth L=5
 
     print(f"--- Q-Word2Vec Full Model (n={n_qubits}, L={n_layers}) ---")
 
@@ -146,10 +148,6 @@ if __name__ == "__main__":
         # Generate distinct colors for 32 points using a colormap
         cmap = plt.get_cmap("hsv")  # 'hsv' gives a nice rainbow cycle
         colors = [cmap(i / num_words) for i in range(num_words)]
-
-        # We want to plot each point with a different color.
-        # In Qiskit/Qutip Bloch, cycling colors applies to 'sets' of points added.
-        # So we add each point as a separate set.
 
         # Clear default point colors/markers to set our own
         b.point_color = []
