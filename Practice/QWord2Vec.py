@@ -1,27 +1,22 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import qiskit_algorithms
 from qiskit import QuantumCircuit, transpile
 from qiskit.circuit import ParameterVector
 from qiskit_aer import AerSimulator
 from qiskit.quantum_info import Statevector, partial_trace
+from qiskit.visualization.bloch import Bloch
+from qiskit_algorithms.optimizers import SPSA
 
-# Try importing Bloch directly to support point plotting
-try:
-    from qiskit.visualization.bloch import Bloch
-except ImportError:
-    try:
-        from qiskit.visualization import Bloch
-    except ImportError:
-        # If standard imports fail, we might need qutip directly or verify environment
-        print("Warning: Could not import Bloch from qiskit.visualization.bloch")
-        # In some environments, it might be available differently or require 'pip install qutip'
-        pass
+
+qiskit_algorithms.utils.algorithm_globals.random_seed = 42
 
 
 def get_entangling_layer(num_qubits):
     """
     Creates the entangling layer U_enta.
     Based on Sim et al. (2019), using circular CNOT configuration.
+    (explanied at the end of page 3 article)
     """
     qc = QuantumCircuit(num_qubits)
     if num_qubits > 1:
@@ -35,6 +30,7 @@ def build_qword2vec_circuit(num_qubits, num_layers):
     Implements the parameterized circuit U(θ) for Q-word2vec.
     Structure: Prod ( U_enta * RZ(θz) * RY(θy) * RX(θx) )
     Order in circuit (left to right): RX -> RY -> RZ -> U_enta
+    Remember that is in reverse from that was read???
     """
     # 3 params (Rx, Ry, Rz) per qubit per layer
     num_params_per_layer = 3 * num_qubits
@@ -63,8 +59,6 @@ def build_qword2vec_circuit(num_qubits, num_layers):
         # Layer 4: Entanglement
         enta_layer = get_entangling_layer(num_qubits)
         qc.compose(enta_layer, inplace=True)
-
-        qc.barrier()
 
     return qc, θ
 
@@ -112,6 +106,30 @@ def get_bloch_vector_for_k(k, theta_values, num_qubits, qc_ansatz):
     return [x.real, y.real, z.real]
 
 
+# Placeholder Loss Function (to be replaced with Cross-Entropy)
+def loss_function(params):
+    # Here we would run the circuit and compute loss
+    return np.sum(np.abs(params)) * 0.1  # Dummy logic
+
+
+def train_qword2vec_spsa(initial_params):
+    """
+    Setup for SPSA optimization based on Parameter Shift Rule.
+    Uses a stochastic gradient approach to minimize loss.
+    """
+    if SPSA is None:
+        print("SPSA optimizer not found.")
+        return initial_params
+
+    # Initialize SPSA (Simultaneous Perturbation Stochastic Approximation)
+    optimizer = SPSA(maxiter=300, learning_rate=0.001)
+
+    print("\nStarting SPSA Optimization...")
+    result = optimizer.minimize(fun=loss_function, x0=initial_params)
+    print(f"SPSA Optimization Complete. Final Loss: {result.fun:.4f}")
+    return result.x
+
+
 if __name__ == "__main__":
     # Q-word2vec Configuration for Fig 2b
     n_qubits = 5  # System size (32 words)
@@ -123,9 +141,14 @@ if __name__ == "__main__":
 
     qc_ansatz, theta_params = build_qword2vec_circuit(n_qubits, n_layers)
 
-    # Random parameters (representing a trained state)
+    # Random parameters
     np.random.seed(42)
     theta_vals = np.random.uniform(0, 2 * np.pi, len(theta_params))
+
+    # Demo of SPSA setup
+    optimized_params = train_qword2vec_spsa(theta_vals)
+    # Update visualization with improved params? Or just keep random for initial view.
+    theta_vals = optimized_params
 
     print("Computing Bloch vectors for all 32 input words...")
 
