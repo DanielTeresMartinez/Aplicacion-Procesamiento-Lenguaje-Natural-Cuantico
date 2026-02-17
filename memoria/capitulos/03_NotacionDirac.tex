@@ -1,0 +1,24 @@
+\chapter{Notación Dirac}
+
+La notación de Dirac nos da una manera de expresar estados en un espacio vectorial sin atarnos a un sistema de coordenadas específico, pero que hace muy sencillo elegir una base concreta y cambiar de una base a otra.
+
+\section{Notación bra-ket}
+
+En un \textbf{ket} los valores están representados en un vector columna mientras que en un \textbf{bra} los valores están representados como un vector fila.
+
+\begin{itemize}
+    \item \textbf{ket:} Representa un vector con valores complejos, se denota como: $\vec{a} = |a\rangle$
+    \item \textbf{bra:} Representa el conjugado del vector complejo ket, se denota como: $\vec{a}^{*} = \langle a|$
+\end{itemize}
+
+
+Para \textbf{realizar la trasformación} entre un \textbf{bra} y un \textbf{ket}, hay que realizar el conjugado de la transpuesta.\\
+
+la base canónica en $\mathbb{C}^2$ viene representado en vector base como $e_1 = (1, 0)$ y $e_2 = (0, 1)$. Por lo que en notación ket quedaría como $|0\rangle = (1, 0)$ y $|1\rangle = (0, 1)$.
+
+\begin{itemize}
+    \item \textbf{Producto interno:}  $\langle a|b\rangle = \begin{pmatrix} a_1^{*} & a_2^{*} \end{pmatrix}
+                                        \begin{pmatrix} b_1\\ b_2 \end{pmatrix} = a_1^{*} b_1 + a_2^{*} b_2$
+    \item \textbf{Producto externo:} $\mathbf{A} = \sum_{i,j=1}^{N} A_{ij}\,|e_i\rangle\langle e_j|
+                                      = \sum_{i,j=1}^{N} |e_i\rangle A_{ij} \langle e_j|$
+\end{itemize}

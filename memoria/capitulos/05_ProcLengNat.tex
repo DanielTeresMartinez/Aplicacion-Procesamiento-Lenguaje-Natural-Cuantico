@@ -1,0 +1,101 @@
+\chapter{Procesamiento Lenguaje Natural (\glsentrytext{pln})}
+
+\section{¿Qué es el procesamiento de lenguaje natural?}
+
+El \glsentrytext{pln}, es la rama de la \glsentrytext{ia} encargada de la interacción entre computadoras y el lenguaje humano. Este campo integra la lingüística computacional, basada en el modelado de reglas del lenguaje, con modelos estadísticos y algoritmos de aprendizaje profundo (\glsentrytext{dl}) y aprendizaje automático (\glsentrytext{ml}).
+
+El \glsentrytext{pln} forma parte a día de hoy de muchos motores de búsqueda, chatbots para atención al cliente (ya sea por escrito o por voz), y asistentes digitales como Alexa de Amazon o Siri de Apple.
+
+El campo de la computación lingüística incluye tradicionalmente diversas fases para el análisis. Para el análisis de las palabras existen dos formas principales de hacerlo:
+
+\begin{itemize}
+    \item \textbf{Análisis de dependencias:} Examina las relaciones gramaticales binarias entre las palabras, identificando, por ejemplo, qué palabra modifica a cuál o cuál es el sujeto y el verbo principal.
+
+    \item \textbf{Análisis de constituyentes:} Construye un árbol sintáctico que representa la estructura gramatical anidada de una oración, descomponiéndola en sintagmas o frases ordenadas jerárquicamente.
+\end{itemize}
+
+\section{Fases del \glsentrytext{pln}}
+
+Las fases para realizar el \glsentrytext{pln} se pueden observar en la siguiente imagen:
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=1.0\linewidth]{imagenes/FasesNLP.png}
+    \caption{Imagen obtenida de \url{https://www.geeksforgeeks.org/machine-learning/phases-of-natural-language-processing-nlp/}}
+    \label{fig:FasesNLP}
+\end{figure}
+
+A continuación, se detalla en qué consiste cada una de ellas:
+
+\subsection{Preprocesamiento y Tokenización}
+
+Esta fase constituye el primer nivel de procesamiento y su objetivo es transformar el texto crudo en una secuencia de unidades discretas manejables, integrando tareas de análisis léxico y morfológico.
+
+\begin{enumerate}
+    \item \textbf{Preprocesamiento:} Incluye la limpieza del texto, normalización (convertir a minúsculas), eliminación de caracteres especiales, y en ocasiones, la eliminación de \textit{stopwords} (palabras muy frecuentes sin gran carga semántica como "el", "de", "y"). También incluye técnicas de análisis morfológico como:
+          \begin{itemize}
+              \item \textit{Lematización:} Convertir palabras a su forma base (e.g., "soy" $\rightarrow$ "ser").
+              \item \textit{Stemming:} Reducir palabras a su raíz (e.g., "niñero" $\rightarrow$ "niño").
+          \end{itemize}
+
+    \item \textbf{Tokenización:} Es el proceso crítico de segmentar el flujo de texto en unidades atómicas significativas o \textit{tokens}.
+
+          Ejemplo: La oración \textit{Me gusta programar} se transformaría en la lista de tokens: \texttt{["Me", "gusta", "programar"]}.
+
+          Dependiendo del modelo, los tokens pueden ser palabras completas, subpalabras (como en los modelos \glsentrytext{gpt}) o incluso caracteres. Una vez tokenizado el texto, cada token se asocia a un índice numérico único en un vocabulario, preparando el terreno para la generación de \textit{Embeddings}.
+
+    \item \textbf{Etiquetado gramatical (\glsentrytext{pos} Tagging):} Asigna a cada token una categoría morfológica (sustantivo, verbo, adjetivo, etc.) basándose en su definición y contexto. Esto permite desambiguar el rol sintáctico de cada palabra.
+
+          Ejemplo: Para los tokens del ejemplo anterior, el etiquetado resultante sería: \texttt{["Me" $\rightarrow$ Pronombre, "gusta" $\rightarrow$ Verbo, "programar" $\rightarrow$ Verbo]}.
+\end{enumerate}
+
+\subsection{Análisis sintáctico}
+
+El análisis sintáctico examina la organización de las palabras dentro de una oración para verificar que se cumple con las reglas gramaticales del idioma. El objetivo fundamental de esta fase es la generación de un \textbf{árbol de análisis sintáctico}, el cual representa jerárquicamente la estructura gramatical del texto analizado. Esta representación estructurada permite a los sistemas computacionales interpretar las relaciones de dependencia y jerarquía entre los distintos elementos léxicos. Las tareas principales que abarca son:
+
+\begin{itemize}
+    \item \textbf{Etiquetado gramatical:} Corresponde al mismo proceso descrito anteriormente, validando la estructura en este nivel.
+    \item \textbf{Resolución de ambigüedad sintáctica:} Se ocupa de determinar el significado correcto de una palabra basándose en su contexto gramatical. Por ejemplo, distinguir la acepción de la palabra \textit{banco} en \textit{Fui a sacar dinero al banco} (entidad financiera) frente a la frase \textit{Me senté en el banco del parque} (sitio para sentarse y descansar).
+\end{itemize}
+
+\subsection{Análisis semántico}
+
+Esta fase se centra en la coherencia lógica y la relevancia contextual del enunciado. Su objetivo principal es interpretar el significado de las palabras, analizando tanto su definición de diccionario como su variación según el contexto de uso. De este modo, se busca comprender el rol semántico de cada palabra para construir una representación lógica del mensaje. Las tareas fundamentales que abarca esta fase son:
+
+\begin{enumerate}
+    \item \textbf{\glsentrytext{ner} (NER):} Se ocupa de la identificación y clasificación de elementos clave en el texto, tales como nombres de personas, ubicaciones geográficas, organizaciones, etc.
+          \\
+          Ejemplo: En la oración \textit{Mercedes anunció un nuevo coche en Berlín}, el sistema \glsentrytext{ner} identificaría a \textit{Mercedes} como una \textit{Organización} y a \textit{Berlín} como un \textit{Lugar}.
+
+    \item \textbf{\glsentrytext{wsd} (WSD):} Identifica el significado correcto de las palabras en función del contexto.
+          \\
+          Ejemplo: El término \textit{Banco} puede interpretarse como una \textit{entidad financiera} o como \textit{un lugar donde sentarse} dependiendo del resto de palabras de la oración.
+\end{enumerate}
+
+\subsection{Integración del discurso}
+
+Este proceso analiza cómo las oraciones individuales se conectan y relacionan entre sí para entender el contexto global. El objetivo de esta fase es garantizar que el significado del texto mantenga su coherencia lógica a través de los distintos párrafos y frases. Los aspectos fundamentales de esta fase son:
+
+\begin{itemize}
+    \item \textbf{Resolución de anáforas:} Consiste en identificar la conexión entre un pronombre y lo mencionado previamente en el texto.
+          \\
+          Ejemplo: En la secuencia \textit{Esther fue a comprar. Ella compró fruta}, el sistema debe vincular el pronombre \textit{Ella} con \textit{Esther}.
+
+    \item \textbf{Referencias contextuales:} Aborda la interpretación de palabras o expresiones cuyo significado completo depende intrínsecamente de la información proporcionada en oraciones anteriores o posteriores.
+          \\
+          Ejemplo: La frase \textit{Fue un buen día} adquiere un significado concreto únicamente si se analiza dentro del contexto de la conversación.
+\end{itemize}
+
+\subsection{Análisis pragmático}
+
+Esta fase final analiza más allá de la interpretación literal de las oraciones para inferir el significado real que se pretende transmitir. A diferencia del análisis semántico, que se ocupa del significado proposicional de las palabras, el análisis pragmático examina factores como el tono y el contexto. Las tareas principales de esta fase son:
+
+\begin{itemize}
+    \item \textbf{Detección de intenciones:} El sistema debe ver el propósito de la comunicación (si es una petición, una queja, una orden, etc.).
+          \\
+          Ejemplo: Ante la pregunta \textit{¿Tienes hora?}, el análisis pragmático entiende que la intención real del usuario es saber qué hora es, no una pregunta de sí o no.
+
+    \item \textbf{Interpretación de lenguaje figurado:} Se encarga de identificar metáforas, ironías o frases hechas.
+          \\
+          Ejemplo: En la expresión \textit{Echar una mano}, el análisis pragmático entiende que significa \textit{ayudar a alguien}.
+\end{itemize}

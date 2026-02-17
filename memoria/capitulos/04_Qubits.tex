@@ -1,0 +1,169 @@
+\chapter{¿Qué es un \glsentrytext{qubit}?}
+
+Un \glsentrytext{qubit} es el análogo cuántico al bit clásico. Mientras el bit tiene \textbf{dos posibles estados}, el 0 y el 1, el \glsentrytext{qubit} se representa como un vector en el espacio vectorial $\mathbb{C}^2$. La base del espacio más utilizada, se denomina base computacional y se corresponde con la base canónica de $\mathbb{C}^2$, que en notación de Dirac, son los vectores $\ket{0}$ y $\ket{1}$:
+
+\begin{equation*}
+    \begin{array}{rl}
+        \ket{0} = & \begin{bmatrix}
+                        1 \\ 0
+                    \end{bmatrix} \in \mathbb{C}^2 \\
+        \ket{1} = & \begin{bmatrix}
+                        0 \\ 1
+                    \end{bmatrix}
+    \end{array}
+\end{equation*}
+
+\textbf{Un estado cuántico} se corresponde con la descripción matemática de vector que representa al \glsentrytext{qubit}.
+
+\section{¿Cómo expresarlo con notación Dirac?}
+Un qubit $|\Psi\rangle$ puede estar en una superposición de $|0\rangle$ y $|1\rangle$, lo que significa que es una combinación lineal entre los vectores de la base. Esto se representa como:
+
+\[
+    |\Psi\rangle = \alpha_0|0\rangle + \alpha_1|1\rangle
+\]
+
+Donde $\alpha_0$ y $\alpha_1$ son las \textbf{amplitudes de los estados}, además son también números complejos. Por lo tanto, mientras que un bit puede solo tener 1 entre 2 valores (0 y 1), un qubit puede tener uno entre finitos posibles estados. Además, se tiene que cumplir que la norma del vector sea unitaria ($|\alpha_0|^2 + |\alpha_1|^2 = 1$).\\
+
+Hay que tener en cuenta que no existe una forma directa de determinar los valores de $\alpha_1$ y $\alpha_2$, ya que el estado cuántico no es directamente observable.\\
+
+Antes de realizar una medición, el qubit se encuentra en una superposición de los estados $\ket{0}$ y $\ket{1}$, con ciertas probabilidades asociadas a cada uno.\\
+
+Para conocer el resultado de una computación cuántica, es necesario medir los qubits. Sin embargo, este proceso de medición implica interactuar con el qubit, lo que perturba su estado y hace que este deje de estar en superposición.\\
+
+Al medirlo, el qubit colapsa de forma definitiva a uno de los dos estados posibles ($\ket{0}$ o $\ket{1}$), perdiéndose la información sobre las amplitudes originales que este tenía.\\
+
+La probabilidad de que el qubit colapse en un estado concreto se determina mediante la regla de Born, la cual establece que dicha probabilidad es igual al módulo al cuadrado de la amplitud correspondiente a ese estado.\\
+
+La superposición, tiene distintas representaciones que son:
+
+\begin{itemize}
+    \item \textbf{Binómica:} $x_1 + iy_1 \ket{0} + x_2 + iy_2 \ket{1}$
+    \item \textbf{Exponencial:} $r_0 e^{i\phi_0} \ket{0} + r_1e^{i\phi_1} \ket{1}$
+    \item \textbf{Senos y cosenos:} $|\Psi\rangle = \cos\frac{\phi}{2}\,|0\rangle +                 e^{i\theta}\,\sin\frac{\phi}{2}\,|1\rangle$
+\end{itemize}
+
+\begin{itemize}
+    \item \textbf{Fase global:} Factor común $e^{i\gamma}$ que multiplica a todo el estado $|\psi\rangle$. Este no cambia ninguna probabilidad ni resultado físico.
+    \item \textbf{Fase relativa:} Es la diferencia entre las amplitudes $\alpha$ y $\beta$. Esto influye a las inferencias y los resultados cuando se miden en otras bases $(X, Y)$.
+\end{itemize}
+
+
+\section{Esfera de Bloch}
+
+La esfera de Bloch es una representación visual del estado de un qubit.
+Cada punto sobre su superficie corresponde a una posible superposición de los estados base $\ket{0}$ y $\ket{1}$.
+Los polos superior e inferior representan los estados $\ket{0}$ y $\ket{1}$, respectivamente, y el estado del qubit se indica con una flecha que apunta hacia el punto que lo describe.
+
+\begin{comment}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\linewidth]{imagenes/EsferaDeBloch.png}
+    \caption{Visualización gráfica esfera de Bloch}
+    \label{fig:EsferaDeBloch}
+\end{figure}
+\newpage
+
+La representación de la esfera de Bloch de la imgaen, se le conoce como \textbf{ejes de Pauli}. Como tiene ángulos, se utiliza la representación de coordenadas esféricas principalmente. En dicha representación, se proporciona los dos ángulos y la longitud que viene denotado como $(r, \theta,\phi)$
+donde $r$ es la longitud y $\theta$ y $\phi$ representan el ángulo del eje Z positivo con el de X positivo en el plano X-Z y el angulo entre el eje positivo X y el eje positivo Y del plano X-Y respectivamente
+\end{comment}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\linewidth]{imagenes/bloch-basic.png}
+    \caption{Imagen obtenida de \url{https://stem.mitre.org/quantum/quantum-concepts/bloch-sphere.html}}
+    \label{fig:EsferaDeBloch}
+\end{figure}
+\newpage
+
+\textbf{Importante:} la notación $\left(\frac{1}{\sqrt{2}}, \frac{1}{\sqrt{2}}\right)$ se corresponde con el vector estado $\begin{bmatrix} \frac{1}{\sqrt{2}} \\ \frac{1}{\sqrt{2}} \end{bmatrix}$ que a su vez significa:
+
+\[
+    \begin{bmatrix} \frac{1}{\sqrt{2}} \\ \frac{1}{\sqrt{2}} \end{bmatrix} = \frac{1}{\sqrt{2}}|0\rangle + \frac{1}{\sqrt{2}}|1\rangle
+\]
+
+Los seis puntos principales de la esfera de Bloch, son los que se ve en la Figura 4.1. A estas coordenadas principales, se le pueden asignar etiquetas.
+
+\begin{itemize}
+    \item \textbf{Base de Hadamard:} También se le conoce como eje X de Pauli. El punto $\left(\frac{1}{\sqrt{2}}, \frac{1}{\sqrt{2}}\right)$ se corresponde con $\ket{+}$. A su vez, el punto opuesto $\left(\frac{1}{\sqrt{2}}, \frac{-1}{\sqrt{2}}\right)$ se corresponde con $\ket{-}$
+
+    \item \textbf{Base circular:} También se le conoce como eje Y de Pauli. El punto $\left(\frac{1}{\sqrt{2}}, \frac{i}{\sqrt{2}}\right)$ se corresponde con $\ket{+i}$. A su vez, el punto opuesto $\left(\frac{1}{\sqrt{2}}, \frac{-i}{\sqrt{2}}\right)$ se corresponde con $\ket{-i}$
+\end{itemize}
+
+Con dicha asignación de etiquetas, queda la siguiente esfera:
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\linewidth]{imagenes/bloch-labels.jpg}
+    \caption{Imagen obtenida de \url{https://en.wikipedia.org/wiki/Bloch_sphere}}
+    \label{fig:EsferaDeBlochReducido}
+\end{figure}
+\newpage
+
+\section{Puertas cuánticas}
+
+Al igual que para manipular los valores de los bits existen puertas lógicas clásicas como OR, AND, NOT, etc. Los ordenadores cuánticos, manipulan los valores de los qubits usando puertas cuánticas. Es decir, cualquier algoritmo cuántico, se tiene que implementar usando puertas cuánticas.\\
+
+Las puertas cuánticas, se \textbf{representan} mediante \textbf{matrices unitarias} $U$. Esto significa que conservan la probabilidad total de todos los posibles resultados (gracias a las propiedades de matrices unitarias), en otras palabras, no se pierde la información durante la operación.\\
+
+Al aplicar una puerta cuántica a un estado cuántico, realizas $\ket{\psi'} = U \ket{\psi}$. Extendiendo dicha operación, se obtiene $\ket{\psi'} = \alpha_0' \ket{0} + \alpha_1' \ket{1}$. Aunque se aplique alguna puerta cuántica, se sigue manteniendo la ecuación $|\alpha_0'|^2 + |\alpha_1'|^2 = 1$.\\
+
+Las puertas cuánticas para un único qubit son:
+
+\begin{itemize}
+    \item \textbf{Pauli I:} Se le considera una extensión del conjunto de matrices de Pauli. La puerta viene denotada por la matriz identidad $I$.
+          \[
+              I = \begin{bmatrix}
+                  1 & 0 \\
+                  0 & 1
+              \end{bmatrix}
+          \]
+
+    \item \textbf{Pauli X:} Se conoce también como la puerta NOT. La representación matricial de dicha puerta es:
+          \[
+              X = \begin{bmatrix}
+                  0 & 1 \\
+                  1 & 0
+              \end{bmatrix}
+          \]
+
+          Cuando se aplica la puerta de Pauli X, el resultado es que el $\ket{0}$ y $\ket{1}$ se invierten.
+
+    \item \textbf{Pauli Y:} La representación matricial de esta puerta es:
+          \[
+              Y = \begin{bmatrix}
+                  0 & -i \\
+                  i & 0
+              \end{bmatrix}
+          \]
+
+          Si un quibit en superposición $\ket{\psi} = \alpha_1\ket{0} + \alpha_2\ket{1}$ entra en la puerta Y, el resultado es:
+          \[
+              Y\ket{\psi} = \begin{bmatrix} 0 & -i \\ i & 0 \end{bmatrix} \begin{bmatrix} \alpha_1 \\ \alpha_2 \end{bmatrix} = \begin{bmatrix} -i\alpha_2 \\ i\alpha_1 \end{bmatrix} = -i\alpha_2\ket{0} + i\alpha_1\ket{1}
+          \]
+
+    \item \textbf{Pauli Z:} La representación matricial es:
+          \[
+              Z = \begin{bmatrix}
+                  1 & 0  \\
+                  0 & -1
+              \end{bmatrix}
+          \]
+
+          Cuando la puerta Pauli Z opera sobre un qubit, la fase cambia. Matemáticamente al entrar un qubit en estado de superposición $\ket{\psi} = \alpha_1\ket{0} + \alpha_2\ket{1}$ por la puerta Z, el resultado es el siguiente:
+          \[
+              Z\ket{\psi} = \begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix} \begin{bmatrix} \alpha_1 \\ \alpha_2 \end{bmatrix} = \begin{bmatrix} \alpha_1 \\ -\alpha_2 \end{bmatrix} = \alpha_1\ket{0} - \alpha_2\ket{1}
+          \]
+
+    \item \textbf{Puerta Hadamard (H):} Actúa sobre un qubit definido, al actuar, produce un estado de superposición como salida. La forma matricial es:
+          \[
+              H = \frac{1}{\sqrt{2}}\begin{bmatrix}
+                  1 & 1  \\
+                  1 & -1
+              \end{bmatrix}
+          \]
+
+          Si un qubit en estado de superposición $\ket{\psi} = \alpha_1\ket{0} + \alpha_2\ket{1}$ atraviesa esta puerta el resultado es:
+          \[
+              H\ket{\psi} = \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix} \begin{bmatrix} \alpha_1 \\ \alpha_2 \end{bmatrix} = \frac{1}{\sqrt{2}}\begin{bmatrix} \alpha_1 + \alpha_2 \\ \alpha_1 - \alpha_2 \end{bmatrix} = \left(\frac{\alpha_1 + \alpha_2}{\sqrt{2}}\right)\ket{0} + \left(\frac{\alpha_1 - \alpha_2}{\sqrt{2}}\right)\ket{1}
+          \]
+\end{itemize}
