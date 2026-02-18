@@ -1,5 +1,18 @@
 \chapter{Representación Vectorial de Palabras (Word Embeddings)}
-
 \section{Concepto de Embedding}
 
 \section{Espacios vectoriales y similitud semántica}
+
+El espacio semántico \cite{worth_word_embeddings_2023} se define geométrica y algebraicamente como un espacio de $N$ dimensiones, donde $N$ representa el número de características (\textit{features}). En las aplicaciones de aprendizaje automático para el \glsentrytext{pln}, estas características son típicamente palabras, n-gramas o frases completas.
+
+Este espacio acota matemáticamente tanto el dominio del problema como el dominio de la solución. En el caso particular de los \textit{word embeddings}, una variante moderna de vectorización textual, las dimensiones son aprendidas por el propio modelo para asegurar que este exhiba ciertas propiedades; propiedades que son función de lo que se conoce como la \textbf{hipótesis distribucional}.
+
+\section{Paralelismo entre Espacio Semántico y Espacio de Hilbert}
+
+Existe una analogía natural entre el espacio semántico clásico y el formalismo matemático de la mecánica cuántica.
+
+En el \glsentrytext{pln} clásico, modelamos el significado de las palabras mapeándolas a vectores en un espacio vectorial real ($\mathbb{R}^n$). En la computación cuántica, operamos con estados cuánticos que "habitan" en un espacio vectorial complejo con producto interno, conocido formalmente como **Espacio de Hilbert** ($\mathcal{H}$).
+
+Mientras que el espacio semántico clásico asigna vectores de características fijas, el Espacio de Hilbert ofrece un marco matemático mucho más rico. Los estados cuánticos en este espacio pueden existir en superposición y estar entrelazados, propiedades fundamentales que permiten representar la ambigüedad y la composición del lenguaje de una manera que los espacios vectoriales clásicos no pueden replicar eficientemente.
+
+En el contexto del \glsentrytext{plnc}, la propuesta es mapear las palabras no a simples vectores reales, sino a estados cuánticos dentro de este Espacio de Hilbert. Esto permite que la gramática y el significado se combinen utilizando operaciones tensoriales y evolución unitaria, aprovechando la estructura exponencial del espacio de estados cuánticos para procesar el lenguaje.

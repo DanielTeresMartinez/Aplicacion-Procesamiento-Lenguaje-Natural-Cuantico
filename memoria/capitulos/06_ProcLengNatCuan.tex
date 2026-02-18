@@ -12,10 +12,68 @@ Para afrontar estos retos, el \glsentrytext{plnc} aprovecha fenómenos de la mec
 
 No obstante, hay que tener en cuenta que, aunque teóricamente el \glsentrytext{plnc} puede resolver estos problemas, aún no se ha podido realizar una comparación a gran escala en hardware real (sin usar simuladores) frente a la computación clásica. Los modelos cuánticos actuales se han implementado sobre corpus pequeños, por lo que todavía no representan la escala completa que maneja un \glsentrytext{llm} moderno.
 
-\section{Paralelismo entre Espacio Semántico y Espacio de Hilbert}
-
 \section{Codificación de información clásica en estados cuánticos}
 
-\subsection{Basis Encoding y Amplitude Encoding}
+Una de las hipótesis fundamentales que motiva la intersección entre el procesamiento de lenguaje natural y la computación cuántica es la existencia de una relación estructural directa entre las características lingüísticas (sintáctica y semántica) y los estados cuánticos.
+
+El framework \gls{discocat} \cite{wu2019categoricalcompositionaldistributionalmodelling} es el más conocido en formalizar esta relación. Nace de proponer la unificación de los dos enfoques clásicos del significado:
+\begin{itemize}
+  \item \textbf{Distribucional:} Basado en la estadística y el contexto, que es la base de los vectores de palabras modernos.
+  \item \textbf{Composicional:} Basado en la estructura gramatical, donde el significado de una frase depende de sus partes y de cómo se combinan (reglas sintácticas).
+\end{itemize}
+
+La relevancia de DisCoCat para el \glsentrytext{plnc} radica en que modela el lenguaje utilizando diagramas de palabras y productos tensoriales, una estructura matemática que es a la que describe a su vez la computación cuántica. Esto sugiere que los ordenadores cuánticos son, de manera nativa, idóneos para procesar el lenguaje natural.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.6\linewidth]{imagenes/dani_come_pizza_discocat.png}
+  \caption{Diagrama de la oración "Dani come pizza" en el formalismo DisCoCat.}
+  \label{fig:DisCoCat_Dani}
+\end{figure}
+
+En la imagen, las cajas representan el significado de las palabras que se transmiten mediante los "cables", esto es similar a la técnica de \gls{dpt} muy popular en la literatura lingüística. En la frase, el sujeto es "Dani", mientras que "pizza" es el objeto, ambas palabras se relacionan mediante el verbo "come" y la combinación de estas palabras, crean el significado conjunto de la frase. Con DisCoCat, el significado de la oración se construye utilizando una gramática preagrupada mediante composición de productos tensoriales. Es decir, quedaría representado de la siguiente manera:
+
+\[
+  (\overrightarrow{\text{Dani}} \otimes \overrightarrow{\text{suj}}) \otimes \overrightarrow{\text{come}} \otimes (\overrightarrow{\text{pizza}} \otimes \overrightarrow{\text{obj}})
+\]
+
+Este vector generado en el espacio de productos tensoriales, se puede considerar como el significado de la oración "Dani come pizza". Por ende, se dice que este framework lo ha expresado en términos de computación cuántica.
+
+Cabe destacar que, aunque el modelo DisCoCat original funciona perfectamente sin referencias explícitas a la teoría cuántica (a pesar de originarse en el formalismo de la \gls{cqm}). La novedad yace en el argumento de que el \glsentrytext{plnc} puede considerarse **"nativo cuántico"**.
+
+Esto se debe a que la teoría cuántica y el lenguaje natural comparten una misma estructura de interacción y el uso fundamental de espacios vectoriales para describir sus estados. Esta estructura de interacción determina por completo la estructura los procesos, incluyendo la especificación de los espacios donde "viven" los estados. Esta coincidencia estructural implica que el lenguaje natural podría encajar de manera más natural y eficiente en hardware cuántico que en hardware clásico.
+
+\subsection{Técnicas de codificación de datos clásicos a estados cuánticos}
+
+Al igual que en computación clásica la información necesita ser codificada de manera que los modelos pueda entender los datos que se le proporciona y así trabajar con ellos, la computación cuántica necesita poder codificar los datos de la computación clásica (texto en este caso, ya que estamos dentro del ámbito de \glsentrytext{pln} y \glsentrytext{plnc}), a estados cuánticos. Para ello existe diversas técnicas que son:
+
+\begin{itemize}
+  \item \textbf{Basis Encoding:} Utiliza $n$ qubits. Complejidad $O(1)$. Simple, entradas cortas y simbólicas.
+  \item \textbf{Angle Encoding:} Utiliza $n$ qubits. Complejidad $O(n)$. Resiliente al ruido, vectores de características pequeños.
+  \item \textbf{Amplitude Encoding:} Utiliza $\log_2(n)$ qubits. Complejidad $O(2^n)$. Eficiente en memoria, vectores de frases completas.
+  \item \textbf{Hamiltonian Encoding:} Utiliza $\log_2(n)$ qubits. Complejidad $O(t)$. Estructura de grafos, análisis sintáctico (parsing), traducción.
+\end{itemize}
+
+De todas estas técnicas, se ha optado por implementar la técnica de \textit{Basis Encoding} \cite{quantumzeitgeist_encoding_overview}. Este tipo de codificación se utiliza principalmente cuando un número real debe ser matemáticamente manipulado en un algoritmo cuántico. Su funcionamiento consiste en representar un número real como un número binario y luego transformarlo en un estado cuántico en la base computacional.
+
+El estado cuántico embebido es la traducción bit a bit de una cadena binaria a los estados correspondientes de los subsistemas cuánticos. Por lo tanto, un bit de información clásica está representado por un subsistema cuántico. Actuar sobre características binarias codificadas como qubits otorga mayor flexibilidad computacional para diseñar algoritmos cuánticos.
+
+Supongamos que queremos codificar la frase "María estudia medicina" utilizando \textit{Basis Encoding}. Primero, definimos un vocabulario simplificado donde asignamos un índice entero único a cada palabra y fijamos una longitud de $\tau = 5$ bits por palabra (lo que permitiría un vocabulario de hasta $2^5 = 32$ palabras).
+
+\begin{itemize}
+  \item \textit{María} $\rightarrow$ Índice 3 $\rightarrow$ \texttt{00011}
+  \item \textit{estudia} $\rightarrow$ Índice 12 $\rightarrow$ \texttt{01100}
+  \item \textit{medicina} $\rightarrow$ Índice 21 $\rightarrow$ \texttt{10101}
+\end{itemize}
+
+El vector de características de la frase corresponde entonces a la concatenación de estas secuencias binarias: $b = \texttt{00011 01100 10101}$.
+
+Finalmente, esta secuencia se representa mediante el estado cuántico conjunto en la base computacional:
+
+\[
+  \ket{\psi}_{\text{frase}} = \ket{00011} \otimes \ket{01100} \otimes \ket{10101} = \ket{00011\;01100\;10101}
+\]
+
+De esta forma, hemos codificado una frase de lengua clásica directamente en un estado cuántico en la base computacional.
 
 \section{Circuitos Cuánticos Variacionales (\glsentrytext{vqc}) como modelos de aprendizaje}
