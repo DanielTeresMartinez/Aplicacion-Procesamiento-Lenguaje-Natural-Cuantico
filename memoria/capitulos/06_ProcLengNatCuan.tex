@@ -26,7 +26,7 @@ La relevancia de DisCoCat para el \glsentrytext{plnc} radica en que modela el le
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=0.6\linewidth]{imagenes/dani_come_pizza_discocat.png}
+  \includegraphics[width=0.4\linewidth]{imagenes/dani_come_pizza_discocat.png}
   \caption{Diagrama de la oración "Dani come pizza" en el formalismo DisCoCat.}
   \label{fig:DisCoCat_Dani}
 \end{figure}
@@ -39,7 +39,7 @@ En la imagen, las cajas representan el significado de las palabras que se transm
 
 Este vector generado en el espacio de productos tensoriales, se puede considerar como el significado de la oración "Dani come pizza". Por ende, se dice que este framework lo ha expresado en términos de computación cuántica.
 
-Cabe destacar que, aunque el modelo DisCoCat original funciona perfectamente sin referencias explícitas a la teoría cuántica (a pesar de originarse en el formalismo de la \gls{cqm}). La novedad yace en el argumento de que el \glsentrytext{plnc} puede considerarse **"nativo cuántico"**.
+Cabe destacar que, aunque el modelo DisCoCat original funciona perfectamente sin referencias explícitas a la teoría cuántica (a pesar de originarse en el formalismo de la \gls{cqm}). La novedad yace en el argumento de que el \glsentrytext{plnc} puede considerarse "nativo cuántico".
 
 Esto se debe a que la teoría cuántica y el lenguaje natural comparten una misma estructura de interacción y el uso fundamental de espacios vectoriales para describir sus estados. Esta estructura de interacción determina por completo la estructura los procesos, incluyendo la especificación de los espacios donde "viven" los estados. Esta coincidencia estructural implica que el lenguaje natural podría encajar de manera más natural y eficiente en hardware cuántico que en hardware clásico.
 
@@ -76,4 +76,44 @@ Finalmente, esta secuencia se representa mediante el estado cuántico conjunto e
 
 De esta forma, hemos codificado una frase de lengua clásica directamente en un estado cuántico en la base computacional.
 
-\section{Circuitos Cuánticos Variacionales (\glsentrytext{vqc}) como modelos de aprendizaje}
+\section{Circuitos Variacionales Cuánticos (\glsentrytext{cvc}) como modelos de aprendizaje}
+
+En 2016, se tuvo acceso al primer ordenador cuántico en la nube aunque el ruido y las limitaciones
+de quibits de las que se disponía, hacía que fuera difícil implementar algoritmos cuánticos.
+
+A pesar de ello, hubo una emoción muy grande con lo que se podría hacer con estos nuevos ordenadores llamados \glsentrytext{nisq}. Estos nuevos ordenadores tenían entre 50 y 100 \glsentryplural{qubit}, lo que les permitía sobrepasar en rendimiento a los mejores superordenadores clásicos en algunas áreas matemáticas (METER REFERENCIAS 7 Y 8 DEL PDF DOWNLOADS/1880487.pdf).
+
+Los \glsentrytext{cvc} nacieron como la mejor estrategia para hacer frente a los ordenadores \glsentrytext{nisq}. Debido a las limitaciones de estos dipsositivos, se utilizó la estrategia de optimización basado en el aprendizaje. Es decir, no son más que una analogía cuántica a los técnicas existentes del campo de \glsentrytext{ml} como pueden ser las redes neuronales.
+
+En definitiva, son algoritmos cuánticos que tienen parámetros libres \cite{pennylane_variational_circuit}. Al igual que cualquier otro circuito cuántico estándar, se necesita hacer uso de estos tres conceptos básicos:
+
+\begin{enumerate}
+  \item Preparación con un \textbf{estado inicial} fijo.
+  \item Un \textbf{circuito cuántico} $U(\theta)$ parametrizado con un conjunto de parámetros libres $\theta$.
+  \item \textbf{Medición} de un observable $\hat{B}$ en la salida. Este observable puede estar compuesto por varios observables cada uno de manera local a un cable del circuito, o bien, a un conjunto de cables del circuito.
+\end{enumerate}
+
+Normalmente, los valores esperados $f(\theta) = \langle 0 | U^\dagger(\theta) \hat{B} U(\theta) | 0 \rangle$ de uno o varios circuitos, definen un coste escalar para la tarea específica. Los parámetros libres $\theta = (\theta_1, \theta_2, \dots)$ son ajustados para optimizar esta función de coste.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.6]{imagenes/costeVQC.png}
+  \caption{Coste de un Circuito Cuántico Variacional, imagen obtenida de: \cite{pennylane_variational_circuit}}
+  \label{fig:costeVQC}
+\end{figure}
+
+Los circuitos cuánticos variacionales son entrenados mediante un algoritmo de optimización clásico que realiza consultas al hardware cuántico. La optimización suele ser un esquema iterativo que busca mejores candidatos para los parámetros en cada paso.
+
+Los parámetros variacionales $\theta$, posiblemente junto con un conjunto adicional de parámetros no adaptables $x = (x_1, x_2, \dots)$, entran en el circuito cuántico como argumentos para las puertas del circuito. Esto nos permite convertir \textit{información clásica} (los valores $\theta$ y $x$) en \textit{información cuántica} (el estado cuántico $U(x; \theta)|0\rangle$). Como veremos en el ejemplo a continuación, los parámetros de puerta no adaptables suelen desempeñar el papel de \textit{entradas de datos} en el aprendizaje automático cuántico.
+
+La información cuántica se convierte de nuevo en información clásica evaluando el valor esperado del observable $\hat{B}$,
+\[
+  f(x; \theta) = \langle \hat{B} \rangle = \langle 0| U^\dagger(x; \theta) \hat{B} U(x; \theta) |0\rangle.
+\]
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=0.13]{imagenes/circuitoVQCArgumentos.png}
+  \caption{Circuito variacional cuántico con parámetros tuneables $x$ y no tuneables $\theta$. Imagen obtenida de: \cite{pennylane_variational_circuit}}
+  \label{fig:circuitoVQCArgumentos}
+\end{figure}
