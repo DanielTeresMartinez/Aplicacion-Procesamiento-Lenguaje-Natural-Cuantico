@@ -9,6 +9,9 @@ Practice/venv/
 !memoria/
 !memoria/**
 
+!memoria/.agent/
+!memoria/.agent/**
+
 memoria/*.acn
 memoria/*.acr
 memoria/*.alg
