@@ -1,5 +1,12 @@
 \chapter{Representación Vectorial de Palabras (Word Embeddings)}
 
+Los word embeddings son una de las técnicas más usadas en \glsentrytext{nlp}. Gracias a los word embeddings, existen lenguajes de modelo como GPT-3, GPT-4, etc.
+
+Estos algoritmos son rápidos y pueden generar secuencias de lenguaje y realizar otras tareas derivadas con alta precisión, incluyendo la comprensión contextual, propiedades semánticas y sintácticas, así como la relación lineal entre las palabras.
+
+En esencia, estos modelos utilizan los embeddings como un método para extraer patrones de secuencias de texto o voz. Pero, ¿cómo lo hacen?
+
+En las siguientes secciones se explorará en mayor profundidad los word embeddings así como conceptos más avanzados de estos.
 
 \section{Introducción al concepto de \textit{Embedding}}
 
@@ -66,34 +73,86 @@ El modelo híbrido con más popularidad en este ámbito es el de \textbf{GloVe (
   \label{fig:word_embedding_counting_model}
 \end{figure}
 
-\section{Espacios vectoriales y similitud semántica}
+\section{Mecanismos geométricos de los embeddings}
 
-El espacio semántico \cite{worth_word_embeddings_2023} se define geométrica y algebraicamente como un espacio de $N$ dimensiones, donde $N$ representa el número de características. En las aplicaciones de aprendizaje automático para el \glsentrytext{pln}, estas características son típicamente palabras, n-gramas o frases completas.
+Una vez comprendido que un embedding proyecta palabras en un espacio continuo donde la cercanía espacial equivale a similitud semántica, surgen dos interrogantes fundamentales en el diseño de estos sistemas: ¿cómo se estructuran los ejes de este espacio para encapsular el significado complejo del lenguaje? y ¿cómo se calcula con precisión matemática la distancia entre dos vectores?
 
-Este espacio acota matemáticamente tanto el dominio del problema como el dominio de la solución. En el caso particular de los \textit{word embeddings}, las dimensiones son aprendidas por el propio modelo para asegurar que este exhiba ciertas propiedades; propiedades que son función de lo que se conoce como la \textbf{hipótesis distribucional}.
-
-La hipótesis distribucional establece que las palabras que aparecen en contextos similares tienden a tener significados análogos. Para que el espacio vectorial refleje geométricamente esta propiedad sin que colapse analíticamente por culpa de tener miles o millones de características, no basta con usar métricas simples como el recuento de palabras. Es necesario transformar los datos basándose en el uso de \textbf{información latente}, logrando destilar el significado abstracto en unos pocos ejes temáticos.
-
-Una vez que las palabras se han convertido en vectores y se han posicionado en este espacio latente optimizado, el siguiente paso natural es medir qué tan afines son sus significados. Esta similitud semántica se traduce matemáticamente en calcular la \textbf{distancia} geométrica que separa a ambos vectores.
-
-A continuación, se detallan estos dos principios fundamentales para el funcionamiento profundo de los \textit{embeddings}.
-
-\subsection{Información Latente}
-
-% Aquí puedes adaptar la parte del texto que hablaba de "Latent information" (pasar del bag-of-words con perro/gato a los ejes latentes como "feline" o "mamífero")
-
+Para responder a la primera cuestión, es necesario analizar el papel de la \textbf{información latente} \cite{henner_intuitive_embeddings_2023}, la cual permite pasar de representaciones dispersas a vectores densos basados en atributos ocultos. Para la segunda, se debe explorar \textbf{métricas de distancia} específicas que sean efectivas en espacios de tantas dimensiones.
 
 \subsection{Métricas de Distancia}
 
-% Aquí puedes adaptar la parte del texto de "Distance" (explicar la limitación de la distancia euclídea y por qué se normaliza con la distancia coseno)
+Como se explicó con anterioridad, una de las características principales de un embedding representado en el espacio, es que mantiene la distancia. Los vectores de alta dimensionalidad que se utilizan en los embeddings de palabra (así como en los \glsentryplural{llm}), no son intuitivos. Pero la intuición espacial se mantiene igual mientras reducimos la escala de estos.
+
+Un ejemplo básico es el siguiente: imagina un plano de planta bidimensional de una biblioteca de una sola planta. Los usuarios de la biblioteca son amantes de los gatos, de los perros, o se sitúan en algún punto intermedio. El objetivo es colocar los libros sobre gatos cerca de otros libros de gatos, y los libros sobre perros cerca de otros libros de perros.
+
+El enfoque más sencillo se conoce como el modelo de bolsa de palabras. Consiste en establecer un eje de perros a lo largo de una pared y un eje de gatos perpendicular a él. A continuación, se cuentan las ocurrencias de las palabras "gato" y "perro" en cada libro y se ubica dicho libro en su punto correspondiente dentro del sistema de coordenadas $(\text{perro}_x, \text{gato}_y)$.
+
+Pensemos ahora en un sistema de recomendación sencillo. A partir de la selección anterior de un libro, ¿qué se podría sugerir a continuación? Bajo la suposición (muy simplificada) de que estas dos dimensiones capturan adecuadamente las preferencias del lector, basta con buscar el libro que se encuentre más cerca. En este caso, el sentido intuitivo de cercanía es la distancia euclídea —el camino más corto entre dos libros—:
+
+\[
+  d(\mathbf{p}, \mathbf{q}) = \sqrt{\sum_{i=1}^{n} (q_i - p_i)^2}
+\]
+
+Siguiendo el razonamiento lógico, si se analiza a través de la distancia euclídea, se pondrá el libro $(\text{perro}_5, \text{gato}_1)$ más cerca del libro $(\text{perro}_1, \text{gato}_5)$ que de un libro mucho más extenso o enciclopédico como $(\text{perro}_{100}, \text{gato}_1)$. Esto plantea un grave problema semántico: un lector de libros cortos de perros con proporción $(5, 1)$ seguramente prefiera a continuación una enciclopedia gigante sobre perros de $(100, 1)$ antes que un libro corto sobre gatos de $(1, 5)$. La métrica euclídea penaliza severamente la longitud en palabras del libro (magnitud) omitiendo por completo el reparto del tema de este (la proporción).
+
+Cuando resulta más relevante concentrarse en los pesos relativos temáticos que en sus magnitudes absolutas, los vectores se normalizan. Esto se logra dividiendo en ambos la cantidad de apariciones de perros y gatos para obtener la conocida \textbf{similitud coseno} \cite{porter_understanding_2023}. De manera más visual, este cálculo equivale geométricamente a proyectar todos los puntos disponibles en el espacio sobre una circunferencia de radio unidad (es decir, que el módulo de todos los vectores es $1$) y medir la distancia a lo largo del arco que los une. Al ignorar la longitud del documento orginal, se evalúa únicamente la dirección del vector respecto al origen, logrando una métrica de similitud mucho más robusta y natural al lenguaje humano.
+
+Matemáticamente, esta métrica se define mediante el cociente del producto escalar de dos determinados vectores entre el producto de sus magnitudes:
+
+\[
+  \text{similitud}(\mathbf{p}, \mathbf{q}) = \cos(\theta) = \frac{\mathbf{p} \cdot \mathbf{q}}{\|\mathbf{p}\| \|\mathbf{q}\|} = \frac{\sum_{i=1}^{n} p_i q_i}{\sqrt{\sum_{i=1}^{n} p_i^2} \sqrt{\sum_{i=1}^{n} q_i^2}}
+\]
+
+Un pensamiento intuitivo para entender la fórmula de similitud coseno, es que si dos vectores apuntan en la misma dirección, el ángulo entre ellos es 0 por lo que le coseno es 1. Si son ortogonales, significa que no comparten una 'direccionalidad', el coseno es 0.
+
+En el contexto que nos encontramos de embeddings de palabras, hay que pensar que cada vector actúa como una flecha que apunta desde el origen hasta la posición de la palabra en nuestra librería imaginada. Palabas que son similar semánticamente, tendrán vectores que apuntan en direcciones similares, es decir, la similitud de coseno será mayor.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.6\linewidth]{imagenes/ejemploSimilitudCoseno.png}
+  \caption{Ejemplo visual de la representación de vectores y su cercanía empleando la similitud coseno. Fuente: \url{https://x.com/levikul09}.}
+  \label{fig:ejemploSimilitudCoseno}
+\end{figure}
+
+\subsection{Información Latente}
+
+Cualquier texto suele emplear sinónimos o términos relacionados para referirse a un mismo concepto; por ejemplo, volviendo al mismo ejemplo de antes, un libro sobre perros utilizará frecuentemente palabras como "canino". En un modelo básico de bolsa de palabras, incorporar este nuevo vocablo requiere añadir una dimensión perpendicular adicional a las ya existentes, transformando nuestro anterior sistema de coordenadas en $(\text{perro}_x, \text{gato}_y, \text{canino}_z)$.
+
+Bajo este mismo principio, resulta muy sencillo continuar agregando nuevas dimensiones para representar más palabras, consiguiendo un espacio multidimensional $(\text{perro}_x, \text{gato}_y, \text{canino}_z, \text{felino}_w)$. Sin embargo, este enfoque tan básico conlleva dos grandes problemas que imposibilitan su aplicación a gran escala: rompe de inmediato la interpretabilidad espacial (como lo era la sencilla idea inicial de una biblioteca bidimensional) y provoca una explosión en los requisitos necesarios para el cómputo.
+
+Resulta evidente que, a nivel computacional, esta aproximación es extremadamente ineficiente a medida que aumenta el tamaño del vocabulario. El español, por ejemplo, cuenta con más de 93.000 palabras según el Diccionario de la Real Academia Española \cite{espanol_palabras_2022}. Manejar vectores con decenas de miles de dimensiones implica calcular una ingente cantidad de combinatorias. Además, se agrava el problema de la dispersión de datos: en un documento dado, la gran mayoría del vocabulario total no aparecerá, rellenando los vectores con innumerables ceros que penalizan drásticamente el rendimiento de los modelos estadísticos y de aprendizaje automático.
+
+La solución a la alta dimensionalidad radica en abstraer el conteo literal hacia ejes que representen verdaderos atributos semánticos. Si el modelo es capaz de identificar la relación semántica entre "gato" y "felino", podría agrupar la contribución de ambas en una única variable latente compartida. Esto no solo comprime el tamaño de los vectores, haciendo a los algoritmos mucho más eficientes y veloces, sino que también genera una representación geométrica mucho más afín a la intuición humana.
+
+De la misma forma, términos más amplios como "mascota" o "mamífero" representan características semánticas compartidas simultáneamente por "perro" y "gato". En un espacio latente bien optimizado, estas palabras genéricas actúan como atributos comunes que vinculan y aproximan ambos animales en ciertas dimensiones del espacio. Por otro lado, si la elevada reducción dimensional provocara una superposición excesiva donde términos que debieran ser distintos terminen colapsando —por ejemplo, confundiéndose ambos en el mismo punto exacto—, esta carencia de precisión podría mitigarse introduciendo nuevos ejes latentes. Estos nuevos atributos ocultos de diferenciación (por ejemplo, proyectando qué palabras se relacionan estrechamente con "mesa" frente a los animales vivos mencionados anteriormente) permiten desenredar los agrupamientos de datos semánticos complejos.
 
 
 \section{Paralelismo entre Espacio Semántico y Espacio de Hilbert}
 
-Existe una analogía natural entre el espacio semántico clásico y el formalismo matemático de la mecánica cuántica.
+Como se vio en capítulos anteriores, los estados en computación cuántica están representados por vectores definidos en un espacio complejo, el cual se conoce formalmente como \textbf{espacio de Hilbert} ($\mathcal{H}$). Por su parte, en el \glsentrytext{pln} clásico se modela el significado de las palabras mapeándolas a vectores en un espacio vectorial puramente real ($\mathbb{R}^n$).
 
-En el \glsentrytext{pln} clásico, modelamos el significado de las palabras mapeándolas a vectores en un espacio vectorial real ($\mathbb{R}^n$). En la computación cuántica, operamos con estados cuánticos que "habitan" en un espacio vectorial complejo con producto interno, conocido formalmente como **Espacio de Hilbert** ($\mathcal{H}$).
+A partir de esta analogía natural, surge la posibilidad de modelar las palabras y sus significados como estados dentro del propio espacio de Hilbert \cite{wittek_combining_semantics}.
 
-Mientras que el espacio semántico clásico asigna vectores de características fijas, el Espacio de Hilbert ofrece un marco matemático mucho más rico. Los estados cuánticos en este espacio pueden existir en superposición y estar entrelazados, propiedades fundamentales que permiten representar la ambigüedad y la composición del lenguaje de una manera que los espacios vectoriales clásicos no pueden replicar eficientemente.
+\subsection{Codificación multidimensional: Forma y Contenido}
 
-En el contexto del \glsentrytext{plnc}, la propuesta es mapear las palabras no a simples vectores reales, sino a estados cuánticos dentro de este Espacio de Hilbert. Esto permite que la gramática y el significado se combinen utilizando operaciones tensoriales y evolución unitaria, aprovechando la estructura exponencial del espacio de estados cuánticos para procesar el lenguaje.
+En un espacio semántico tradicional, el significado de una palabra adquiere "sustancia" al ubicarse en unas coordenadas determinadas que definen su forma. Sin embargo, al restringirse al uso exclusivo de los números reales, el \glsentrytext{pln} clásico queda comúnmente limitado a capturar únicamente su \textit{semántica distribucional} (las estadísticas y frecuencias con las que coocurre junto a otras palabras).
+
+Al trasladar el procesamiento de lenguaje al dominio cuántico de Hilbert, las propiedades exclusivas de los números complejos permiten unificar distintos niveles de información semántica en un único vector de estado. Esto logra vincular el uso externo del lenguaje (su \textit{forma}) directamente con su fundamento conceptual intrínseco (su \textit{contenido}). Para ello, se propone una división explícita de las dimensiones de almacenamiento:
+
+\begin{itemize}
+  \item \textbf{Componente Real:} Se utiliza de la misma forma para codificar la \textit{semántica distribucional}. Captura el uso estadístico clásico, determinando el comportamiento de la palabra estrictamente en base a su contexto y al número de interacciones o apariciones que realiza con respecto a las palabras que le rodean en los distintos documentos analizados.
+  \item \textbf{Componente Imaginaria:} Se reserva de forma ortogonal para alojar la \textit{semántica referencial u ontológica}. Representa los fundamentos preexistentes, los conceptos formales o el núcleo estricto que designa la propia palabra (el significado que podría extraerse de ontologías taxonómicas u organizaciones como base de conocimientos, por ejemplo \textit{WordNet} o diagramas \textit{SNOMED-CT}).
+\end{itemize}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.5\linewidth]{imagenes/componentesEmbeddingsCuanticos.jpg}
+  \caption{Esquema del espacio documental complejo vectorial unificando la semántica distribucional y referencial en el espacio de Hilbert. Fuente: \cite{wittek_combining_semantics}.}
+  \label{fig:componentesEmbeddingsCuanticos}
+\end{figure}
+
+\subsection{Afinidad Cuántica, Superposiciones y Fases}
+
+En el apartado clásico se demostró que la afinidad semántica puede medirse mediante distintas distancias sobre un espacio real continuo. No obstante, al emplear el espacio de Hilbert esta medición no solo relaciona dos palabras distintas, sino que va un paso más allá. Al tratar con números complejos, es posible medir la distancia cuantitativa que existe entre la parte estadística de uso de la palabra (su componente real) y su definición conceptual referencial alojada en su componente imaginaria.
+
+Para este análisis se evalúa la \textbf{fase o ángulo} que se forma interactivamente entre ambas componentes, logrando que el producto interno refleje tanto la componente real como imaginaria del contenido.
