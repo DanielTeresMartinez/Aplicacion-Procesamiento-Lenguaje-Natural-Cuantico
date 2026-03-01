@@ -68,7 +68,7 @@ El proceso de entrenamiento de esta red neuronal superficial funciona de la sigu
 
 Los resultados de estas probabilidades indican cuán probable es que cada término del vocabulario aparezca en las proximidades de la palabra de entrada. Por ejemplo, si la palabra de entrada proporcionada a la red ya entrenada es \textit{reino}, las probabilidades serán considerablemente mayores para palabras como \textit{España} o \textit{Inglaterra} que para términos sin relación semántica como \textit{lápiz} o \textit{mango}.
 
-\subsubsection{Detalles del modelo Skip-gram}
+\subsubsection{Detalles del modelo básico Skip-gram}
 
 Dado que una red neuronal no puede procesar cadenas de texto directamente, cada palabra se representa mediante un \textit{vector one-hot} (una forma de codificación sencilla aunque no la única). Consiste en un vector de tantas componentes como palabras tiene el vocabulario (por ejemplo, 10.000), donde únicamente la posición correspondiente a la palabra de entrada vale 1 y el resto valen 0.
 

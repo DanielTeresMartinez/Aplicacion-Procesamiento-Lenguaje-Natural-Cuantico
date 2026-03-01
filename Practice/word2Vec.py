@@ -3,15 +3,13 @@ from itertools import product
 from gensim.models import Word2Vec
 from gensim.models.word2vec import LineSentence
 from gensim.models.callbacks import CallbackAny2Vec
-from sklearn.decomposition import PCA
 from scipy.stats import spearmanr
-import numpy as np
 import matplotlib.pyplot as plt
 
 sentences = list(LineSentence("smallCorpora.txt"))
 
 FINE_TUNING = False
-FINAL_EPOCHS = 5_000
+FINAL_EPOCHS = 30_000  # article spec
 
 ground_truth = [
     ("dog", "cat", 1.0),
@@ -67,11 +65,11 @@ class LossCallback(CallbackAny2Vec):
 
 # ── Hyperparameter selection ──────────────────────────────────────────────────
 if FINE_TUNING:
+    # vector_size is fixed to 2 (article spec); tune the remaining hyperparams
     param_grid = {
-        "vector_size": [15, 20, 25, 30],
-        "window": [2, 3, 4],
-        "alpha": [0.001, 0.005, 0.009, 0.01, 0.012, 0.015, 0.02, 0.075],
-        "negative": [8, 10, 12, 15],
+        "window": [1, 2, 3, 4],
+        "alpha": [0.001, 0.005, 0.007, 0.009, 0.01, 0.012, 0.015, 0.02, 0.05],
+        "negative": [5, 8, 10, 12, 15, 20],
     }
     SEARCH_EPOCHS = 500
 
@@ -91,6 +89,7 @@ if FINE_TUNING:
         params = dict(zip(param_grid.keys(), combo))
         m = Word2Vec(
             sentences=sentences,
+            vector_size=2,
             sg=1,
             min_count=1,
             seed=42,
@@ -103,14 +102,13 @@ if FINE_TUNING:
         if rho > best_rho:
             best_rho, best_params = rho, params
 
+    best_params["vector_size"] = 2
     print(
-        f"Best params → vector_size={best_params['vector_size']}, "
-        f"window={best_params['window']}, alpha={best_params['alpha']}, "
+        f"Best params → window={best_params['window']}, alpha={best_params['alpha']}, "
         f"negative={best_params['negative']}  |  ρ = {best_rho:.4f}"
     )
 else:
-    # Best params found after grid search
-    best_params = {"vector_size": 20, "window": 3, "alpha": 0.009, "negative": 12}
+    best_params = {"vector_size": 2, "window": 3, "alpha": 0.01, "negative": 12}
 
 # ── Final model ───────────────────────────────────────────────────────────────
 loss_cb = LossCallback(ground_truth)
@@ -129,7 +127,11 @@ model = Word2Vec(
 # ── Plots ─────────────────────────────────────────────────────────────────────
 fig, axes = plt.subplots(1, 3, figsize=(16, 4))
 
-axes[0].plot(loss_cb.train_losses, color="steelblue", linewidth=0.6)
+# Training loss: subsample to ~200 points so the curve is readable
+stride = max(1, len(loss_cb.train_losses) // 200)
+epochs = range(0, len(loss_cb.train_losses), stride)
+sampled = loss_cb.train_losses[::stride]
+axes[0].plot(epochs, sampled, color="steelblue", linewidth=1.2)
 axes[0].set_title("Training loss per epoch")
 axes[0].set_xlabel("Epoch")
 axes[0].set_ylabel("Loss (delta)")
@@ -143,26 +145,40 @@ axes[1].set_xlabel("Epoch")
 axes[1].set_ylabel("1 − ρ")
 axes[1].legend()
 
+# Word embeddings: one color per word + alternating label offsets
 vocab = model.wv.index_to_key
-vectors = np.array([model.wv[w] for w in vocab])
+xs = [model.wv[w][0] for w in vocab]
+ys = [model.wv[w][1] for w in vocab]
+colors = plt.cm.tab10(range(len(vocab)))
 
-if vectors.shape[1] > 2:
-    coords = PCA(n_components=2).fit_transform(vectors)
-else:
-    coords = vectors
+_offsets = [
+    (8, 4),
+    (-50, 4),
+    (8, -14),
+    (-50, -14),
+    (8, 14),
+    (-50, 14),
+    (8, -24),
+    (-50, -24),
+]
 
-axes[2].scatter(coords[:, 0], coords[:, 1], color="mediumseagreen", zorder=2)
-for word, (xi, yi) in zip(vocab, coords):
+axes[2].scatter(xs, ys, c=colors, s=60, zorder=3)
+for i, (word, xi, yi) in enumerate(zip(vocab, xs, ys)):
+    ox, oy = _offsets[i % len(_offsets)]
     axes[2].annotate(
-        word, (xi, yi), textcoords="offset points", xytext=(5, 3), fontsize=9
+        word,
+        (xi, yi),
+        textcoords="offset points",
+        xytext=(ox, oy),
+        fontsize=8.5,
+        arrowprops=dict(arrowstyle="-", color="gray", lw=0.4),
     )
 bp = best_params
 axes[2].set_title(
-    f"2D Word Embeddings (PCA)\n"
-    f"vec={bp['vector_size']}  win={bp['window']}  α={bp['alpha']}  neg={bp['negative']}"
+    f"2D Word Embeddings\n" f"win={bp['window']}  α={bp['alpha']}  neg={bp['negative']}"
 )
-axes[2].set_xlabel("PC 1")
-axes[2].set_ylabel("PC 2")
+axes[2].set_xlabel("Dimension 1")
+axes[2].set_ylabel("Dimension 2")
 axes[2].grid(True, linestyle="--", alpha=0.4)
 
 plt.tight_layout()
