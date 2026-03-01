@@ -114,7 +114,46 @@ Cada neurona de salida produce un valor entre 0 y 1 aplicando la función $\exp(
   \label{fig:ejemplo_capa_salida_skip_gram}
 \end{figure}
 
-\section{Función de optimización y pérdida}
+\subsubsection{Mejoras aplicadas al modelo básico Skip-gram}
+
+Retomando el ejemplo anterior, con 300 dimensiones y un vocabulario de 10.000 palabras, la red neuronal dispone de dos matrices de pesos: una correspondiente a la capa oculta y otra a la capa de salida. Cada una de ellas contiene un total de $300 \times 10.000 = 3$ millones de parámetros. Para ajustar correctamente este volumen de parámetros y evitar al mismo tiempo el sobreajuste se debe disponer de conjuntos de datos de entrenamiento de gran tamaño, lo que convierte el entrenamiento del modelo básico en un proceso computacionalmente costoso.
+
+Para abordar este problema, Google publicó un segundo artículo \cite{mikolov_skipgram_phrases_2013} en el que se proponían dos innovaciones clave sobre el modelo básico:
+
+\begin{itemize}
+  \item \textbf{Submuestreo de palabras frecuentes}: se reduce la frecuencia con la que las palabras muy comunes participan en el entrenamiento, disminuyendo así el número total de ejemplos procesados.
+  \item \textbf{\textit{Negative Sampling}}: se sustituye la función de optimización original (descenso del gradiente) por una alternativa más eficiente que, en lugar de actualizar todos los pesos de la red en cada iteración, únicamente modifica un subconjunto reducido de ellos.
+\end{itemize}
+
+Estas dos mejoras demostraron que, lejos de comprometer la calidad del modelo, se conseguía una reducción del coste computacional además fr una mejora de la calidad de los vectores de palabras resultantes. Dado que en la implementación práctica de este trabajo se ha empleado el \textit{Negative Sampling} como función de optimización, su funcionamiento se describe en detalle en la sección siguiente.
+
+\section{Función de optimización}
+
+Para entender la mejora que supone \textit{Negative Sampling}, primero hay que entender la fórmula original matemática con la que se define el modelo básico de Skip-gram para luego así poder entender las mejoras que esta función de optimización ofrece \cite{tsang_skipgram_review_medium}.
+
+El objetivo principal de Skip-gram es maximizar la media de probabilidad logarítmica. Es decir, viene definido por la siguiente fórmula:
+
+\[
+  \frac{1}{T} \sum_{t=1}^{T} \sum_{\substack{-c \leq j \leq c \\ j \neq 0}} \log p(w_{t+j} \mid w_t)
+\]
+
+Donde:
+
+\begin{itemize}
+  \item $c$ es el tamaño del contexto de entrenamiento. Mayores valores de $c$ se traducen en más ejemplos de entrenamiento lo que, a su vez, ofrece una mayor precisión a costa de un mayor tiempo de entrenamiento.
+  \item $T$ es el número total de palabras del corpus de entrenamiento.
+  \item $w_t$ es una palabra de entrenamiento en la posición $t$.
+\end{itemize}
+
+La probabilidad $p(w_{t+j} \mid w_t)$ del modelo básico de Skip-gram se define mediante la función \textit{softmax} de la siguiente manera \cite{tsang_skipgram_review_medium}:
+
+\[
+  p(w_O \mid w_I) = \frac{\exp\!\left({v'_{w_O}}^{\top} v_{w_I}\right)}{\displaystyle\sum_{w=1}^{W} \exp\!\left({v'_{w}}^{\top} v_{w_I}\right)}
+\]
+
+Donde $v_w$ y $v'_w$ son respectivamente los vectores de representación de \textit{entrada} y de \textit{salida} de la palabra $w$, y $W$ es el número total de palabras del vocabulario.
+
+Esta formulación presenta un problema de escalabilidad: el coste de calcular $\nabla \log p(w_O \mid w_I)$ es proporcional a $W$, que habitualmente tiene un valor muy elevado (entre $10^5$ y $10^7$ términos), por lo que en el denominador del \textit{softmax} hay que sumar todos los valores exponenciales para todas las palabras del vocabulario. Cuando hay millones de palabras, hace que este proceso sea muy lento. Es precisamente este coste el que motiva la introducción del \textit{Negative Sampling} como función de optimización alternativa.
 
 \section{Entrenamiento y generación del espacio latente}
 
