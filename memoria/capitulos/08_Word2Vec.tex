@@ -129,9 +129,9 @@ Estas dos mejoras demostraron que, lejos de comprometer la calidad del modelo, s
 
 \section{Función de optimización}
 
-Para entender la mejora que supone \textit{Negative Sampling}, primero hay que entender la fórmula original matemática con la que se define el modelo básico de Skip-gram para luego así poder entender las mejoras que esta función de optimización ofrece \cite{tsang_skipgram_review_medium}.
+Para comprender la mejora que introduce el \textit{Negative Sampling}, es necesario partir de la formulación matemática original del modelo básico de Skip-gram y, a partir de ella, entender qué limitaciones motivan la adopción de esta nueva función de optimización \cite{tsang_skipgram_review_medium}.
 
-El objetivo principal de Skip-gram es maximizar la media de probabilidad logarítmica. Es decir, viene definido por la siguiente fórmula:
+El objetivo principal de Skip-gram es maximizar la probabilidad logarítmica promedio sobre todo el corpus de entrenamiento, lo que queda expresado mediante la siguiente fórmula:
 
 \[
   \frac{1}{T} \sum_{t=1}^{T} \sum_{\substack{-c \leq j \leq c \\ j \neq 0}} \log p(w_{t+j} \mid w_t)
@@ -140,20 +140,38 @@ El objetivo principal de Skip-gram es maximizar la media de probabilidad logarí
 Donde:
 
 \begin{itemize}
-  \item $c$ es el tamaño del contexto de entrenamiento. Mayores valores de $c$ se traducen en más ejemplos de entrenamiento lo que, a su vez, ofrece una mayor precisión a costa de un mayor tiempo de entrenamiento.
+  \item $c$ es el tamaño de la ventana de contexto. Valores más altos de $c$ generan más ejemplos de entrenamiento y, por tanto, ofrecen mayor precisión, aunque a costa de un tiempo de entrenamiento superior.
   \item $T$ es el número total de palabras del corpus de entrenamiento.
-  \item $w_t$ es una palabra de entrenamiento en la posición $t$.
+  \item $w_t$ es la palabra de entrenamiento en la posición $t$.
 \end{itemize}
 
-La probabilidad $p(w_{t+j} \mid w_t)$ del modelo básico de Skip-gram se define mediante la función \textit{softmax} de la siguiente manera \cite{tsang_skipgram_review_medium}:
+La probabilidad condicional $p(w_{t+j} \mid w_t)$ del modelo básico de Skip-gram se define mediante la función \textit{softmax} de la siguiente forma \cite{tsang_skipgram_review_medium}:
 
 \[
   p(w_O \mid w_I) = \frac{\exp\!\left({v'_{w_O}}^{\top} v_{w_I}\right)}{\displaystyle\sum_{w=1}^{W} \exp\!\left({v'_{w}}^{\top} v_{w_I}\right)}
 \]
 
-Donde $v_w$ y $v'_w$ son respectivamente los vectores de representación de \textit{entrada} y de \textit{salida} de la palabra $w$, y $W$ es el número total de palabras del vocabulario.
+Donde $v_w$ y $v'_w$ son, respectivamente, los vectores de representación de \textit{entrada} y de \textit{salida} de la palabra $w$, y $W$ es el número total de palabras del vocabulario.
 
-Esta formulación presenta un problema de escalabilidad: el coste de calcular $\nabla \log p(w_O \mid w_I)$ es proporcional a $W$, que habitualmente tiene un valor muy elevado (entre $10^5$ y $10^7$ términos), por lo que en el denominador del \textit{softmax} hay que sumar todos los valores exponenciales para todas las palabras del vocabulario. Cuando hay millones de palabras, hace que este proceso sea muy lento. Es precisamente este coste el que motiva la introducción del \textit{Negative Sampling} como función de optimización alternativa.
+Esta formulación presenta un problema de escalabilidad: el coste de calcular $\nabla \log p(w_O \mid w_I)$ es proporcional a $W$, cuyo valor suele ser muy elevado (entre $10^5$ y $10^7$ términos). Ello implica que, en el denominador del \textit{softmax}, es necesario acumular los valores exponenciales de todas las palabras del vocabulario en cada paso de entrenamiento, lo que hace que el proceso resulte prohibitivamente lento cuando el vocabulario es de gran escala. Es precisamente este coste el que motiva la introducción del \textit{Negative Sampling} como función de optimización alternativa.
 
-\section{Entrenamiento y generación del espacio latente}
+Esta nueva función de optimización persigue maximizar la similitud entre las palabras que aparecen en el mismo contexto y minimizarla cuando proceden de contextos distintos. Sin embargo, en lugar de aplicar esa minimización sobre todas las palabras del corpus, selecciona aleatoriamente $k$ palabras, denominadas \textit{muestras negativas}, y las emplea para optimizar la función objetivo \cite{karimi_negative_sampling_baeldung_2025}. La expresión de dicha función es la siguiente:
+
+\[
+  \log \sigma\!\left({v'_{w_O}}^{\!\top} v_{w_I}\right)
+  + \sum_{i=1}^{k} \mathbb{E}_{w_i \sim P_n(w)}\!\left[\log \sigma\!\left(-{v'_{w_i}}^{\!\top} v_{w_I}\right)\right]
+\]
+
+Donde $\sigma$ es la función sigmoide y $P_n(w)$ es la distribución de ruido a partir de la cual se extraen las muestras negativas. Esta distribución se calcula como la distribución unigrama de las palabras elevada a la potencia $\frac{3}{4}$, exponente elegido empíricamente en el trabajo original donde se introduce este algoritmo \cite{mikolov_skipgram_phrases_2013}:
+
+\[
+  P_n(w) = \frac{U(w)^{\frac{3}{4}}}{Z}
+\]
+
+Donde $U(w)$ es la frecuencia de aparición de la palabra $w$ en el corpus y $Z$ es la constante de normalización que garantiza que la distribución sume 1.
+
+Maximizar esta expresión conlleva maximizar el producto escalar en su primer término y minimizarlo en el segundo. En otras palabras, las palabras que aparecen en el mismo contexto se ven forzadas a adquirir representaciones vectoriales más similares entre sí, mientras que las que pertenecen a contextos distintos se ven forzadas a tener vectores menos similares \cite{karimi_negative_sampling_baeldung_2025}.
+
+En cuanto a la elección del hiperparámetro $k$, el segundo artículo de Google sobre Word2Vec \cite{mikolov_skipgram_phrases_2013} indica que un valor en el rango de 5 a 20 es adecuado para corpus de entrenamiento de tamaño reducido, mientras que para corpus de gran escala se recomienda utilizar valores de entre 2 y 5.
+
 

@@ -1,10 +1,40 @@
 \chapter{Implementación Cuántica: Algoritmo QWord2Vec}
 
-En este capítulo se propone y detalla \textit{QWord2Vec}, una adaptación cuántica del algoritmo Word2Vec. El objetivo es explorar si el uso de espacios de Hilbert y circuitos cuánticos paramétricos puede ofrecer ventajas en la calidad o eficiencia de las representaciones vectoriales de palabras.
+En el capítulo anterior se describió en detalle el algoritmo Word2Vec clásico y su variante Skip-gram, que emplea redes neuronales superficiales para aprender representaciones vectoriales de palabras a partir de grandes corpus de texto. En este capítulo se presenta \textit{QWord2Vec}, una adaptación cuántica de dicho modelo propuesta por Ohno \cite{ohno_qword2vec_2025}, cuyo objetivo es explorar si el uso de circuitos cuánticos paramétricos puede ofrecer ventajas en la calidad de las representaciones vectoriales de palabras.
+
+En este capítulo se explorarán la arquitectura del circuito cuántico, la función de coste empleada para su optimización y la estrategia híbrida clásico-cuántica utilizada durante el entrenamiento.
 
 \section{Adaptación del algoritmo al entorno cuántico}
 
+El circuito cuántico de \textit{QWord2Vec} sigue la misma estructura de Word2Vec, compuesta por una parte de \textbf{codificación} y una parte de \textbf{decodificación}. Está formado por puertas de rotación de Pauli (unitarias parametrizadas) y puertas de Pauli-X controladas para introducir entrelazamiento, organizadas en una estructura de capas con profundidad de circuito ajustable. Dado un vector \textit{one-hot} como entrada para una palabra y un vector de salida que representa su contexto \cite{ohno_qword2vec_2025}.
+
 \section{Diseño del Circuito Cuántico Parametrizado}
+
+Como se indicó con anterioridad, \textit{QWord2Vec} tiene una estructura similar al algoritmo clásico. Esto se puede apreciar en la siguiente imagen.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.9\linewidth]{imagenes/resumenCircuitoQWord2Vec.png}
+  \caption{Estructura de QWord2Vec. Fuente: \cite{ohno_qword2vec_2025}.}
+  \label{fig:resumen_circuito_qword2vec}
+\end{figure}
+
+Como se ve, hay 2 matrices unitarias $U(\theta_u)$ y $V(\theta_v)$ en la cual una es una matriz unitaria parametrizada y la otra es una matriz entrelazada unitaria $U_{\text{enta}}$ respectivamente. $n$ indica el número de qubits del sistema mientras que $n_e$ indica el número de qubits de embeddings, se debe de cumplir la restricción: $1 \leq n_e \leq n$.
+
+El estado cuántico de entrada $\ket{k}$ es un vector con codificación \textit{one-hot} (el vector de entrada usado en Word2Vec) donde se debe cumplir que $0 \leq k \leq 2^n - 1$. Al igual que en Word2Vec, el mapeo literal entre $\ket{k}$ y $\ket{\psi}$.
+
+El modelo $U(\theta_u)$ y $V(\theta_v)$ utilizan las matrices de rotación de Pauli ($R_x, R_y, R_z$) y la matriz unitaria ($U_\text{enta}$) para proporcionar el entrelazamiento cuántico de la siguiente manera:
+
+\[
+  U(\theta) = \prod_{l=1}^{L}
+  U_{\text{enta}}\,
+  R_Z\!\left(\theta_z^{L-l+1}\right)^{\otimes n}
+  R_Y\!\left(\theta_y^{L-l+1}\right)^{\otimes n}
+  R_X\!\left(\theta_x^{L-l+1}\right)^{\otimes n}
+\]
+
+Donde $L$ es la longitud del circuito cuántico (por simplificar, supondremos que tanto $U(\theta_u)$ como $V(\theta_v)$ tienen la misma longitud a no ser que se especifique lo contrario). Los estados cuánticos de salida $\ket{\psi}$, se corresponden al contexto de las palabras de entradas utilizadas. La medición de estos estados de salida se realiza con las bases computacionales, en concreto Pauli $Z$. Para calcular $U_\text{enta}$, se usó una puerta controlada Pauli $X$ como método de entrelazamiento y una configuración de circuito por bloques.
+
 
 \section{Cálculo de similitud en hardware cuántico (Test de Swap / Fidelidad)}
 

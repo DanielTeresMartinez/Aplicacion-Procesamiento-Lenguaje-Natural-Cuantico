@@ -18,7 +18,7 @@ Add a reference in the bibliography and cite it in the specific place to reduce 
   **COMMON RULES FOR ANY REFERENCE:**
   1. Generate a unique ID (key) by combining the surname/organization, a keyword from the title, and the year (e.g., `ferrovial_complex_numbers_2026`). Everything in lowercase.
   2. Extract the `title`.
-  3. Extract the `author`. If there are multiple authors, separate them with " and ". If it is an institution or corporate company (without a physical author), put it in double curly braces (e.g., `author = {{IBM}}`).
+  3. Extract the `author`. If there are multiple authors, separate them with " and ". If it is an institution or corpuste company (without a physical author), put it in double curly braces (e.g., `author = {{IBM}}`).
   4. Extract the original publication date. Use `date = {YYYY-MM-DD}` if you have the exact date, or `year = {YYYY}` if you only know the year.
 
   **CONDITIONALS BASED ON THE SOURCE TYPE:**

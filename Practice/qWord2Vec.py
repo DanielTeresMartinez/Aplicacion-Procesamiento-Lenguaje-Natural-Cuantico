@@ -59,23 +59,35 @@ def estimate_num_layers(n_qubits, n_embedding_qubits, num_data, ath):
 
 def get_entangling_layer(num_qubits):
     """
-    Creates the entangling layer U_enta.
-    Based on Sim et al. (2019), using circular CNOT configuration.
-    (explanied at the end of page 3 article)
+
+    General pattern for n qubits:
+      CX(0, n-1)                    <- jump from top to bottom
+      CX(n-1, n-2), CX(n-2, n-3), ..., CX(2, 1)   <- staircase up
     """
     qc = QuantumCircuit(num_qubits)
     if num_qubits > 1:
-        for i in range(num_qubits):
-            qc.cx(i, (i + 1) % num_qubits)
+        # Step 1: top qubit (0) controls bottom qubit (n-1)
+        qc.cx(num_qubits - 1, 0)
+        # Step 2: staircase upward from bottom
+        for i in range(num_qubits - 1, 0, -1):
+            qc.cx(i - 1, i)
+
     return qc
 
 
 def build_qword2vec_circuit(num_qubits, num_layers):
     """
     Implements the parameterized circuit U(θ) for Q-word2vec.
-    Structure: Prod ( U_enta * RZ(θz) * RY(θy) * RX(θx) )
-    Order in circuit (left to right): RX -> RY -> RZ -> U_enta
-    Remember that is in reverse from that was read???
+
+    The circuit operates on the n system qubits (num_qubits).
+    Per the formula:
+        U(θ) = Π_{l=1}^{L} [ U_enta · RZ(θz)^⊗n · RY(θy)^⊗n · RX(θx)^⊗n ]
+
+    Reading the product left-to-right (as it appears in the circuit):
+        RX -> RY -> RZ -> U_enta   (per layer)
+
+    This matches the Circuit-Block (CB) configuration from the paper figure:
+    each block shows RX rotations followed by CNOT entanglement.
     """
     # 3 params (Rx, Ry, Rz) per qubit per layer
     num_params_per_layer = 3 * num_qubits
@@ -86,24 +98,28 @@ def build_qword2vec_circuit(num_qubits, num_layers):
     param_idx = 0
 
     for l in range(num_layers):
-        # Layer 1: RX
+        # RX on all qubits
         for q in range(num_qubits):
             qc.rx(θ[param_idx], q)
             param_idx += 1
 
-        # Layer 2: RY
+        # RY on all qubits
         for q in range(num_qubits):
             qc.ry(θ[param_idx], q)
             param_idx += 1
 
-        # Layer 3: RZ
+        # RZ on all qubits
         for q in range(num_qubits):
             qc.rz(θ[param_idx], q)
             param_idx += 1
 
-        # Layer 4: Entanglement
+        # U_enta: CNOT block on system qubits
         enta_layer = get_entangling_layer(num_qubits)
         qc.compose(enta_layer, inplace=True)
+
+        # Visual separator between layers
+        if l < num_layers - 1:
+            qc.barrier()
 
     return qc, θ
 
@@ -413,6 +429,19 @@ if __name__ == "__main__":
 
     qc, theta_params = build_qword2vec_circuit(n_qubits, n_layers)
     theta_vals = np.random.uniform(0, 2 * np.pi, len(theta_params))
+
+    # --- Draw the circuit to verify the entangling block structure ---
+    print("\n--- Circuit Diagram (U_enta verification) ---")
+    # Build a small example for visualization (max 2 layers for readability)
+    qc_draw, _ = build_qword2vec_circuit(n_qubits, min(n_layers, 2))
+    fig = qc_draw.draw(output="mpl", fold=-1, style="iqp")
+    fig.suptitle(
+        f"QWord2Vec Circuit Block (n={n_qubits}, ne={n_embedding}, L={min(n_layers, 2)})",
+        fontsize=12,
+    )
+    fig.savefig("qword2vec_circuit.png", dpi=150, bbox_inches="tight")
+    print("Circuit diagram saved to qword2vec_circuit.png")
+    plt.show()
 
     # Demo of SPSA setup
     theta_vals = train_qword2vec(
