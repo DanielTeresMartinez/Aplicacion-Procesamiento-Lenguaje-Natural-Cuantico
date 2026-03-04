@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from qiskit import QuantumCircuit, transpile
@@ -66,54 +67,102 @@ def get_entangling_layer(num_qubits):
     """
     qc = QuantumCircuit(num_qubits)
     if num_qubits > 1:
-        # Step 1: top qubit (0) controls bottom qubit (n-1)
         qc.cx(num_qubits - 1, 0)
-        # Step 2: staircase upward from bottom
         for i in range(num_qubits - 1, 0, -1):
             qc.cx(i - 1, i)
 
     return qc
 
 
-def build_qword2vec_circuit(num_qubits, num_layers):
+def build_parameterized_block(num_qubits, num_layers, param_name):
     """
-    Implements the parameterized circuit U(θ) for Q-word2vec.
+    Builds one parameterized block of the QWord2Vec circuit (either U or V).
 
-    The circuit operates on the n system qubits (num_qubits).
-    Per the formula:
-        U(θ) = Π_{l=1}^{L} [ U_enta · RZ(θz)^⊗n · RY(θy)^⊗n · RX(θx)^⊗n ]
+    Both U(θ_u) and V(θ_v) share the same internal structure:
+        Per layer: R_X^⊗n → R_Y^⊗n → R_Z^⊗n → U_enta
 
-    Reading the product left-to-right (as it appears in the circuit):
-        RX -> RY -> RZ -> U_enta   (per layer)
+    Parameters
+    ----------
+    num_qubits : number of qubits the block acts on (n, the system qubits)
+    num_layers : number of layer repetitions (L)
+    param_name : name for the ParameterVector (e.g. 'θ_u' or 'θ_v')
 
-    This matches the Circuit-Block (CB) configuration from the paper figure:
-    each block shows RX rotations followed by CNOT entanglement.
+    Returns
+    -------
+    qc    : QuantumCircuit with parameterized gates
+    theta : ParameterVector of length 3 * num_qubits * num_layers
     """
-    # 3 params (Rx, Ry, Rz) per qubit per layer
-    num_params_per_layer = 3 * num_qubits
-    total_params = num_params_per_layer * num_layers
-    θ = ParameterVector("θ", total_params)
+    num_params = 3 * num_qubits * num_layers
+    theta = ParameterVector(param_name, num_params)
 
     qc = QuantumCircuit(num_qubits)
     param_idx = 0
 
     for l in range(num_layers):
-        # RX on all qubits
+        # R_X(θ_x)^⊗n
         for q in range(num_qubits):
-            qc.rx(θ[param_idx], q)
-            qc.ry(θ[param_idx + 1], q)
-            qc.rz(θ[param_idx + 2], q)
-            param_idx += 3
+            qc.rx(theta[param_idx], q)
+            param_idx += 1
 
-        # U_enta: CNOT block on system qubits
+        # R_Y(θ_y)^⊗n
+        for q in range(num_qubits):
+            qc.ry(theta[param_idx], q)
+            param_idx += 1
+
+        # R_Z(θ_z)^⊗n
+        for q in range(num_qubits):
+            qc.rz(theta[param_idx], q)
+            param_idx += 1
+
         enta_layer = get_entangling_layer(num_qubits)
         qc.compose(enta_layer, inplace=True)
 
-        # Visual separator between layers
+        # Visual barrier between layers
         if l < num_layers - 1:
             qc.barrier()
 
-    return qc, θ
+    return qc, theta
+
+
+def build_full_qword2vec_circuit(n_qubits, n_embedding, num_layers):
+    """
+    Builds the full QWord2Vec circuit: U(θ_u) → reset → V(θ_v).
+
+    See Fig 1 of QWord2Vec.pdf, it was implemented that schema of circuits.
+
+    Parameters
+    ----------
+    n_qubits    : total number of system qubits (n)
+    n_embedding : number of embedding qubits (n_e), must satisfy n_e < n
+    num_layers  : number of layers L (shared by both U and V)
+
+    Returns
+    -------
+    qc      : full QuantumCircuit (U + reset + V)
+    theta_u : ParameterVector for U  (3 * n_qubits * num_layers parameters)
+    theta_v : ParameterVector for V  (3 * n_qubits * num_layers parameters)
+    """
+    u_circuit, theta_u = build_parameterized_block(n_qubits, num_layers, "θ_u")
+    v_circuit, theta_v = build_parameterized_block(n_qubits, num_layers, "θ_v")
+    qc = QuantumCircuit(n_qubits)
+
+    qc.barrier(label="U(θ_u)")
+    qc.compose(u_circuit, inplace=True)
+
+    # Reset no embeddings qubit (n_e..n-1) with value |0⟩
+    # Remaining qubits has the output values of U(θ_u).
+    # |K> --- U(θ_u) --- embeddings qubit
+    qc.barrier(label="reset")
+    for q in range(n_embedding, n_qubits):
+        qc.reset(q)
+
+    qc.barrier(label="V(θ_v)")
+    qc.compose(v_circuit, inplace=True)
+
+    # Output: |ψ⟩
+    qc.barrier(label="|ψ⟩")
+
+    return qc, theta_u, theta_v
 
 
 def encode_input(qc, k, num_qubits):
@@ -419,25 +468,48 @@ if __name__ == "__main__":
     n_layers = estimate_num_layers(n_qubits, n_embedding, num_data, ath)
     print(f"Heuristic L = {n_layers} (using #pairs={num_data}, Ath={ath})")
 
-    qc, theta_params = build_qword2vec_circuit(n_qubits, n_layers)
-    theta_vals = np.random.uniform(0, 2 * np.pi, len(theta_params))
+    # Construcción del circuito completo: U(θ_u) → reset → V(θ_v)
+    qc, theta_u, theta_v = build_full_qword2vec_circuit(n_qubits, n_embedding, n_layers)
+    # El optimizador trabaja con todos los parámetros concatenados
+    all_theta = list(theta_u) + list(theta_v)
+    theta_vals = np.random.uniform(0, 2 * np.pi, len(all_theta))
 
-    # --- Draw the circuit to verify the entangling block structure ---
-    print("\n--- Circuit Diagram (U_enta verification) ---")
-    # Build a small example for visualization (max 2 layers for readability)
-    qc_draw, _ = build_qword2vec_circuit(n_qubits, min(n_layers, 2))
-    fig = qc_draw.draw(output="mpl", fold=-1, style="iqp")
-    fig.suptitle(
-        f"QWord2Vec Circuit Block (n={n_qubits}, ne={n_embedding}, L={min(n_layers, 2)})",
-        fontsize=12,
+    # --- Dibujo del circuito completo para verificación ---
+    print("\n--- Circuit Diagram (U + reset + V) ---")
+    qc_draw, _, _ = build_full_qword2vec_circuit(
+        n_qubits, n_embedding, min(n_layers, 2)
     )
-    fig.savefig("qword2vec_circuit.png", dpi=150, bbox_inches="tight")
-    print("Circuit diagram saved to qword2vec_circuit.png")
+    cols_per_row = max(1, qc_draw.depth() // 2 + 1)
+    fig = qc_draw.draw(output="mpl", fold=cols_per_row)
+    fig.suptitle(
+        f"QWord2Vec Full Circuit  [U(θ_u) → reset → V(θ_v)]\n"
+        f"n={n_qubits} qubits,  ne={n_embedding} embedding,  L={min(n_layers, 2)} layers",
+        fontsize=15,
+        fontweight="bold",
+        y=1.0,
+    )
+    local_path = "qword2vec_circuit.png"
+    fig.savefig(local_path, dpi=150, bbox_inches="tight")
+    print(f"Circuit diagram saved to: {local_path}")
+
+    try:
+        memoria_dir = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "..", "memoria", "imagenes"
+        )
+        os.makedirs(memoria_dir, exist_ok=True)
+        memoria_path = os.path.join(memoria_dir, "qword2vec_circuit.png")
+        fig.savefig(memoria_path, dpi=150, bbox_inches="tight")
+        print(f"Circuit diagram saved to: {memoria_path}")
+    except Exception:
+        print(
+            "[Aviso] No se ha guardado la imagen en memoria/imagenes: "
+            "esta ruta solo existe dentro del proyecto del TFG."
+        )
     plt.show()
 
-    # Demo of SPSA setup
+    # Demo de optimización SPSA con todos los parámetros (θ_u + θ_v)
     theta_vals = train_qword2vec(
-        qc, theta_params, theta_vals, n_qubits, training_data, epochs=1000, c_val=0
+        qc, all_theta, theta_vals, n_qubits, training_data, epochs=100, c_val=0
     )
 
     print(f"Computing Bloch vectors for all {2**n_qubits} input words...")
@@ -447,7 +519,7 @@ if __name__ == "__main__":
     sim = AerSimulator()
     t_circuits = prepare_transpiled_circuits(qc, n_qubits, sim)
     embeddings = get_embeddings_batched(
-        theta_vals, theta_params, t_circuits, sim, n_qubits
+        theta_vals, all_theta, t_circuits, sim, n_qubits
     )
 
     # Unpack for plotting

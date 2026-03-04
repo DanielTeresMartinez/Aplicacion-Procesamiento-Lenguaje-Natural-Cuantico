@@ -10,7 +10,7 @@ El circuito cuántico de \textit{QWord2Vec} sigue la misma estructura de Word2Ve
 
 \section{Diseño del Circuito Cuántico Parametrizado}
 
-Como se indicó con anterioridad, \textit{QWord2Vec} tiene una estructura similar al algoritmo clásico. Esto se puede apreciar en la siguiente imagen.
+Como se indicó con anterioridad, la arquitectura de \textit{QWord2Vec} mantiene una estructura análoga a la del algoritmo clásico, dividiéndose en una fase de codificación y otra de decodificación. Esta similitud estructural se ilustra en la Figura \ref{fig:resumen_circuito_qword2vec}.
 
 \begin{figure}[h]
   \centering
@@ -19,11 +19,11 @@ Como se indicó con anterioridad, \textit{QWord2Vec} tiene una estructura simila
   \label{fig:resumen_circuito_qword2vec}
 \end{figure}
 
-Como se ve, hay 2 matrices unitarias $U(\theta_u)$ y $V(\theta_v)$ en la cual una es una matriz unitaria parametrizada y la otra es una matriz entrelazada unitaria $U_{\text{enta}}$ respectivamente. $n$ indica el número de qubits del sistema mientras que $n_e$ indica el número de qubits de embeddings, se debe de cumplir la restricción: $1 \leq n_e \leq n$.
+En la imagen anterior, se aprecia como hay dos matrices parametrizadas, $U(\theta_u)$ (matriz unitaria parametrizada) y $V(\theta_v)$ (matriz entrelazada unitaria). En este sistema, $n$ denota el número total de qubits, mientras que $n_e$ indica el número de qubits destinados específicamente a la representación de los \textit{embeddings}, debiendo cumplirse la restricción $1 \leq n_e \leq n$.
 
-El estado cuántico de entrada $\ket{k}$ es un vector con codificación \textit{one-hot} (el vector de entrada usado en Word2Vec) donde se debe cumplir que $0 \leq k \leq 2^n - 1$. Al igual que en Word2Vec, el mapeo literal entre $\ket{k}$ y $\ket{\psi}$.
+La entrada al circuito viene dada por el estado cuántico $\ket{k}$, el cual representa a una palabra codificada mediante un vector \textit{one-hot} tal que $0 \leq k \leq 2^n - 1$. A partir de este estado inicial, el sistema evoluciona hacia un estado de salida $\ket{\psi}$, estableciendo un mapeo directo de la misma manera al que realiza la red neuronal de Word2Vec. Los estados cuánticos de salida resultantes codifican la información correspondiente al contexto de la palabra de entrada, cuya extracción se lleva a cabo realizando mediciones en la base computacional (observable Pauli $Z$).
 
-El modelo $U(\theta_u)$ y $V(\theta_v)$ utilizan las matrices de rotación de Pauli ($R_x, R_y, R_z$) y la matriz unitaria ($U_\text{enta}$) para proporcionar el entrelazamiento cuántico de la siguiente manera:
+El modelo $U(\theta_u)$ y $V(\theta_v)$ utilizan las matrices unitarias parametrizadas y las matrices unitarias ($U_\text{enta}$) para proporcionar el entrelazamiento cuántico de la siguiente manera:
 
 \[
   U(\theta) = \prod_{l=1}^{L}
@@ -33,12 +33,32 @@ El modelo $U(\theta_u)$ y $V(\theta_v)$ utilizan las matrices de rotación de Pa
   R_X\!\left(\theta_x^{L-l+1}\right)^{\otimes n}
 \]
 
-Donde $L$ es la longitud del circuito cuántico (por simplificar, supondremos que tanto $U(\theta_u)$ como $V(\theta_v)$ tienen la misma longitud a no ser que se especifique lo contrario). Los estados cuánticos de salida $\ket{\psi}$, se corresponden al contexto de las palabras de entradas utilizadas. La medición de estos estados de salida se realiza con las bases computacionales, en concreto Pauli $Z$. Para calcular $U_\text{enta}$, se usó una puerta controlada Pauli $X$ como método de entrelazamiento y una configuración de circuito por bloques.
+donde $L$ representa la longitud del circuito cuántico. Por simplicidad, se asumirá que tanto $U(\theta_u)$ como $V(\theta_v)$ poseen la misma profundidad, a menos que se indique explícitamente lo contrario.
 
+Para implementar $U_\text{enta}$, se ha usado puertas controladas Pauli $X$ (CNOT), organizadas siguiendo una configuración de circuito por bloques \cite{sim2019expressibility}. Esta disposición favorece notablemente la expresividad del circuito y maximiza su capacidad para generar entrelazamiento. La Figura \ref{fig:qword2vec_circuit} muestra visualmente la estructura del circuito resultante al combinar las rotaciones de Pauli con el bloque de entrelazamiento descrito.
+
+\newpage
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=1.0\linewidth]{imagenes/qword2vec_circuit.png}
+  \caption{Circuito cuántico parametrizado de QWord2Vec con puertas de rotación de Pauli ($R_X$, $R_Y$, $R_Z$) y entrelazamiento con configuración por bloques mediante puertas CNOT. Elaboración propia.}
+  \label{fig:qword2vec_circuit}
+\end{figure}
+
+El uso combinado de las tres puertas de rotación ($R_X, R_Y, R_Z$) permite que los estados cuánticos que representan a las distintas palabras alcancen una mayor dispersión en el espacio de Hilbert, superando las limitaciones de representatividad que se obtendrían empleando una sola matriz de rotación, tal y como se observa en la Figura \ref{fig:esferas_bloch_rotaciones_pauli}.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.9\linewidth]{imagenes/esferaBlochRotacionesPauli.png}
+  \caption{Representación de las palabras sobre la esfera de Bloch según las puertas de rotación empleadas en $U(\theta_u)$: (a) usando únicamente $R_Y$, y (b) usando $R_X$, $R_Y$ y $R_Z$ combinadas. Los puntos coloreados corresponden a las palabras y el número total de puntos es 32. El uso de las tres puertas de rotación de Pauli permite una mayor dispersión de las representaciones a lo largo del espacio de Hilbert. Fuente: \cite{ohno_qword2vec_2025}.}
+  \label{fig:esferas_bloch_rotaciones_pauli}
+\end{figure}
 
 \section{Cálculo de similitud en hardware cuántico (Test de Swap / Fidelidad)}
 
 \section{Definición de la función de coste cuántica}
+
+
 
 \section{Estrategia de optimización híbrida (Clásica-Cuántica)}
 
