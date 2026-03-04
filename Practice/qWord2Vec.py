@@ -101,17 +101,9 @@ def build_qword2vec_circuit(num_qubits, num_layers):
         # RX on all qubits
         for q in range(num_qubits):
             qc.rx(θ[param_idx], q)
-            param_idx += 1
-
-        # RY on all qubits
-        for q in range(num_qubits):
-            qc.ry(θ[param_idx], q)
-            param_idx += 1
-
-        # RZ on all qubits
-        for q in range(num_qubits):
-            qc.rz(θ[param_idx], q)
-            param_idx += 1
+            qc.ry(θ[param_idx + 1], q)
+            qc.rz(θ[param_idx + 2], q)
+            param_idx += 3
 
         # U_enta: CNOT block on system qubits
         enta_layer = get_entangling_layer(num_qubits)
