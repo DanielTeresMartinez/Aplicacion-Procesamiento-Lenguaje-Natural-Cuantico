@@ -3,18 +3,18 @@ from itertools import product
 from gensim.models import Word2Vec
 from gensim.models.word2vec import LineSentence
 from gensim.models.callbacks import CallbackAny2Vec
+from sklearn.decomposition import PCA
+import numpy as np
 import matplotlib.pyplot as plt
 
 sentences = list(LineSentence("smallCorpora.txt"))
 
-FINE_TUNING = False
-FINAL_EPOCHS = 500  # matches SEARCH_EPOCHS: grid search optimised for this epoch count
-PRINT_EVERY = 50
+FINE_TUNING = True  # set False once best params are known
+FINAL_EPOCHS = 2000
+PRINT_EVERY = 200
 
 
 class LossCallback(CallbackAny2Vec):
-    """Records per-epoch training loss (delta) and prints it every PRINT_EVERY epochs."""
-
     def __init__(self):
         self._prev_loss = 0.0
         self._epoch = 0
@@ -33,8 +33,6 @@ class LossCallback(CallbackAny2Vec):
         print(f"Training loss (last epoch): {self.train_losses[-1]:.4f}")
 
 
-# ── Evaluation metric (always available, used both in grid search and after training) ──
-# mean similarity of positive pairs minus mean similarity of negative pairs.
 _pos_pairs = [
     ("dog", "cat"),
     ("dog", "animal"),
@@ -45,87 +43,94 @@ _pos_pairs = [
 _neg_pairs = [("book", "dog"), ("movie", "cat"), ("fish", "hate")]
 
 
-def evaluate(model):
+def _project_2d(model):
+    vocab = model.wv.index_to_key
+    vecs = np.array([model.wv[w] for w in vocab])
+    if vecs.shape[1] > 2:
+        vecs = PCA(n_components=2).fit_transform(vecs)
+    return {w: vecs[i] for i, w in enumerate(vocab)}
+
+
+def evaluate_2d(model):
+    """Mean cosine sim of positive pairs minus negative pairs, evaluated in 2D (PCA if needed)."""
+    wv2d = _project_2d(model)
+
     def mean_sim(pairs):
+        valid = [(a, b) for a, b in pairs if a in wv2d and b in wv2d]
+        if not valid:
+            return 0.0
+        # cosine_similarities accepts plain numpy arrays, works on PCA vectors
         sims = [
-            model.wv.similarity(a, b)
-            for a, b in pairs
-            if a in model.wv and b in model.wv
+            model.wv.cosine_similarities(wv2d[a], np.array([wv2d[b]]))[0]
+            for a, b in valid
         ]
-        return sum(sims) / len(sims) if sims else 0.0
+        return float(np.mean(sims))
 
     return mean_sim(_pos_pairs) - mean_sim(_neg_pairs)
 
 
-# ── Hyperparameter selection ──────────────────────────────────────────────────
+def most_similar_2d(model, word, topn=3):
+    wv2d = _project_2d(model)
+    if word not in wv2d:
+        return []
+    others = [(w, v) for w, v in wv2d.items() if w != word]
+    words, vecs = zip(*others)
+    scores = model.wv.cosine_similarities(wv2d[word], np.array(vecs))
+    ranked = sorted(zip(words, scores), key=lambda x: x[1], reverse=True)
+    return [(w, float(s)) for w, s in ranked[:topn]]
+
+
 if FINE_TUNING:
-    # vector_size fixed to 2; sg=1 (skip-gram) mandatory; hs=0 (negative sampling) mandatory.
-    #
-    # ns_exponent (Gensim docs): shapes the negative-sampling distribution.
-    #   0.75 → proportional to frequency (Word2Vec paper default)
-    #   0.0  → uniform over all words (useful for tiny vocabularies)
-    #   0.5  → intermediate
-    #
-    # sample: threshold for downsampling high-frequency words.
-    #   'like' appears in 63 % of sentences and pulls all vectors toward it.
-    #   sample=1e-4 randomly drops some of its occurrences so rarer words get
-    #   fairer gradient signal.
     param_grid = {
-        "window": [1, 2, 3],
-        "alpha": [0.025, 0.05, 0.075, 0.1],
-        "negative": [3, 5, 10],
-        "ns_exponent": [0.1, 0.25, 0.5, 0.75],
-        "sample": [0.0, 1e-5, 1e-4, 1e-3],
+        "vector_size": [5, 10, 15, 20, 30],
+        "window": [2, 3, 4, 5],
+        "alpha": [0.075, 0.1, 0.15, 0.2],
+        # Num of diff words is 13 in that training dataset
+        "negative": [2, 3, 4, 5, 7],
     }
-    SEARCH_EPOCHS = 1_000  # ~6-7 % of FINAL_EPOCHS; enough to see convergence trends
+    SEARCH_EPOCHS = 1000
 
     total = 1
     for v in param_grid.values():
         total *= len(v)
-    print(f"Grid search: {total} combinations × {SEARCH_EPOCHS} epochs each…")
+    print(f"Grid search: {total} combinations × {SEARCH_EPOCHS} epochs\n")
 
     best_score, best_params = float("-inf"), {}
     for combo in product(*param_grid.values()):
         params = dict(zip(param_grid.keys(), combo))
         m = Word2Vec(
             sentences=sentences,
-            vector_size=2,
             sg=1,
-            hs=0,  # negative sampling (mandatory)
+            hs=0,
             workers=1,
             min_count=1,
+            ns_exponent=0.75,
+            sample=0.0,
             seed=42,
             compute_loss=False,
             epochs=SEARCH_EPOCHS,
             **params,
         )
-        score = evaluate(m)
+        score = evaluate_2d(m)
         if score > best_score:
             best_score, best_params = score, params
             print(f"  ↑ new best  score={score:.4f}  params={params}")
 
-    best_params["vector_size"] = 2
     print(
-        f"\nBest params → window={best_params['window']}, alpha={best_params['alpha']}, "
-        f"negative={best_params['negative']}, ns_exponent={best_params['ns_exponent']}, "
-        f"sample={best_params['sample']}  |  score = {best_score:.4f}"
+        f"\nBest params → vector_size={best_params['vector_size']}, "
+        f"window={best_params['window']}, alpha={best_params['alpha']}, "
+        f"negative={best_params['negative']} |  score = {best_score:.4f}"
     )
 else:
-    # Best params found by grid search (score = 1.1207):
     best_params = {
-        "vector_size": 2,
-        "window": 2,
-        "alpha": 0.1,
-        "negative": 3,
+        "vector_size": 10,
+        "window": 5,
+        "alpha": 0.15,
+        "negative": 4,
         "ns_exponent": 0.75,
         "sample": 0.0,
     }
 
-# ── Final model ───────────────────────────────────────────────────────────────
-# NOTE: compute_loss=True only works reliably when sentences= and epochs= are
-# passed directly to the Word2Vec constructor. Using the explicit build_vocab()
-# + train() API does NOT propagate compute_loss to the training workers in
-# Gensim 4.x, causing get_latest_training_loss() to always return 0.
 loss_cb = LossCallback()
 print(f"\nTraining Skip-Gram (negative sampling) for {FINAL_EPOCHS} epochs…")
 print(f"Params: {best_params}\n")
@@ -142,23 +147,16 @@ model = Word2Vec(
     **best_params,
 )
 
-# ── Semantic quality check ────────────────────────────────────────────────────
-# The loss delta is noisy with only 30 sentences (small stochastic gradient).
-# The real quality indicator is whether similar words end up close in 2D space.
-final_score = evaluate(model)
-print(
-    f"\nFinal evaluate() score: {final_score:.4f}  (higher = better semantic separation)"
-)
-print("\nmost_similar() results:")
+final_score = evaluate_2d(model)
+print(f"\nFinal evaluate_2d() score: {final_score:.4f}")
+print("\nmost_similar_2d() results:")
 for word in ["dog", "cat", "book", "fish", "music"]:
     if word in model.wv:
-        nbrs = [(w, round(s, 3)) for w, s in model.wv.most_similar(word, topn=3)]
+        nbrs = [(w, round(s, 3)) for w, s in most_similar_2d(model, word, topn=3)]
         print(f"  {word:<8} → {nbrs}")
 
-# ── Plots ─────────────────────────────────────────────────────────────────────
 fig, axes = plt.subplots(1, 2, figsize=(16, 6), gridspec_kw={"width_ratios": [1, 1.6]})
 
-# Training loss subsampled to ~200 points for readability
 stride = max(1, len(loss_cb.train_losses) // 200)
 x_plot = range(0, len(loss_cb.train_losses), stride)
 y_plot = loss_cb.train_losses[::stride]
@@ -167,11 +165,13 @@ axes[0].set_title("Training loss per epoch")
 axes[0].set_xlabel("Epoch")
 axes[0].set_ylabel("Loss (delta)")
 
-# Word embeddings scatter
+wv2d = _project_2d(model)
 vocab = model.wv.index_to_key
-xs = [model.wv[w][0] for w in vocab]
-ys = [model.wv[w][1] for w in vocab]
+xs = [wv2d[w][0] for w in vocab]
+ys = [wv2d[w][1] for w in vocab]
 colors = plt.cm.tab10(range(len(vocab)))
+vsize = best_params["vector_size"]
+pca_note = f" (PCA {vsize}D→2D)" if vsize > 2 else ""
 
 _offsets = [
     (10, 6),
@@ -197,9 +197,9 @@ for i, (word, xi, yi) in enumerate(zip(vocab, xs, ys)):
     )
 bp = best_params
 axes[1].set_title(
-    f"2D Word Embeddings\n"
-    f"win={bp['window']}  α={bp['alpha']}  neg={bp['negative']}  "
-    f"ns_exp={bp.get('ns_exponent', 0.75)}  sample={bp.get('sample', 0.0)}"
+    f"2D Word Embeddings{pca_note}\n"
+    f"vsize={bp['vector_size']}  win={bp['window']}  α={bp['alpha']}  "
+    f"neg={bp['negative']}  ns_exp={bp.get('ns_exponent', 0.75)}"
 )
 axes[1].set_xlabel("Dimension 1")
 axes[1].set_ylabel("Dimension 2")
@@ -208,4 +208,3 @@ axes[1].grid(True, linestyle="--", alpha=0.4)
 plt.tight_layout()
 plt.savefig("loss_curves.png", dpi=150)
 plt.show()
-print("Plot saved → loss_curves.png")
