@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 sentences = list(LineSentence("smallCorpora.txt"))
 
-FINE_TUNING = True  # set False once best params are known
+FINE_TUNING = False
 FINAL_EPOCHS = 2000
 PRINT_EVERY = 200
 
@@ -208,3 +208,44 @@ axes[1].grid(True, linestyle="--", alpha=0.4)
 plt.tight_layout()
 plt.savefig("loss_curves.png", dpi=150)
 plt.show()
+
+# ---------------------------------------------------------------------------
+# Export embeddings to disk so that qWord2Vec can load them.
+#
+# Two files are saved:
+#   word2vec_embeddings.txt     – original high-dim vectors (one word per line)
+#   word2vec_embeddings_2d.txt  – PCA-projected 2-D vectors  (one word per line)
+#
+# Format (both files):
+#   Line 0: "# word  <col_headers>"  (comment / header)
+#   Lines 1+: "<word>  v1  v2  ...  vN"
+# ---------------------------------------------------------------------------
+
+
+def _save_embeddings(filepath, word_vec_dict, header_comment=""):
+    """Save a {word: np.ndarray} dict to a plain-text file."""
+    words = list(word_vec_dict.keys())
+    dim = len(word_vec_dict[words[0]])
+    col_header = "  ".join(f"d{i}" for i in range(dim))
+    with open(filepath, "w") as f:
+        f.write(f"# word  {col_header}")
+        if header_comment:
+            f.write(f"  # {header_comment}")
+        f.write("\n")
+        for word, vec in word_vec_dict.items():
+            vec_str = "  ".join(f"{v:.8f}" for v in vec)
+            f.write(f"{word}  {vec_str}\n")
+    print(f"Embeddings saved → {filepath}  ({len(words)} words, dim={dim})")
+
+
+# Original high-dim embeddings
+vocab = model.wv.index_to_key
+orig_embs = {w: model.wv[w] for w in vocab}
+_save_embeddings(
+    "word2vec_embeddings.txt",
+    orig_embs,
+    header_comment=f"vector_size={best_params['vector_size']}",
+)
+
+# PCA 2-D embeddings (same projection used in the plots)
+_save_embeddings("word2vec_embeddings_2d.txt", wv2d, header_comment="PCA 2D projection")
