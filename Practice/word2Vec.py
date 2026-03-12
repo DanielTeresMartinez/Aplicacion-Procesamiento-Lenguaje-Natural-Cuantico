@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 sentences = list(LineSentence("smallCorpora.txt"))
 
-FINE_TUNING = False
+FINE_TUNING = True
 FINAL_EPOCHS = 2000
 PRINT_EVERY = 200
 
@@ -125,8 +125,8 @@ else:
     best_params = {
         "vector_size": 10,
         "window": 5,
-        "alpha": 0.15,
-        "negative": 4,
+        "alpha": 0.1,
+        "negative": 2,
         "ns_exponent": 0.75,
         "sample": 0.0,
     }
@@ -238,7 +238,6 @@ def _save_embeddings(filepath, word_vec_dict, header_comment=""):
     print(f"Embeddings saved → {filepath}  ({len(words)} words, dim={dim})")
 
 
-# Original high-dim embeddings
 vocab = model.wv.index_to_key
 orig_embs = {w: model.wv[w] for w in vocab}
 _save_embeddings(
@@ -246,6 +245,3 @@ _save_embeddings(
     orig_embs,
     header_comment=f"vector_size={best_params['vector_size']}",
 )
-
-# PCA 2-D embeddings (same projection used in the plots)
-_save_embeddings("word2vec_embeddings_2d.txt", wv2d, header_comment="PCA 2D projection")

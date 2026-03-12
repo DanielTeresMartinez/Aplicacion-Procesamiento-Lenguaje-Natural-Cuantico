@@ -28,3 +28,5 @@ i like fish
 cat animal like
 book like music
 animal fish like
+milk cat like
+fish animal dog

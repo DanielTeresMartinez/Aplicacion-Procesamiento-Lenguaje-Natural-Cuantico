@@ -8,9 +8,8 @@ from qiskit.quantum_info import Statevector, partial_trace, Pauli
 from qiskit.visualization.bloch import Bloch
 from scipy.spatial.distance import pdist
 from scipy.stats import pearsonr
+from sklearn.decomposition import PCA
 import qiskit_algorithms
-
-# SPSA is used manually for gradient estimation (not as a black-box optimizer)
 from qiskit_algorithms.utils import algorithm_globals
 
 
@@ -54,7 +53,8 @@ def load_word2vec_embeddings(filepath):
         for line in f:
             line = line.strip()
             if not line or line.startswith("#"):
-                continue  # skip header / blank lines
+                continue
+
             # Strip any inline comment (everything after a bare '#' token)
             if "  #" in line:
                 line = line[: line.index("  #")]
@@ -351,11 +351,11 @@ def train_qword2vec(
     initial_params,
     n_qubits,
     training_data,
+    target_distances,
     epochs=100,
     c_val=1.0,
     learning_rate=0.001,
     momentum=0.9,
-    perturbation=0.1,
 ):
     """
     Trains Q-Word2Vec using SPSA gradient estimation + SGD with momentum.
@@ -373,10 +373,6 @@ def train_qword2vec(
     sim = AerSimulator()
     t_circuits = prepare_transpiled_circuits(qc, n_qubits, sim)
 
-    # Prepare Target Distances
-    num_pairs = (2**n_qubits * (2**n_qubits - 1)) // 2
-    dummy_targets = np.random.rand(num_pairs)
-
     def loss_function(p):
         return calculate_custom_loss(
             p,
@@ -384,7 +380,7 @@ def train_qword2vec(
             t_circuits,
             sim,
             n_qubits,
-            dummy_targets,
+            target_distances,
             training_data,
             c_val,
         )
@@ -394,9 +390,12 @@ def train_qword2vec(
     velocity = np.zeros_like(params)  # momentum accumulator
     loss_history = []
 
+    # SPSA perturbation constant c (default value)
+    c = 0.1
+
     print(
         f"\nStarting SGD + SPSA Optimisation  "
-        f"(lr={learning_rate}, momentum={momentum}, perturbation={perturbation})"
+        f"(lr={learning_rate}, momentum={momentum})"
     )
 
     for epoch in range(epochs):
@@ -404,9 +403,9 @@ def train_qword2vec(
         delta = np.random.choice([-1.0, 1.0], size=len(params))
 
         # Step 2 – Evaluate loss at θ ± c·δ and approximate gradient
-        loss_plus = loss_function(params + perturbation * delta)
-        loss_minus = loss_function(params - perturbation * delta)
-        grad = (loss_plus - loss_minus) / (2.0 * perturbation * delta)
+        loss_plus = loss_function(params + c * delta)
+        loss_minus = loss_function(params - c * delta)
+        grad = (loss_plus - loss_minus) / (2.0 * c * delta)
 
         # Step 3 & 4 – SGD with momentum update
         velocity = momentum * velocity + learning_rate * grad
@@ -532,11 +531,113 @@ def calculate_error_rate(embeddings, training_data):
     return mismatches / (2 * num_samples)
 
 
+def build_target_distances(w2v_embeddings, word_to_id, n_qubits):
+    """
+    Builds the Word2Vec distance vector ordered by vocabulary index (TrainingLabels).
+    Words absent from w2v_embeddings get a zero vector (neutral contribution).
+    """
+    num_words = 2**n_qubits
+    w2v_dim = next(iter(w2v_embeddings.values())).shape[0]
+    w2v_ordered = np.zeros((num_words, w2v_dim))
+    for word, idx in word_to_id.items():
+        if word in w2v_embeddings:
+            w2v_ordered[idx] = w2v_embeddings[word]
+    return pdist(w2v_ordered, metric="euclidean")
+
+
+def plot_qword2vec_2d(
+    embeddings, id_to_word, word_to_id, filepath="qword2vec_embeddings_2d.png"
+):
+    """
+    Projects qWord2Vec Bloch vectors (3D) to 2D with PCA and plots each word
+    as a labelled scatter point, matching the style of word2Vec.py's 2D plot.
+    """
+    words = [id_to_word[i] for i in range(len(embeddings)) if i in id_to_word]
+    vecs = np.array([embeddings[word_to_id[w]] for w in words])
+
+    coords = PCA(n_components=2).fit_transform(vecs)
+    xs, ys = coords[:, 0], coords[:, 1]
+
+    _offsets = [
+        (10, 6),
+        (-55, 6),
+        (10, -16),
+        (-55, -16),
+        (10, 18),
+        (-55, 18),
+        (10, -28),
+        (-55, -28),
+    ]
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+    colors = plt.cm.tab10(range(len(words)))
+    ax.scatter(xs, ys, c=colors, s=80, zorder=3)
+    for i, (word, xi, yi) in enumerate(zip(words, xs, ys)):
+        ox, oy = _offsets[i % len(_offsets)]
+        ax.annotate(
+            word,
+            (xi, yi),
+            textcoords="offset points",
+            xytext=(ox, oy),
+            fontsize=9,
+            arrowprops=dict(arrowstyle="-", color="gray", lw=0.5),
+        )
+    ax.set_title("2D qWord2Vec Embeddings (PCA 3D→2D)")
+    ax.set_xlabel("Dimension 1")
+    ax.set_ylabel("Dimension 2")
+    ax.grid(True, linestyle="--", alpha=0.4)
+
+    plt.tight_layout()
+    plt.savefig(filepath, dpi=150)
+    print(f"2D embedding plot saved to: {filepath}")
+    plt.show()
+
+
+def save_qword2vec_embeddings(embeddings, id_to_word, filepath):
+    """Saves qWord2Vec Bloch-vector embeddings to a plain-text file."""
+    with open(filepath, "w") as f:
+        f.write("# word  x  y  z\n")
+        for idx, vec in enumerate(embeddings):
+            if idx in id_to_word:
+                f.write(
+                    f"{id_to_word[idx]}  {vec[0]:.8f}  {vec[1]:.8f}  {vec[2]:.8f}\n"
+                )
+    print(f"Saved {len(embeddings)} qWord2Vec embeddings to '{filepath}'")
+
+
+def evaluate_embedding_quality(w2v_embeddings, qw2v_array, word_to_id):
+    """
+    Pearson correlation between Word2Vec and qWord2Vec distance vectors.
+
+    For each model we build a "distance vector" whose components are all pairwise
+    Euclidean distances among the common-vocabulary embedding vectors.  A high
+    correlation means qWord2Vec preserves the geometric structure of Word2Vec
+    (treated as ground truth), as described in the paper.
+    """
+    common_words = sorted(set(w2v_embeddings) & set(word_to_id))
+    if len(common_words) < 2:
+        print("Not enough common words for evaluation.")
+        return None, None
+
+    w2v_vecs = np.array([w2v_embeddings[w] for w in common_words])
+    qw2v_vecs = np.array([qw2v_array[word_to_id[w]] for w in common_words])
+
+    w2v_dists = pdist(w2v_vecs, metric="euclidean")
+    qw2v_dists = pdist(qw2v_vecs, metric="euclidean")
+
+    corr, pval = pearsonr(w2v_dists, qw2v_dists)
+
+    print(f"\n--- Embedding Quality Evaluation ---")
+    print(f"Common words : {len(common_words)}")
+    print(f"Pearson r    : {corr:.4f}  (p={pval:.4e})")
+    return corr, pval
+
+
 if __name__ == "__main__":
     # System size
-    n_qubits = 4
+    n_qubits = 5
     # Embedding size
-    n_embedding = 2
+    n_embedding = 3
 
     print(f"--- Q-Word2Vec Full Model (n={n_qubits}, ne={n_embedding}) ---")
 
@@ -547,23 +648,12 @@ if __name__ == "__main__":
         print("Error: smallCorpora.txt not found. Please create it.")
         exit(1)
 
-    # --- Load Word2Vec reference embeddings ---
-    # These are generated by word2Vec.py and used to assess embedding quality.
-    # Run word2Vec.py once; afterwards the files are cached and reused.
-    try:
-        w2v_embeddings = load_word2vec_embeddings("word2vec_embeddings.txt")
-        w2v_embeddings_2d = load_word2vec_embeddings("word2vec_embeddings_2d.txt")
-    except FileNotFoundError as e:
-        print(f"\n[WARNING] {e}")
-        print("[WARNING] Continuing without Word2Vec reference embeddings.\n")
-        w2v_embeddings = {}
-        w2v_embeddings_2d = {}
-
+    w2v_embeddings = load_word2vec_embeddings("word2vec_embeddings.txt")
     word_to_id, id_to_word = build_vocabulary(corpus, n_qubits)
     print(f"Vocabulary Size: {len(word_to_id)}/{2**n_qubits}")
 
     # Generate Training Data from Text
-    training_data = generate_training_data_from_text(corpus, word_to_id, window_size=1)
+    training_data = generate_training_data_from_text(corpus, word_to_id, window_size=5)
 
     # Heuristic Estimation of L using actual number pairs of training data
     num_data = len(corpus)
@@ -611,6 +701,8 @@ if __name__ == "__main__":
         )
     plt.show()
 
+    target_distances = build_target_distances(w2v_embeddings, word_to_id, n_qubits)
+
     # Demo de optimización SPSA con todos los parámetros (θ_u + θ_v)
     theta_vals, loss_history = train_qword2vec(
         qc,
@@ -618,11 +710,11 @@ if __name__ == "__main__":
         theta_vals,
         n_qubits,
         training_data,
+        target_distances,
         epochs=100,
         c_val=0,
         learning_rate=0.001,
         momentum=0.9,
-        perturbation=0.1,
     )
 
     print(f"Computing Bloch vectors for all {2**n_qubits} input words...")
@@ -641,6 +733,16 @@ if __name__ == "__main__":
     zs = embeddings[:, 2]
 
     print(f"Vectors computed: {len(xs)}")
+
+    # --- Save & evaluate qWord2Vec embeddings ---
+    save_qword2vec_embeddings(embeddings, id_to_word, "qword2vec_embeddings.txt")
+    plot_qword2vec_2d(embeddings, id_to_word, word_to_id)
+
+    if w2v_embeddings:
+        evaluate_embedding_quality(w2v_embeddings, embeddings, word_to_id)
+    else:
+        print("[INFO] Skipping quality evaluation: Word2Vec embeddings not loaded.")
+
     print("Plotting scattered points on Bloch Sphere...")
 
     # Visualization
