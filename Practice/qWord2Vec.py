@@ -99,7 +99,6 @@ def get_error_probability(n, ne):
 def estimate_num_layers(n_qubits, n_embedding_qubits, num_data, ath):
     """
     Heuristic formula for estimating L (number of layers).
-    L = ceil( #data / (3 * (n + ne) * Ath * p(n, ne)) )
     """
     p = get_error_probability(n_qubits, n_embedding_qubits)
 
@@ -109,12 +108,6 @@ def estimate_num_layers(n_qubits, n_embedding_qubits, num_data, ath):
 
 
 def get_entangling_layer(num_qubits):
-    """
-
-    General pattern for n qubits:
-      CX(0, n-1)                    <- jump from top to bottom
-      CX(n-1, n-2), CX(n-2, n-3), ..., CX(2, 1)   <- staircase up
-    """
     qc = QuantumCircuit(num_qubits)
     if num_qubits > 1:
         qc.cx(num_qubits - 1, 0)
@@ -637,7 +630,7 @@ if __name__ == "__main__":
     # System size
     n_qubits = 5
     # Embedding size
-    n_embedding = 3
+    n_embedding = 5
 
     print(f"--- Q-Word2Vec Full Model (n={n_qubits}, ne={n_embedding}) ---")
 
