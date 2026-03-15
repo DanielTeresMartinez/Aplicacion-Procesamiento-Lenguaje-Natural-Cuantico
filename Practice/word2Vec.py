@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 sentences = list(LineSentence("smallCorpora.txt"))
 
-FINE_TUNING = False
+FINE_TUNING = True
 FINAL_EPOCHS = 5000
 PRINT_EVERY = 200
 PATIENCE = 5
@@ -62,7 +62,7 @@ class LossCallback(CallbackAny2Vec):
                     f"No improvement for {PATIENCE} checks — stopping at epoch {self._epoch}"
                 )
 
-    def on_train_end(self, model):
+    def on_train_end(self):
         print(f"Training loss (last epoch): {self.train_losses[-1]:.4f}")
         if self.converged_at:
             print(f"Converged at epoch {self.converged_at} (early stopping).")
@@ -75,6 +75,8 @@ _clusters = {
     "movie": ["movie", "screen", "watch", "hate", "bad"],
 }
 _word_to_cluster = {w: c for c, words in _clusters.items() for w in words}
+_eval_vocab = list(_word_to_cluster.keys())
+_eval_labels = [_word_to_cluster[w] for w in _eval_vocab]
 
 
 def _project_2d(model):
@@ -86,10 +88,7 @@ def _project_2d(model):
 
 
 def evaluate(model):
-    vocab = [w for w in model.wv.index_to_key if w in _word_to_cluster]
-    X = model.wv[vocab]  # batch lookup → numpy array (n_words, vector_size)
-    labels = [_word_to_cluster[w] for w in vocab]
-    return float(silhouette_score(X, labels, metric="cosine"))
+    return float(silhouette_score(model.wv[_eval_vocab], _eval_labels, metric="cosine"))
 
 
 def most_similar(model, word, topn=3):
@@ -141,8 +140,8 @@ else:
     best_params = {
         "vector_size": 5,
         "window": 3,
-        "alpha": 0.2,
-        "negative": 7,
+        "alpha": 0.15,
+        "negative": 4,
     }
 
 loss_cb = LossCallback()
