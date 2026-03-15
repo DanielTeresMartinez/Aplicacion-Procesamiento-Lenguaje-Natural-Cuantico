@@ -20,11 +20,11 @@ val_sentences = _all_sentences[_split:]
 # pointing at training data only — it never sees the validation split.
 sentences = train_sentences
 
-FINE_TUNING = True
-FINAL_EPOCHS = 5000
+FINE_TUNING = False
+FINAL_EPOCHS = 2000
 PRINT_EVERY = 200
 PATIENCE = 5
-MIN_DELTA = 0.03  # minimum silhouette-score improvement to count as progress
+MIN_DELTA = 0.01
 
 
 class EarlyStopping(Exception):
@@ -88,7 +88,7 @@ class LossCallback(CallbackAny2Vec):
                 self._best_val_score = val_score
                 self._no_improve_count = 0
                 model.save(self._best_checkpoint)
-                improved_tag = " ✓ (new best)"
+                improved_tag = " (new best)"
             else:
                 self._no_improve_count += 1
                 improved_tag = ""
@@ -123,11 +123,10 @@ def most_similar(model, word, topn=3):
 
 if FINE_TUNING:
     param_grid = {
-        "vector_size": [5, 10, 15],
-        "window": [2, 3],
-        # Num of diff words is 13 in that training dataset
-        "alpha": [0.075, 0.1, 0.15, 0.2],
-        "negative": [4, 5, 7, 9],
+        "vector_size": [3, 4, 5],
+        "window": [1, 2],
+        "alpha": [0.2, 0.25, 0.3],
+        "negative": [6, 7, 8, 9],
     }
     SEARCH_EPOCHS = 500
 
@@ -153,7 +152,7 @@ if FINE_TUNING:
         score = evaluate(m)
         if score > best_score:
             best_score, best_params = score, params
-            print(f"  ↑ new best  score={score:.4f}  params={params}")
+            print(f"  new best  score={score:.4f}  params={params}")
 
     print(
         f"\nBest params → vector_size={best_params['vector_size']}, "
@@ -162,10 +161,10 @@ if FINE_TUNING:
     )
 else:
     best_params = {
-        "vector_size": 5,
-        "window": 3,
-        "alpha": 0.15,
-        "negative": 4,
+        "vector_size": 3,
+        "window": 1,
+        "alpha": 0.25,
+        "negative": 6,
     }
 
 loss_cb = LossCallback()
@@ -191,7 +190,6 @@ except EarlyStopping as e:
 # Load the best checkpoint regardless of whether early stopping fired.
 # Without this, model has last-epoch weights, not best-epoch weights.
 model = Word2Vec.load(loss_cb._best_checkpoint)
-print(f"[Best model loaded] best val_score={loss_cb._best_val_score:.4f}")
 
 final_score = evaluate(model)
 print(f"\nFinal evaluate() score: {final_score:.4f}")
@@ -253,7 +251,7 @@ wv2d = _project_2d(model)
 vocab = model.wv.index_to_key
 xs = [wv2d[w][0] for w in vocab]
 ys = [wv2d[w][1] for w in vocab]
-colors = plt.cm.tab10(range(len(vocab)))
+colors = plt.cm.hsv(np.linspace(0, 0.9, len(vocab)))
 vsize = best_params["vector_size"]
 pca_note = f" (PCA {vsize}D→2D)" if vsize > 2 else ""
 
