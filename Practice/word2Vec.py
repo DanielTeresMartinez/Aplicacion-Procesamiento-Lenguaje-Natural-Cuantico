@@ -1,3 +1,4 @@
+import random
 from itertools import product
 
 from gensim.models import Word2Vec
@@ -8,9 +9,18 @@ from sklearn.metrics import silhouette_score
 import numpy as np
 import matplotlib.pyplot as plt
 
-sentences = list(LineSentence("smallCorpora.txt"))
+_all_sentences = list(LineSentence("smallCorpora.txt"))
+random.seed(42)
+random.shuffle(_all_sentences)
+_split = int(0.8 * len(_all_sentences))
+train_sentences = _all_sentences[:_split]
+val_sentences   = _all_sentences[_split:]
 
-FINE_TUNING = True
+# `sentences` alias keeps the grid-search branch (which uses `sentences=sentences`)
+# pointing at training data only — it never sees the validation split.
+sentences = train_sentences
+
+FINE_TUNING = False
 FINAL_EPOCHS = 5000
 PRINT_EVERY = 200
 PATIENCE = 5
@@ -19,6 +29,31 @@ MIN_DELTA = 1.0
 
 class EarlyStopping(Exception):
     pass
+
+
+_clusters = {
+    "animal": ["dog", "cat", "animal", "wild", "pet", "eyes"],
+    "food": ["fish", "milk", "food", "water", "apple"],
+    "culture": ["book", "music", "song", "read", "art"],
+    "movie": ["movie", "screen", "watch", "hate", "bad"],
+}
+_word_to_cluster = {w: c for c, words in _clusters.items() for w in words}
+# Filter eval vocab to words that appear in the training split — prevents KeyError in evaluate()
+_train_words = {w for sent in train_sentences for w in sent}
+_eval_vocab = [w for w in _word_to_cluster if w in _train_words]
+_eval_labels = [_word_to_cluster[w] for w in _eval_vocab]
+
+
+def _project_2d(model):
+    vocab = model.wv.index_to_key
+    vecs = np.array([model.wv[w] for w in vocab])
+    if vecs.shape[1] > 2:
+        vecs = PCA(n_components=2).fit_transform(vecs)
+    return {w: vecs[i] for i, w in enumerate(vocab)}
+
+
+def evaluate(model):
+    return float(silhouette_score(model.wv[_eval_vocab], _eval_labels, metric="cosine"))
 
 
 class LossCallback(CallbackAny2Vec):
@@ -66,29 +101,6 @@ class LossCallback(CallbackAny2Vec):
         print(f"Training loss (last epoch): {self.train_losses[-1]:.4f}")
         if self.converged_at:
             print(f"Converged at epoch {self.converged_at} (early stopping).")
-
-
-_clusters = {
-    "animal": ["dog", "cat", "animal", "wild", "pet", "eyes"],
-    "food": ["fish", "milk", "food", "water", "apple"],
-    "culture": ["book", "music", "song", "read", "art"],
-    "movie": ["movie", "screen", "watch", "hate", "bad"],
-}
-_word_to_cluster = {w: c for c, words in _clusters.items() for w in words}
-_eval_vocab = list(_word_to_cluster.keys())
-_eval_labels = [_word_to_cluster[w] for w in _eval_vocab]
-
-
-def _project_2d(model):
-    vocab = model.wv.index_to_key
-    vecs = np.array([model.wv[w] for w in vocab])
-    if vecs.shape[1] > 2:
-        vecs = PCA(n_components=2).fit_transform(vecs)
-    return {w: vecs[i] for i, w in enumerate(vocab)}
-
-
-def evaluate(model):
-    return float(silhouette_score(model.wv[_eval_vocab], _eval_labels, metric="cosine"))
 
 
 def most_similar(model, word, topn=3):
