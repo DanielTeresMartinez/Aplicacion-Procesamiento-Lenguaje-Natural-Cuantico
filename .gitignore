@@ -5,6 +5,7 @@
 !Practice/
 !Practice/**
 Practice/venv/
+Practice/_best_checkpoint.model
 
 !memoria/
 !memoria/**
