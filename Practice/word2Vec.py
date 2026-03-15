@@ -9,9 +9,15 @@ import matplotlib.pyplot as plt
 
 sentences = list(LineSentence("smallCorpora.txt"))
 
-FINE_TUNING = True
+FINE_TUNING = False
 FINAL_EPOCHS = 2000
 PRINT_EVERY = 200
+PATIENCE = 5      # consecutive PRINT_EVERY-interval checks with no improvement
+MIN_DELTA = 1.0   # minimum decrease in loss_delta between checks to count as progress
+
+
+class EarlyStopping(Exception):
+    pass
 
 
 class LossCallback(CallbackAny2Vec):
@@ -19,18 +25,42 @@ class LossCallback(CallbackAny2Vec):
         self._prev_loss = 0.0
         self._epoch = 0
         self.train_losses = []
+        self._prev_check_delta = float("inf")  # loss_delta at the previous checkpoint
+        self._no_improve_count = 0
+        self.converged_at = None
+        self.model = None  # updated every epoch so early stopping can retrieve it
 
     def on_epoch_end(self, model):
+        self.model = model  # always keep a live reference
         self._epoch += 1
         cumulative = model.get_latest_training_loss()
         delta = cumulative - self._prev_loss
         self.train_losses.append(delta)
         self._prev_loss = cumulative
+
         if self._epoch % PRINT_EVERY == 0:
-            print(f"  epoch {self._epoch:>6} | loss_delta = {delta:.4f}")
+            # compare this checkpoint's delta against the previous checkpoint's delta
+            if self._prev_check_delta - delta > MIN_DELTA:
+                self._no_improve_count = 0
+            else:
+                self._no_improve_count += 1
+            self._prev_check_delta = delta
+
+            print(
+                f"  epoch {self._epoch:>6} | loss_delta = {delta:.4f}"
+                f"  (no_improve={self._no_improve_count}/{PATIENCE})"
+            )
+
+            if self._no_improve_count >= PATIENCE:
+                self.converged_at = self._epoch
+                raise EarlyStopping(
+                    f"No improvement for {PATIENCE} checks — stopping at epoch {self._epoch}"
+                )
 
     def on_train_end(self, model):
         print(f"Training loss (last epoch): {self.train_losses[-1]:.4f}")
+        if self.converged_at:
+            print(f"Converged at epoch {self.converged_at} (early stopping).")
 
 
 _pos_pairs = [
@@ -51,44 +81,34 @@ def _project_2d(model):
     return {w: vecs[i] for i, w in enumerate(vocab)}
 
 
-def evaluate_2d(model):
-    """Mean cosine sim of positive pairs minus negative pairs, evaluated in 2D (PCA if needed)."""
-    wv2d = _project_2d(model)
+def evaluate(model):
+    """Mean cosine sim of positive pairs minus negative pairs, in full embedding space."""
 
     def mean_sim(pairs):
-        valid = [(a, b) for a, b in pairs if a in wv2d and b in wv2d]
+        valid = [(a, b) for a, b in pairs if a in model.wv and b in model.wv]
         if not valid:
             return 0.0
-        # cosine_similarities accepts plain numpy arrays, works on PCA vectors
-        sims = [
-            model.wv.cosine_similarities(wv2d[a], np.array([wv2d[b]]))[0]
-            for a, b in valid
-        ]
+        sims = [model.wv.similarity(a, b) for a, b in valid]
         return float(np.mean(sims))
 
     return mean_sim(_pos_pairs) - mean_sim(_neg_pairs)
 
 
-def most_similar_2d(model, word, topn=3):
-    wv2d = _project_2d(model)
-    if word not in wv2d:
+def most_similar(model, word, topn=3):
+    if word not in model.wv:
         return []
-    others = [(w, v) for w, v in wv2d.items() if w != word]
-    words, vecs = zip(*others)
-    scores = model.wv.cosine_similarities(wv2d[word], np.array(vecs))
-    ranked = sorted(zip(words, scores), key=lambda x: x[1], reverse=True)
-    return [(w, float(s)) for w, s in ranked[:topn]]
+    return [(w, float(s)) for w, s in model.wv.most_similar(word, topn=topn)]
 
 
 if FINE_TUNING:
     param_grid = {
         "vector_size": [5, 10, 15, 20, 30],
-        "window": [2, 3, 4, 5],
-        "alpha": [0.075, 0.1, 0.15, 0.2],
+        "window": [2, 3],
         # Num of diff words is 13 in that training dataset
+        "alpha": [0.075, 0.1, 0.15, 0.2],
         "negative": [2, 3, 4, 5, 7],
     }
-    SEARCH_EPOCHS = 1000
+    SEARCH_EPOCHS = 300
 
     total = 1
     for v in param_grid.values():
@@ -111,7 +131,7 @@ if FINE_TUNING:
             epochs=SEARCH_EPOCHS,
             **params,
         )
-        score = evaluate_2d(m)
+        score = evaluate(m)
         if score > best_score:
             best_score, best_params = score, params
             print(f"  ↑ new best  score={score:.4f}  params={params}")
@@ -132,27 +152,31 @@ else:
     }
 
 loss_cb = LossCallback()
-print(f"\nTraining Skip-Gram (negative sampling) for {FINAL_EPOCHS} epochs…")
+print(f"\nTraining Skip-Gram (negative sampling) for up to {FINAL_EPOCHS} epochs…")
 print(f"Params: {best_params}\n")
-model = Word2Vec(
-    sentences=sentences,
-    sg=1,
-    hs=0,
-    min_count=1,
-    workers=1,
-    seed=42,
-    compute_loss=True,
-    epochs=FINAL_EPOCHS,
-    callbacks=[loss_cb],
-    **best_params,
-)
+try:
+    model = Word2Vec(
+        sentences=sentences,
+        sg=1,
+        hs=0,
+        min_count=1,
+        workers=1,
+        seed=42,
+        compute_loss=True,
+        epochs=FINAL_EPOCHS,
+        callbacks=[loss_cb],
+        **best_params,
+    )
+except EarlyStopping as e:
+    print(f"\n[Early stopping] {e}")
+    model = loss_cb.model  # retrieve the partially-trained (but fully usable) model
 
-final_score = evaluate_2d(model)
-print(f"\nFinal evaluate_2d() score: {final_score:.4f}")
-print("\nmost_similar_2d() results:")
+final_score = evaluate(model)
+print(f"\nFinal evaluate() score: {final_score:.4f}")
+print("\nmost_similar() results:")
 for word in ["dog", "cat", "book", "fish", "music"]:
     if word in model.wv:
-        nbrs = [(w, round(s, 3)) for w, s in most_similar_2d(model, word, topn=3)]
+        nbrs = [(w, round(s, 3)) for w, s in most_similar(model, word, topn=3)]
         print(f"  {word:<8} → {nbrs}")
 
 fig, axes = plt.subplots(1, 2, figsize=(16, 6), gridspec_kw={"width_ratios": [1, 1.6]})
