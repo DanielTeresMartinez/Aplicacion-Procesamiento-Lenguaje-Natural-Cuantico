@@ -29,6 +29,7 @@ class LossCallback(CallbackAny2Vec):
         self._no_improve_count = 0
         self.converged_at = None
         self.model = None  # updated every epoch so early stopping can retrieve it
+        self._best_checkpoint = "_best_checkpoint.model"  # path for model.save() / Word2Vec.load()
 
     def on_epoch_end(self, model):
         self.model = model  # always keep a live reference
@@ -43,6 +44,7 @@ class LossCallback(CallbackAny2Vec):
             if self._best_delta - delta > MIN_DELTA:
                 self._best_delta = delta
                 self._no_improve_count = 0
+                model.save(self._best_checkpoint)  # persist best weights to disk
             else:
                 self._no_improve_count += 1
 
@@ -165,7 +167,12 @@ try:
     )
 except EarlyStopping as e:
     print(f"\n[Early stopping] {e}")
-    model = loss_cb.model  # retrieve the partially-trained (but fully usable) model
+    model = loss_cb.model
+
+# Load the best checkpoint regardless of whether early stopping fired.
+# Without this, model has last-epoch weights, not best-epoch weights.
+model = Word2Vec.load(loss_cb._best_checkpoint)
+print(f"[Best model loaded] from epoch with loss_delta={loss_cb._best_delta:.4f}")
 
 final_score = evaluate(model)
 print(f"\nFinal evaluate() score: {final_score:.4f}")
