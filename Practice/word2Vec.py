@@ -9,11 +9,11 @@ import matplotlib.pyplot as plt
 
 sentences = list(LineSentence("smallCorpora.txt"))
 
-FINE_TUNING = False
-FINAL_EPOCHS = 2000
+FINE_TUNING = True
+FINAL_EPOCHS = 5000
 PRINT_EVERY = 200
-PATIENCE = 5      # consecutive PRINT_EVERY-interval checks with no improvement
-MIN_DELTA = 1.0   # minimum decrease in loss_delta between checks to count as progress
+PATIENCE = 5
+MIN_DELTA = 1.0
 
 
 class EarlyStopping(Exception):
@@ -25,7 +25,7 @@ class LossCallback(CallbackAny2Vec):
         self._prev_loss = 0.0
         self._epoch = 0
         self.train_losses = []
-        self._prev_check_delta = float("inf")  # loss_delta at the previous checkpoint
+        self._best_delta = float("inf")  # all-time lowest loss_delta seen
         self._no_improve_count = 0
         self.converged_at = None
         self.model = None  # updated every epoch so early stopping can retrieve it
@@ -39,12 +39,12 @@ class LossCallback(CallbackAny2Vec):
         self._prev_loss = cumulative
 
         if self._epoch % PRINT_EVERY == 0:
-            # compare this checkpoint's delta against the previous checkpoint's delta
-            if self._prev_check_delta - delta > MIN_DELTA:
+            # compare against all-time best: only reset if we genuinely beat it
+            if self._best_delta - delta > MIN_DELTA:
+                self._best_delta = delta
                 self._no_improve_count = 0
             else:
                 self._no_improve_count += 1
-            self._prev_check_delta = delta
 
             print(
                 f"  epoch {self._epoch:>6} | loss_delta = {delta:.4f}"
@@ -102,13 +102,13 @@ def most_similar(model, word, topn=3):
 
 if FINE_TUNING:
     param_grid = {
-        "vector_size": [5, 10, 15, 20, 30],
+        "vector_size": [5, 10, 15],
         "window": [2, 3],
         # Num of diff words is 13 in that training dataset
         "alpha": [0.075, 0.1, 0.15, 0.2],
-        "negative": [2, 3, 4, 5, 7],
+        "negative": [4, 5, 7, 9],
     }
-    SEARCH_EPOCHS = 300
+    SEARCH_EPOCHS = 500
 
     total = 1
     for v in param_grid.values():
@@ -124,8 +124,6 @@ if FINE_TUNING:
             hs=0,
             workers=1,
             min_count=1,
-            ns_exponent=0.75,
-            sample=0.0,
             seed=42,
             compute_loss=False,
             epochs=SEARCH_EPOCHS,
@@ -143,12 +141,10 @@ if FINE_TUNING:
     )
 else:
     best_params = {
-        "vector_size": 10,
-        "window": 5,
-        "alpha": 0.1,
-        "negative": 2,
-        "ns_exponent": 0.75,
-        "sample": 0.0,
+        "vector_size": 5,
+        "window": 2,
+        "alpha": 0.075,
+        "negative": 5,
     }
 
 loss_cb = LossCallback()

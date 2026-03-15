@@ -1,32 +1,32 @@
-i like dog
-i like cat
-i like animal
 dog cat animal
-apple cat dog like
-dog fish milk like
-dog cat eyes like
-i like apple
-apple i hate
-apple i movie
-book music like
-cat dog hate
-cat dog like
-i like music
-i like book
+cat dog pet
+dog animal wild
+cat animal pet
+dog cat eyes
+animal cat pet
 dog animal cat
-i hate movie
-music book i
-dog like fish
-cat like animal
-animal dog like
-book music i like
-cat eyes like
-hate movie i
-fish milk dog
-dog cat eyes animal
-i like fish
-cat animal like
-book like music
-animal fish like
-milk cat like
-fish animal dog
+cat dog wild
+animal dog eyes
+dog wild animal
+cat animal wild
+dog eyes animal
+fish milk food
+milk fish food
+fish food water
+milk food apple
+fish milk water
+milk apple food
+fish water animal
+milk fish apple
+book music read
+music book art
+book song music
+music book read
+book art music
+music song art
+book song read
+read music book
+movie screen watch
+hate movie screen
+movie watch bad
+hate screen movie
