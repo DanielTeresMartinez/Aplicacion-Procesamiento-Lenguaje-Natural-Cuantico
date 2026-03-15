@@ -201,13 +201,34 @@ for word in ["dog", "cat", "book", "fish", "music"]:
 
 fig, axes = plt.subplots(1, 2, figsize=(16, 6), gridspec_kw={"width_ratios": [1, 1.6]})
 
-stride = max(1, len(loss_cb.train_losses) // 200)
-x_plot = range(0, len(loss_cb.train_losses), stride)
-y_plot = loss_cb.train_losses[::stride]
-axes[0].plot(x_plot, y_plot, color="steelblue", linewidth=1.2)
-axes[0].set_title("Training loss per epoch")
+# --- left panel: validation score at each checkpoint ---
+if loss_cb.val_scores:
+    ck_epochs = [e for e, _ in loss_cb.val_scores]
+    ck_scores = [s for _, s in loss_cb.val_scores]
+    axes[0].plot(ck_epochs, ck_scores,
+                 color="darkorange", linewidth=1.4, marker="o", markersize=4,
+                 label="val silhouette score")
+    best_idx   = int(np.argmax(ck_scores))
+    best_epoch = ck_epochs[best_idx]
+    axes[0].axvline(best_epoch, color="green", linestyle="--", linewidth=1,
+                    label=f"best (epoch {best_epoch})")
+    axes[0].legend(fontsize=8)
+
+axes[0].set_title("Validation score at each checkpoint\n(silhouette, higher = better)")
 axes[0].set_xlabel("Epoch")
-axes[0].set_ylabel("Loss (delta)")
+axes[0].set_ylabel("Silhouette score")
+
+# faint training-loss overlay for reference (secondary y-axis)
+stride = max(1, len(loss_cb.train_losses) // 200)
+# epoch numbers are 1-indexed: epoch 1 = train_losses[0]
+train_epochs = list(range(1, len(loss_cb.train_losses) + 1, stride))
+train_deltas = loss_cb.train_losses[::stride]
+
+ax0b = axes[0].twinx()
+ax0b.plot(train_epochs, train_deltas,
+          color="steelblue", linewidth=0.6, alpha=0.35, label="train loss Δ")
+ax0b.set_ylabel("Train loss delta", color="steelblue", fontsize=8)
+ax0b.tick_params(axis="y", labelcolor="steelblue", labelsize=7)
 
 wv2d = _project_2d(model)
 vocab = model.wv.index_to_key
