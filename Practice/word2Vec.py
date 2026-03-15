@@ -4,12 +4,13 @@ from gensim.models import Word2Vec
 from gensim.models.word2vec import LineSentence
 from gensim.models.callbacks import CallbackAny2Vec
 from sklearn.decomposition import PCA
+from sklearn.metrics import silhouette_score
 import numpy as np
 import matplotlib.pyplot as plt
 
 sentences = list(LineSentence("smallCorpora.txt"))
 
-FINE_TUNING = True
+FINE_TUNING = False
 FINAL_EPOCHS = 5000
 PRINT_EVERY = 200
 PATIENCE = 5
@@ -29,7 +30,9 @@ class LossCallback(CallbackAny2Vec):
         self._no_improve_count = 0
         self.converged_at = None
         self.model = None  # updated every epoch so early stopping can retrieve it
-        self._best_checkpoint = "_best_checkpoint.model"  # path for model.save() / Word2Vec.load()
+        self._best_checkpoint = (
+            "_best_checkpoint.model"  # path for model.save() / Word2Vec.load()
+        )
 
     def on_epoch_end(self, model):
         self.model = model  # always keep a live reference
@@ -65,14 +68,13 @@ class LossCallback(CallbackAny2Vec):
             print(f"Converged at epoch {self.converged_at} (early stopping).")
 
 
-_pos_pairs = [
-    ("dog", "cat"),
-    ("dog", "animal"),
-    ("cat", "animal"),
-    ("book", "music"),
-    ("fish", "milk"),
-]
-_neg_pairs = [("book", "dog"), ("movie", "cat"), ("fish", "hate")]
+_clusters = {
+    "animal": ["dog", "cat", "animal", "wild", "pet", "eyes"],
+    "food": ["fish", "milk", "food", "water", "apple"],
+    "culture": ["book", "music", "song", "read", "art"],
+    "movie": ["movie", "screen", "watch", "hate", "bad"],
+}
+_word_to_cluster = {w: c for c, words in _clusters.items() for w in words}
 
 
 def _project_2d(model):
@@ -84,16 +86,10 @@ def _project_2d(model):
 
 
 def evaluate(model):
-    """Mean cosine sim of positive pairs minus negative pairs, in full embedding space."""
-
-    def mean_sim(pairs):
-        valid = [(a, b) for a, b in pairs if a in model.wv and b in model.wv]
-        if not valid:
-            return 0.0
-        sims = [model.wv.similarity(a, b) for a, b in valid]
-        return float(np.mean(sims))
-
-    return mean_sim(_pos_pairs) - mean_sim(_neg_pairs)
+    vocab = [w for w in model.wv.index_to_key if w in _word_to_cluster]
+    X = model.wv[vocab]  # batch lookup → numpy array (n_words, vector_size)
+    labels = [_word_to_cluster[w] for w in vocab]
+    return float(silhouette_score(X, labels, metric="cosine"))
 
 
 def most_similar(model, word, topn=3):
@@ -144,9 +140,9 @@ if FINE_TUNING:
 else:
     best_params = {
         "vector_size": 5,
-        "window": 2,
-        "alpha": 0.075,
-        "negative": 5,
+        "window": 3,
+        "alpha": 0.2,
+        "negative": 7,
     }
 
 loss_cb = LossCallback()
