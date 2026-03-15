@@ -58,36 +58,44 @@ def evaluate(model):
 
 class LossCallback(CallbackAny2Vec):
     def __init__(self):
-        self._prev_loss = 0.0
         self._epoch = 0
-        self.train_losses = []
-        self._best_delta = float("inf")  # all-time lowest loss_delta seen
+        self.train_losses = []          # training loss delta per epoch (kept for plot)
+        self._prev_loss = 0.0           # used only to compute the per-epoch train delta
+
+        self.val_scores = []            # (epoch, silhouette_score) at each checkpoint
+        self._best_val_score = float("-inf")
         self._no_improve_count = 0
         self.converged_at = None
-        self.model = None  # updated every epoch so early stopping can retrieve it
-        self._best_checkpoint = (
-            "_best_checkpoint.model"  # path for model.save() / Word2Vec.load()
-        )
+        self.model = None
+        self._best_checkpoint = "_best_checkpoint.model"
 
     def on_epoch_end(self, model):
-        self.model = model  # always keep a live reference
+        self.model = model
         self._epoch += 1
+
+        # --- training loss delta (kept only for the plot) ---
         cumulative = model.get_latest_training_loss()
         delta = cumulative - self._prev_loss
         self.train_losses.append(delta)
         self._prev_loss = cumulative
 
+        # --- validation check every PRINT_EVERY epochs ---
         if self._epoch % PRINT_EVERY == 0:
-            # compare against all-time best: only reset if we genuinely beat it
-            if self._best_delta - delta > MIN_DELTA:
-                self._best_delta = delta
+            val_score = evaluate(model)   # silhouette score — validation proxy
+            self.val_scores.append((self._epoch, val_score))
+
+            if val_score > self._best_val_score + MIN_DELTA:
+                self._best_val_score = val_score
                 self._no_improve_count = 0
-                model.save(self._best_checkpoint)  # persist best weights to disk
+                model.save(self._best_checkpoint)
+                improved_tag = " ✓ (new best)"
             else:
                 self._no_improve_count += 1
+                improved_tag = ""
 
             print(
-                f"  epoch {self._epoch:>6} | loss_delta = {delta:.4f}"
+                f"  epoch {self._epoch:>6} | train_loss_delta = {delta:.4f}"
+                f" | val_score = {val_score:.4f}{improved_tag}"
                 f"  (no_improve={self._no_improve_count}/{PATIENCE})"
             )
 
@@ -98,7 +106,9 @@ class LossCallback(CallbackAny2Vec):
                 )
 
     def on_train_end(self):
-        print(f"Training loss (last epoch): {self.train_losses[-1]:.4f}")
+        if self.val_scores:
+            last_epoch, last_score = self.val_scores[-1]
+            print(f"Validation score (last checkpoint, epoch {last_epoch}): {last_score:.4f}")
         if self.converged_at:
             print(f"Converged at epoch {self.converged_at} (early stopping).")
 
@@ -179,7 +189,7 @@ except EarlyStopping as e:
 # Load the best checkpoint regardless of whether early stopping fired.
 # Without this, model has last-epoch weights, not best-epoch weights.
 model = Word2Vec.load(loss_cb._best_checkpoint)
-print(f"[Best model loaded] from epoch with loss_delta={loss_cb._best_delta:.4f}")
+print(f"[Best model loaded] best val_score={loss_cb._best_val_score:.4f}")
 
 final_score = evaluate(model)
 print(f"\nFinal evaluate() score: {final_score:.4f}")
