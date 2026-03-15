@@ -14,17 +14,17 @@ random.seed(42)
 random.shuffle(_all_sentences)
 _split = int(0.8 * len(_all_sentences))
 train_sentences = _all_sentences[:_split]
-val_sentences   = _all_sentences[_split:]
+val_sentences = _all_sentences[_split:]
 
 # `sentences` alias keeps the grid-search branch (which uses `sentences=sentences`)
 # pointing at training data only — it never sees the validation split.
 sentences = train_sentences
 
-FINE_TUNING = False
+FINE_TUNING = True
 FINAL_EPOCHS = 5000
 PRINT_EVERY = 200
 PATIENCE = 5
-MIN_DELTA = 1.0
+MIN_DELTA = 0.03  # minimum silhouette-score improvement to count as progress
 
 
 class EarlyStopping(Exception):
@@ -38,9 +38,9 @@ _clusters = {
     "movie": ["movie", "screen", "watch", "hate", "bad"],
 }
 _word_to_cluster = {w: c for c, words in _clusters.items() for w in words}
-# Filter eval vocab to words that appear in the training split — prevents KeyError in evaluate()
 _train_words = {w for sent in train_sentences for w in sent}
-_eval_vocab = [w for w in _word_to_cluster if w in _train_words]
+_val_words = {w for sent in val_sentences for w in sent}
+_eval_vocab = [w for w in _word_to_cluster if w in _val_words and w in _train_words]
 _eval_labels = [_word_to_cluster[w] for w in _eval_vocab]
 
 
@@ -59,10 +59,10 @@ def evaluate(model):
 class LossCallback(CallbackAny2Vec):
     def __init__(self):
         self._epoch = 0
-        self.train_losses = []          # training loss delta per epoch (kept for plot)
-        self._prev_loss = 0.0           # used only to compute the per-epoch train delta
+        self.train_losses = []  # training loss delta per epoch (kept for plot)
+        self._prev_loss = 0.0  # used only to compute the per-epoch train delta
 
-        self.val_scores = []            # (epoch, silhouette_score) at each checkpoint
+        self.val_scores = []  # (epoch, silhouette_score) at each checkpoint
         self._best_val_score = float("-inf")
         self._no_improve_count = 0
         self.converged_at = None
@@ -81,7 +81,7 @@ class LossCallback(CallbackAny2Vec):
 
         # --- validation check every PRINT_EVERY epochs ---
         if self._epoch % PRINT_EVERY == 0:
-            val_score = evaluate(model)   # silhouette score — validation proxy
+            val_score = evaluate(model)  # silhouette score — validation proxy
             self.val_scores.append((self._epoch, val_score))
 
             if val_score > self._best_val_score + MIN_DELTA:
@@ -108,7 +108,9 @@ class LossCallback(CallbackAny2Vec):
     def on_train_end(self):
         if self.val_scores:
             last_epoch, last_score = self.val_scores[-1]
-            print(f"Validation score (last checkpoint, epoch {last_epoch}): {last_score:.4f}")
+            print(
+                f"Validation score (last checkpoint, epoch {last_epoch}): {last_score:.4f}"
+            )
         if self.converged_at:
             print(f"Converged at epoch {self.converged_at} (early stopping).")
 
@@ -205,13 +207,24 @@ fig, axes = plt.subplots(1, 2, figsize=(16, 6), gridspec_kw={"width_ratios": [1,
 if loss_cb.val_scores:
     ck_epochs = [e for e, _ in loss_cb.val_scores]
     ck_scores = [s for _, s in loss_cb.val_scores]
-    axes[0].plot(ck_epochs, ck_scores,
-                 color="darkorange", linewidth=1.4, marker="o", markersize=4,
-                 label="val silhouette score")
-    best_idx   = int(np.argmax(ck_scores))
+    axes[0].plot(
+        ck_epochs,
+        ck_scores,
+        color="darkorange",
+        linewidth=1.4,
+        marker="o",
+        markersize=4,
+        label="val silhouette score",
+    )
+    best_idx = int(np.argmax(ck_scores))
     best_epoch = ck_epochs[best_idx]
-    axes[0].axvline(best_epoch, color="green", linestyle="--", linewidth=1,
-                    label=f"best (epoch {best_epoch})")
+    axes[0].axvline(
+        best_epoch,
+        color="green",
+        linestyle="--",
+        linewidth=1,
+        label=f"best (epoch {best_epoch})",
+    )
     axes[0].legend(fontsize=8)
 
 axes[0].set_title("Validation score at each checkpoint\n(silhouette, higher = better)")
@@ -225,8 +238,14 @@ train_epochs = list(range(1, len(loss_cb.train_losses) + 1, stride))
 train_deltas = loss_cb.train_losses[::stride]
 
 ax0b = axes[0].twinx()
-ax0b.plot(train_epochs, train_deltas,
-          color="steelblue", linewidth=0.6, alpha=0.35, label="train loss Δ")
+ax0b.plot(
+    train_epochs,
+    train_deltas,
+    color="steelblue",
+    linewidth=0.6,
+    alpha=0.35,
+    label="train loss Δ",
+)
 ax0b.set_ylabel("Train loss delta", color="steelblue", fontsize=8)
 ax0b.tick_params(axis="y", labelcolor="steelblue", labelsize=7)
 

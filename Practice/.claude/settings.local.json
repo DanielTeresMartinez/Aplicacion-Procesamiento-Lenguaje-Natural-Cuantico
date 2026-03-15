@@ -1,5 +1,10 @@
 {
   "enabledPlugins": {
     "superpowers@superpowers-dev": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(python3 word2Vec.py)"
+    ]
   }
 }
