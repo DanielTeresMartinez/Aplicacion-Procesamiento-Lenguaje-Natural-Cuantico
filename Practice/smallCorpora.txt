@@ -1,32 +1,13 @@
+i like dog
+i like cat
+i like animal
 dog cat animal
-cat dog pet
-dog animal wild
-cat animal pet
-dog cat eyes
-animal cat pet
-dog animal cat
-cat dog wild
-animal dog eyes
-dog wild animal
-cat animal wild
-dog eyes animal
-fish milk food
-milk fish food
-fish food water
-milk food apple
-fish milk water
-milk apple food
-fish water animal
-milk fish apple
-book music read
-music book art
-book song music
-music book read
-book art music
-music song art
-book song read
-read music book
-movie screen watch
-hate movie screen
-movie watch bad
-hate screen movie
+apple cat dog like
+dog fish milk like
+dog cat eyes like
+i like apple
+apple i hate
+apple i movie
+book music like
+cat dog hate
+cat dog like

@@ -4,7 +4,6 @@ from itertools import product
 from gensim.models import Word2Vec
 from gensim.models.word2vec import LineSentence
 from gensim.models.callbacks import CallbackAny2Vec
-from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
 import numpy as np
 import matplotlib.pyplot as plt
@@ -32,24 +31,16 @@ class EarlyStopping(Exception):
 
 
 _clusters = {
-    "animal": ["dog", "cat", "animal", "wild", "pet", "eyes"],
-    "food": ["fish", "milk", "food", "water", "apple"],
-    "culture": ["book", "music", "song", "read", "art"],
-    "movie": ["movie", "screen", "watch", "hate", "bad"],
+    "animal": ["dog", "cat", "animal", "eyes"],
+    "food": ["apple", "fish", "milk"],
+    "culture": ["book", "music", "movie"],
+    "sentiment": ["i", "like", "hate"],
 }
 _word_to_cluster = {w: c for c, words in _clusters.items() for w in words}
 _train_words = {w for sent in train_sentences for w in sent}
 _val_words = {w for sent in val_sentences for w in sent}
 _eval_vocab = [w for w in _word_to_cluster if w in _val_words and w in _train_words]
 _eval_labels = [_word_to_cluster[w] for w in _eval_vocab]
-
-
-def _project_2d(model):
-    vocab = model.wv.index_to_key
-    vecs = np.array([model.wv[w] for w in vocab])
-    if vecs.shape[1] > 2:
-        vecs = PCA(n_components=2).fit_transform(vecs)
-    return {w: vecs[i] for i, w in enumerate(vocab)}
 
 
 def evaluate(model):
@@ -105,7 +96,7 @@ class LossCallback(CallbackAny2Vec):
                     f"No improvement for {PATIENCE} checks — stopping at epoch {self._epoch}"
                 )
 
-    def on_train_end(self):
+    def on_train_end(self, model):
         if self.val_scores:
             last_epoch, last_score = self.val_scores[-1]
             print(
@@ -123,12 +114,12 @@ def most_similar(model, word, topn=3):
 
 if FINE_TUNING:
     param_grid = {
-        "vector_size": [3, 4, 5],
+        "vector_size": [2, 3, 4, 5],
         "window": [1, 2],
-        "alpha": [0.2, 0.25, 0.3],
-        "negative": [6, 7, 8, 9],
+        "alpha": [0.1, 0.15, 0.2, 0.25, 0.3],
+        "negative": [2, 3, 4, 5, 6, 7],
     }
-    SEARCH_EPOCHS = 500
+    SEARCH_EPOCHS = 300
 
     total = 1
     for v in param_grid.values():
@@ -161,10 +152,10 @@ if FINE_TUNING:
     )
 else:
     best_params = {
-        "vector_size": 3,
+        "vector_size": 2,
         "window": 1,
-        "alpha": 0.25,
-        "negative": 6,
+        "alpha": 0.3,
+        "negative": 3,
     }
 
 loss_cb = LossCallback()
@@ -247,13 +238,10 @@ ax0b.plot(
 ax0b.set_ylabel("Train loss delta", color="steelblue", fontsize=8)
 ax0b.tick_params(axis="y", labelcolor="steelblue", labelsize=7)
 
-wv2d = _project_2d(model)
 vocab = model.wv.index_to_key
-xs = [wv2d[w][0] for w in vocab]
-ys = [wv2d[w][1] for w in vocab]
+xs = [model.wv[w][0] for w in vocab]
+ys = [model.wv[w][1] for w in vocab]
 colors = plt.cm.hsv(np.linspace(0, 0.9, len(vocab)))
-vsize = best_params["vector_size"]
-pca_note = f" (PCA {vsize}D→2D)" if vsize > 2 else ""
 
 _offsets = [
     (10, 6),
@@ -279,7 +267,7 @@ for i, (word, xi, yi) in enumerate(zip(vocab, xs, ys)):
     )
 bp = best_params
 axes[1].set_title(
-    f"2D Word Embeddings{pca_note}\n"
+    f"2D Word Embeddings\n"
     f"vsize={bp['vector_size']}  win={bp['window']}  α={bp['alpha']}  "
     f"neg={bp['negative']}  ns_exp={bp.get('ns_exponent', 0.75)}"
 )
