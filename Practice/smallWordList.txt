@@ -1,0 +1,12 @@
+dog
+cat
+animal
+fish
+apple
+milk
+book
+music
+movie
+eyes
+hate
+like
