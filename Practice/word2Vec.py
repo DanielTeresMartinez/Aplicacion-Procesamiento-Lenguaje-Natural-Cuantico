@@ -15,9 +15,8 @@ _split = int(0.8 * len(_all_sentences))
 train_sentences = _all_sentences[:_split]
 val_sentences = _all_sentences[_split:]
 
-# `sentences` alias keeps the grid-search branch (which uses `sentences=sentences`)
-# pointing at training data only — it never sees the validation split.
-sentences = train_sentences
+# El modelo entrena con todo el corpus para garantizar embeddings de todas las palabras.
+sentences = _all_sentences
 
 FINE_TUNING = False
 FINAL_EPOCHS = 2000
@@ -114,10 +113,11 @@ def most_similar(model, word, topn=3):
 
 if FINE_TUNING:
     param_grid = {
-        "vector_size": [2, 3, 4, 5],
-        "window": [1, 2],
-        "alpha": [0.1, 0.15, 0.2, 0.25, 0.3],
-        "negative": [2, 3, 4, 5, 6, 7],
+        "vector_size": [2, 3, 4],
+        "window": [1, 2, 3],
+        "alpha": [0.01, 0.025, 0.05, 0.1],
+        "negative": [3, 5, 7],
+        "ns_exponent": [0.0, 0.5, 0.75],  # 0.0 = uniforme, 0.75 = default
     }
     SEARCH_EPOCHS = 300
 
@@ -154,8 +154,9 @@ else:
     best_params = {
         "vector_size": 2,
         "window": 1,
-        "alpha": 0.3,
-        "negative": 3,
+        "alpha": 0.1,
+        "negative": 7,
+        "ns_exponent": 0.5,
     }
 
 loss_cb = LossCallback()
