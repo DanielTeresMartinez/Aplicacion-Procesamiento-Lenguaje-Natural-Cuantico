@@ -11,8 +11,6 @@ def load_corpus(file_path):
     return [line.strip().lower().split() for line in lines]
 
 
-
-
 def load_word_list(file_path):
     """
     Lee una lista de palabras (una por línea) y la trata como una única secuencia
@@ -22,7 +20,6 @@ def load_word_list(file_path):
         words = [line.strip().lower() for line in f if line.strip()]
     print(f"Word list cargado: {len(words)} palabras desde '{file_path}'")
     return [words]
-
 
 
 def load_word2vec_embeddings(filepath):
@@ -114,8 +111,6 @@ def generate_label_vectors(training_data, n_qubits):
     return label_vectors
 
 
-
-
 # =============================================================================
 # SECCIÓN 3.4 · Estimación de la profundidad del circuito
 # Fórmulas (ec. 6–7): L = ⌈num_data / (3·(n+ne)·Ath)⌉ · p(n,ne)
@@ -144,17 +139,15 @@ def get_error_probability(n, ne):
         else:
             high = mid
     p_val = (low + high) / 2
-    print(f"p(n={n}, ne={ne}) = {p_val:.4f}")
+    print(f"p(n={n}, ne={ne}) = {p_val:.3f}")
     return p_val
 
 
 def estimate_num_layers(n_qubits, n_embedding_qubits, num_data, ath):
     """Aplica la fórmula heurística (ec. 6) para estimar la profundidad L del circuito."""
-    p = get_error_probability(n_qubits, n_embedding_qubits)
+    p = round(get_error_probability(n_qubits, n_embedding_qubits), 3)
     denominator = 3 * (n_qubits + n_embedding_qubits) * ath
-    return int(np.ceil(num_data / denominator) * p)
-
-
+    return int(np.ceil(num_data * p / denominator))
 
 
 def build_target_distances(w2v_embeddings, word_to_id, n_qubits):
@@ -169,6 +162,6 @@ def build_target_distances(w2v_embeddings, word_to_id, n_qubits):
     for word, idx in word_to_id.items():
         if word in w2v_embeddings:
             w2v_ordered[idx] = w2v_embeddings[word]
-    dist= pdist(w2v_ordered, metric="euclidean")
+    dist = pdist(w2v_ordered, metric="euclidean")
 
     return dist

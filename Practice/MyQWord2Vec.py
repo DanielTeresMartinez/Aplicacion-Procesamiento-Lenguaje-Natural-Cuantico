@@ -216,15 +216,14 @@ if __name__ == "__main__":
 
     sim = AerSimulator()
 
-    iterations = 60
-
+    iterations = 10000
     c_val = 3
     c = 0.1  # constante de perturbación SPSA
     learning_rate = 0.001
     momentum = 0.9
     velocity = np.zeros(len(thetas))
     loss_history = []
-    step_show = 50
+    step_show = 100
 
     def loss_f(param):
         prob_array = forward_pass(qc_data, thetas, param, n_shots, sim)
@@ -264,4 +263,5 @@ if __name__ == "__main__":
 
         if (it + 1) % step_show == 0 or it == 0:
             print(f"  Época {it + 1:>4}/{iterations}  |  Pérdida ≈ {current_loss:.6f}")
-    display(plt.plot(loss_history))
+    plt.plot(loss_history)
+    plt.show()
