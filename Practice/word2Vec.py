@@ -4,7 +4,9 @@ from itertools import product
 from gensim.models import Word2Vec
 from gensim.models.word2vec import LineSentence
 from gensim.models.callbacks import CallbackAny2Vec
-from sklearn.metrics import silhouette_score
+from sklearn.cluster import KMeans
+from sklearn.metrics import confusion_matrix
+from scipy.optimize import linear_sum_assignment
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -36,14 +38,33 @@ _clusters = {
     "sentiment": ["i", "like", "hate"],
 }
 _word_to_cluster = {w: c for c, words in _clusters.items() for w in words}
-_train_words = {w for sent in train_sentences for w in sent}
-_val_words = {w for sent in val_sentences for w in sent}
-_eval_vocab = [w for w in _word_to_cluster if w in _val_words and w in _train_words]
-_eval_labels = [_word_to_cluster[w] for w in _eval_vocab]
+_cluster_names = list(_clusters.keys())  # orden fijo de clústeres
+_cluster_to_int = {c: i for i, c in enumerate(_cluster_names)}  # animal→0, food→1, ...
+_all_gt_words = list(_word_to_cluster.keys())  # las 13 palabras con etiqueta
+_all_gt_ints = [_cluster_to_int[_word_to_cluster[w]] for w in _all_gt_words]
 
 
 def evaluate(model):
-    return float(silhouette_score(model.wv[_eval_vocab], _eval_labels, metric="cosine"))
+    """K-Means accuracy contra el ground truth de _clusters.
+
+    K-Means asigna etiquetas arbitrarias (0-3), así que se usa el algoritmo
+    húngaro para encontrar la mejor correspondencia entre clústeres y categorías
+    antes de calcular el accuracy.
+    """
+    valid = [(w, gt) for w, gt in zip(_all_gt_words, _all_gt_ints) if w in model.wv]
+    words, gt_ints = zip(*valid)
+
+    vectors = np.array([model.wv[w] for w in words])
+    n_clusters = len(_cluster_names)
+
+    km = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+    predicted = km.fit_predict(vectors)
+
+    # Matriz de confusión y asignación óptima con algoritmo húngaro
+    cm = confusion_matrix(gt_ints, predicted, labels=list(range(n_clusters)))
+    _, col_ind = linear_sum_assignment(-cm)
+    accuracy = cm[range(n_clusters), col_ind].sum() / len(words)
+    return float(accuracy)
 
 
 class LossCallback(CallbackAny2Vec):
@@ -71,7 +92,7 @@ class LossCallback(CallbackAny2Vec):
 
         # --- validation check every PRINT_EVERY epochs ---
         if self._epoch % PRINT_EVERY == 0:
-            val_score = evaluate(model)  # silhouette score — validation proxy
+            val_score = evaluate(model)  # K-Means accuracy vs. ground truth
             self.val_scores.append((self._epoch, val_score))
 
             if val_score > self._best_val_score + MIN_DELTA:
@@ -85,7 +106,7 @@ class LossCallback(CallbackAny2Vec):
 
             print(
                 f"  epoch {self._epoch:>6} | train_loss_delta = {delta:.4f}"
-                f" | val_score = {val_score:.4f}{improved_tag}"
+                f" | kmeans_acc = {val_score:.4f}{improved_tag}"
                 f"  (no_improve={self._no_improve_count}/{PATIENCE})"
             )
 
@@ -99,7 +120,7 @@ class LossCallback(CallbackAny2Vec):
         if self.val_scores:
             last_epoch, last_score = self.val_scores[-1]
             print(
-                f"Validation score (last checkpoint, epoch {last_epoch}): {last_score:.4f}"
+                f"K-Means accuracy (last checkpoint, epoch {last_epoch}): {last_score:.4f}"
             )
         if self.converged_at:
             print(f"Converged at epoch {self.converged_at} (early stopping).")
@@ -113,13 +134,13 @@ def most_similar(model, word, topn=3):
 
 if FINE_TUNING:
     param_grid = {
-        "vector_size": [2, 3, 4],
+        "vector_size": [2, 3, 4, 6, 8],
         "window": [1, 2, 3],
-        "alpha": [0.01, 0.025, 0.05, 0.1],
-        "negative": [3, 5, 7],
-        "ns_exponent": [0.0, 0.5, 0.75],  # 0.0 = uniforme, 0.75 = default
+        "alpha": [0.005, 0.01, 0.025, 0.05, 0.1, 0.2],
+        "negative": [2, 3, 5, 6],
+        "ns_exponent": [0.0, 0.25, 0.5, 0.75, 1.0],
     }
-    SEARCH_EPOCHS = 300
+    SEARCH_EPOCHS = 500
 
     total = 1
     for v in param_grid.values():
@@ -154,9 +175,9 @@ else:
     best_params = {
         "vector_size": 2,
         "window": 1,
-        "alpha": 0.1,
-        "negative": 7,
-        "ns_exponent": 0.5,
+        "alpha": 0.2,
+        "negative": 5,
+        "ns_exponent": 0.0,
     }
 
 loss_cb = LossCallback()
@@ -184,7 +205,7 @@ except EarlyStopping as e:
 model = Word2Vec.load(loss_cb._best_checkpoint)
 
 final_score = evaluate(model)
-print(f"\nFinal evaluate() score: {final_score:.4f}")
+print(f"\nFinal K-Means accuracy: {final_score:.4f}")
 print("\nmost_similar() results:")
 for word in ["dog", "cat", "book", "fish", "music"]:
     if word in model.wv:
@@ -204,7 +225,7 @@ if loss_cb.val_scores:
         linewidth=1.4,
         marker="o",
         markersize=4,
-        label="val silhouette score",
+        label="K-Means accuracy",
     )
     best_idx = int(np.argmax(ck_scores))
     best_epoch = ck_epochs[best_idx]
@@ -217,9 +238,9 @@ if loss_cb.val_scores:
     )
     axes[0].legend(fontsize=8)
 
-axes[0].set_title("Validation score at each checkpoint\n(silhouette, higher = better)")
+axes[0].set_title("K-Means accuracy at each checkpoint\n(vs. ground truth, higher = better)")
 axes[0].set_xlabel("Epoch")
-axes[0].set_ylabel("Silhouette score")
+axes[0].set_ylabel("K-Means accuracy")
 
 # faint training-loss overlay for reference (secondary y-axis)
 stride = max(1, len(loss_cb.train_losses) // 200)

@@ -224,7 +224,7 @@ if __name__ == "__main__":
     momentum = 0.9
     velocity = np.zeros(len(thetas))
     loss_history = []
-    step_show = 20
+    step_show = 50
 
     def loss_f(param):
         prob_array = forward_pass(qc_data, thetas, param, n_shots, sim)
