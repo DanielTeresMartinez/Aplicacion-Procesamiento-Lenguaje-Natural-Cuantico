@@ -165,3 +165,22 @@ def build_target_distances(w2v_embeddings, word_to_id, n_qubits):
     dist = pdist(w2v_ordered, metric="euclidean")
 
     return dist
+
+
+# =========================================================
+# SECCION 4: Implementar el custom error rate que se indica
+# =========================================================
+
+
+def calculate_error_rate(prob_distributions, label_vectors):
+    """
+    Tasa de error entre las posiciones pico del label y las del modelo (Sección 4).
+    """
+    total_mismatches = 0
+    for k, label in label_vectors.items():
+        label_peaks = set(np.argsort(label)[-2:])
+        model_peaks = set(np.argsort(prob_distributions[k])[-2:])
+        # Convertido a set para hacer una resta de conjuntos, es decir
+        # los elementos que están en `label_peaks` pero no en `model_peaks`
+        total_mismatches += len(label_peaks - model_peaks)
+    return total_mismatches / (2 * len(label_vectors))

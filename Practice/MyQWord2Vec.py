@@ -7,6 +7,7 @@ from MyTools import (
 )
 from MyTools import generate_training_data_from_text, generate_label_vectors
 from MyTools import estimate_num_layers, build_target_distances
+from MyTools import calculate_error_rate
 
 
 import numpy as np
@@ -216,14 +217,14 @@ if __name__ == "__main__":
 
     sim = AerSimulator()
 
-    iterations = 10000
+    iterations = 100
     c_val = 3
     c = 0.1  # constante de perturbación SPSA
     learning_rate = 0.001
     momentum = 0.9
     velocity = np.zeros(len(thetas))
     loss_history = []
-    step_show = 100
+    step_show = 20
 
     def loss_f(param):
         prob_array = forward_pass(qc_data, thetas, param, n_shots, sim)
@@ -263,5 +264,10 @@ if __name__ == "__main__":
 
         if (it + 1) % step_show == 0 or it == 0:
             print(f"  Época {it + 1:>4}/{iterations}  |  Pérdida ≈ {current_loss:.6f}")
+
+    final_probs = forward_pass(qc_data, thetas, theta_values, n_shots, sim)
+    error_rate = calculate_error_rate(final_probs, label_vectors)
+    print(f"Error rate final: {error_rate:.4f}")
+
     plt.plot(loss_history)
     plt.show()
