@@ -234,7 +234,7 @@ if __name__ == "__main__":
     momentum = 0.9
     velocity = np.zeros(len(thetas))
     loss_history = []
-    step_show = 20
+    step_show = 50
 
     def loss_f(param):
         # SGD: 1 palabra aleatoria por iteración
@@ -302,6 +302,7 @@ if __name__ == "__main__":
 
     spsa = SPSA(
         maxiter=iterations,
+        blocking=True,
         learning_rate=learning_rate,
         perturbation=shift,
         callback=spsa_callback,
