@@ -18,6 +18,7 @@ from scipy.stats import pearsonr
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.circuit import ParameterVector
 from qiskit_aer import AerSimulator
+from qiskit_algorithms.optimizers import SPSA
 
 np.random.seed(42)
 
@@ -269,26 +270,48 @@ if __name__ == "__main__":
     else:
         theta_values = np.random.rand(len(thetas))
 
-    for it in range(iterations):
+    print(f"====== Fase de entrenamiento ======\n")
+    # for it in range(iterations):
 
-        delta = np.random.choice([-1.0, 1.0], size=len(theta_values))
+    #     delta = np.random.choice([-1.0, 1.0], size=len(theta_values))
 
-        theta_plus = theta_values + shift * delta
-        loss_plus = loss_f(theta_plus)
+    #     theta_plus = theta_values + shift * delta
+    #     loss_plus = loss_f(theta_plus)
 
-        theta_minus = theta_values - shift * delta
-        loss_minus = loss_f(theta_minus)
+    #     theta_minus = theta_values - shift * delta
+    #     loss_minus = loss_f(theta_minus)
 
-        grad = (loss_plus - loss_minus) / (np.pi * delta)
+    #     grad = (loss_plus - loss_minus) / (np.pi * delta)
 
-        velocity = momentum * velocity + learning_rate * grad
-        theta_values = theta_values - velocity
+    #     velocity = momentum * velocity + learning_rate * grad
+    #     theta_values = theta_values - velocity
 
-        current_loss = (loss_plus + loss_minus) / 2.0
-        loss_history.append(current_loss)
+    #     current_loss = (loss_plus + loss_minus) / 2.0
+    #     loss_history.append(current_loss)
 
-        if (it + 1) % step_show == 0 or it == 0:
-            print(f"  Época {it + 1:>4}/{iterations}  |  Pérdida ≈ {current_loss:.6f}")
+    #     if (it + 1) % step_show == 0 or it == 0:
+    #         print(f"  Época {it + 1:>4}/{iterations}  |  Pérdida ≈ {current_loss:.6f}")
+
+    # VERSIÓN UTILIZANDO LA CLASE SPSA DE QISKIT
+
+    def spsa_callback(nfev, x, fx, dx, accept):
+        loss_history.append(fx)
+        it = len(loss_history)
+        if it % step_show == 0 or it == 1:
+            print(f"  Época {it:>4}/{iterations}  |  Pérdida ≈ {fx:.4f}")
+
+    spsa = SPSA(
+        maxiter=iterations,
+        learning_rate=learning_rate,
+        perturbation=shift,
+        callback=spsa_callback,
+    )
+
+    # Utilizando la misma función de perdida que la definida
+    result = spsa.minimize(loss_f, theta_values)
+    theta_values = result.x
+
+    # FIN DE LA VERSIÓN UTILIZANDO SPSA DE QISKIT
 
     final_probs = forward_pass(qc_data, thetas, theta_values, n_shots, sim)
     error_rate = calculate_error_rate(final_probs, label_vectors)
