@@ -227,7 +227,8 @@ if __name__ == "__main__":
 
     iterations = 100
     c_val = 3
-    c = 0.1  # constante de perturbación SPSA
+    # Parameter shift rule por lo que he entendido del artículo
+    shift = np.pi / 2
     learning_rate = 0.001
     momentum = 0.9
     velocity = np.zeros(len(thetas))
@@ -272,13 +273,13 @@ if __name__ == "__main__":
 
         delta = np.random.choice([-1.0, 1.0], size=len(theta_values))
 
-        theta_plus = theta_values + c * delta
+        theta_plus = theta_values + shift * delta
         loss_plus = loss_f(theta_plus)
 
-        theta_minus = theta_values - c * delta
+        theta_minus = theta_values - shift * delta
         loss_minus = loss_f(theta_minus)
 
-        grad = (loss_plus - loss_minus) / (2.0 * c * delta)
+        grad = (loss_plus - loss_minus) / (np.pi * delta)
 
         velocity = momentum * velocity + learning_rate * grad
         theta_values = theta_values - velocity
