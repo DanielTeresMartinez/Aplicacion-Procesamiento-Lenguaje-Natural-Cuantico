@@ -13,11 +13,13 @@ from MyTools import calculate_error_rate
 import numpy as np
 from IPython.display import display
 import matplotlib.pyplot as plt
-from scipy.spatial.distance import pdist
+from scipy.spatial.distance import pdist, squareform, cdist
 from scipy.stats import pearsonr
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.circuit import ParameterVector
 from qiskit_aer import AerSimulator
+
+np.random.seed(42)
 
 
 def qword2vec_circuit(n_qubits, n_embedding, n_layers):
@@ -116,9 +118,12 @@ def forward_pass(
     return prob_array
 
 
-def calculate_custom_loss(prob_distributions, target_distances, label_vectors, C):
+def calculate_custom_loss(
+    prob_distributions, target_distances, label_vectors, C, q_dists=None
+):
 
-    q_dists = pdist(prob_distributions, metric="euclidean")
+    if q_dists is None:
+        q_dists = pdist(prob_distributions, metric="euclidean")
 
     assert len(target_distances) == len(q_dists)
     correlation, _ = pearsonr(q_dists, target_distances)
@@ -195,7 +200,7 @@ if __name__ == "__main__":
         print(f"L fija= {n_layers}")
 
     # ── §3.2 · Distancias objetivo Word2Vec ──────────────────────────────────
-    target_distances = build_target_distances(w2v_embeddings, word_to_id, n_qubits)
+    target_distances = build_target_distances(w2v_embeddings, word_to_id)
 
     """
     print('--------------------------------')
@@ -217,6 +222,9 @@ if __name__ == "__main__":
 
     sim = AerSimulator()
 
+    # Matriz NxN de distancias W2V, es el ground truth fijo
+    dist_matrix = squareform(target_distances)
+
     iterations = 100
     c_val = 3
     c = 0.1  # constante de perturbación SPSA
@@ -227,8 +235,24 @@ if __name__ == "__main__":
     step_show = 20
 
     def loss_f(param):
+        # SGD: 1 palabra aleatoria por iteración
+        idx_batch = np.random.randint(len(qc_data))
+        # Distancias W2V de la palabra elegida contra todas las demás
+        target_fila = dist_matrix[idx_batch]
+        # Forward pass con todos los circuitos para poder calcular distancias cuánticas
         prob_array = forward_pass(qc_data, thetas, param, n_shots, sim)
-        return calculate_custom_loss(prob_array, target_distances, label_vectors, c_val)
+        # Distancias cuánticas de la palabra elegida contra todas las demás
+        q_fila = cdist([prob_array[idx_batch]], prob_array)[0]
+        # Label vector de la palabra elegida
+        lab_vec_filt = {0: label_vectors[idx_batch]}
+
+        return calculate_custom_loss(
+            prob_array[idx_batch : idx_batch + 1],
+            target_fila,
+            lab_vec_filt,
+            c_val,
+            q_fila,
+        )
 
     # Valores de parámetros iniciales (ángulos [-pi, pi])
 

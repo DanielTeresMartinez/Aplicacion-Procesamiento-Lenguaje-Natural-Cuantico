@@ -150,7 +150,7 @@ def estimate_num_layers(n_qubits, n_embedding_qubits, num_data, ath):
     return int(np.ceil(num_data * p / denominator))
 
 
-def build_target_distances(w2v_embeddings, word_to_id, n_qubits):
+def build_target_distances(w2v_embeddings, word_to_id):
     """
     Construye el vector de distancias d_W2V (§3.2, ec. 5).
     Contiene las distancias euclídeas entre todos los pares de embeddings Word2Vec,
