@@ -234,11 +234,11 @@ if __name__ == "__main__":
     momentum = 0.9
     velocity = np.zeros(len(thetas))
     loss_history = []
-    step_show = 50
+    step_show = 20
 
-    def loss_f(param):
-        # SGD: 1 palabra aleatoria por iteración
-        idx_batch = np.random.randint(len(qc_data))
+    def loss_f(param, idx_batch=None):
+        if idx_batch is None:
+            idx_batch = np.random.randint(len(qc_data))
         # Distancias W2V de la palabra elegida contra todas las demás
         target_fila = dist_matrix[idx_batch]
         # Forward pass con todos los circuitos para poder calcular distancias cuánticas
@@ -271,46 +271,63 @@ if __name__ == "__main__":
         theta_values = np.random.rand(len(thetas))
 
     print(f"====== Fase de entrenamiento ======\n")
-    # for it in range(iterations):
+    # VERSIÓN BUCLE FOR MANUAL
 
-    #     delta = np.random.choice([-1.0, 1.0], size=len(theta_values))
+    loss_file = open("loss_history.txt", "w")
+    loss_file.write("epoch,loss\n")
 
-    #     theta_plus = theta_values + shift * delta
-    #     loss_plus = loss_f(theta_plus)
+    for it in range(iterations):
+        batch_idx = np.random.randint(len(qc_data))
+        delta = np.random.choice([-1.0, 1.0], size=len(theta_values))
 
-    #     theta_minus = theta_values - shift * delta
-    #     loss_minus = loss_f(theta_minus)
+        theta_plus = theta_values + shift * delta
+        loss_plus = loss_f(theta_plus, batch_idx)
 
-    #     grad = (loss_plus - loss_minus) / (np.pi * delta)
+        theta_minus = theta_values - shift * delta
+        loss_minus = loss_f(theta_minus, batch_idx)
 
-    #     velocity = momentum * velocity + learning_rate * grad
-    #     theta_values = theta_values - velocity
+        # Estimación del gradiente SPSA: (f+ - f-) / (2 * c * delta)
+        grad = (loss_plus - loss_minus) / (2 * shift * delta)
 
-    #     current_loss = (loss_plus + loss_minus) / 2.0
-    #     loss_history.append(current_loss)
+        velocity = momentum * velocity + learning_rate * grad
+        theta_values = theta_values - velocity
 
-    #     if (it + 1) % step_show == 0 or it == 0:
-    #         print(f"  Época {it + 1:>4}/{iterations}  |  Pérdida ≈ {current_loss:.6f}")
+        current_loss = (loss_plus + loss_minus) / 2.0
+        loss_history.append(current_loss)
+        loss_file.write(f"{it + 1},{current_loss}\n")
+        loss_file.flush()
+
+        if (it + 1) % step_show == 0 or it == 0:
+            print(f"  Época {it + 1:>4}/{iterations}  |  Pérdida ≈ {current_loss:.6f}")
+
+    loss_file.close()
+
+    # FIN VERSIÓN BUCLE FOR MANUAL
 
     # VERSIÓN UTILIZANDO LA CLASE SPSA DE QISKIT
 
-    def spsa_callback(nfev, x, fx, dx, accept):
-        loss_history.append(fx)
-        it = len(loss_history)
-        if it % step_show == 0 or it == 1:
-            print(f"  Época {it:>4}/{iterations}  |  Pérdida ≈ {fx:.4f}")
+    # loss_file = open("loss_history.txt", "w")
+    # loss_file.write("epoch,loss\n")
 
-    spsa = SPSA(
-        maxiter=iterations,
-        blocking=True,
-        learning_rate=learning_rate,
-        perturbation=shift,
-        callback=spsa_callback,
-    )
+    # def spsa_callback(nfev, x, fx, dx, accept):
+    #     loss_history.append(fx)
+    #     it = len(loss_history)
+    #     loss_file.write(f"{it},{fx}\n")
+    #     loss_file.flush()
+    #     if it % step_show == 0 or it == 1:
+    #         print(f"  Época {it:>4}/{iterations}  |  Pérdida ≈ {fx:.4f}")
 
-    # Utilizando la misma función de perdida que la definida
-    result = spsa.minimize(loss_f, theta_values)
-    theta_values = result.x
+    # spsa = SPSA(
+    #     maxiter=iterations,
+    #     blocking=True,
+    #     learning_rate=learning_rate,
+    #     perturbation=shift,
+    #     callback=spsa_callback,
+    # )
+
+    # result = spsa.minimize(loss_f, theta_values)
+    # theta_values = result.x
+    # loss_file.close()
 
     # FIN DE LA VERSIÓN UTILIZANDO SPSA DE QISKIT
 
