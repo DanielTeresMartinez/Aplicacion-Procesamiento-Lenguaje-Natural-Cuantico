@@ -1,4 +1,5 @@
 import os
+import pickle
 from MyTools import (
     load_corpus,
     load_word_list,
@@ -144,6 +145,10 @@ def calculate_custom_loss(
 if __name__ == "__main__":
     # False para omitir las visualizaciones y acelerar la ejecución
     SHOW_VISUALIZATIONS = True
+    # True  → entrena y guarda los pesos en theta_values.pkl
+    # False → carga los pesos desde theta_values.pkl y salta el entrenamiento
+    TRAIN = True
+    WEIGHTS_FILE = "theta_values.pkl"
     n_qubits = 4
     n_embedding = 2
     n_layers = None
@@ -245,101 +250,121 @@ if __name__ == "__main__":
         prob_array = forward_pass(qc_data, thetas, param, n_shots, sim)
         return calculate_custom_loss(prob_array, target_distances, label_vectors, c_val)
 
-    # Valores de parámetros iniciales (ángulos [-pi, pi])
+    if TRAIN:
+        # Valores de parámetros iniciales (ángulos [-pi, pi])
+        # Tratamos de dar valores iniciales "mejores" que el primer aleatorio que se encuentra
+        educated_guess = 10
+        if educated_guess is not None:
+            best_loss = np.inf
+            for i in range(educated_guess):
+                p = np.random.rand(len(thetas))
+                c_loss = loss_f(p)
+                if c_loss < best_loss:
+                    best_loss, theta_values = c_loss, p
+        else:
+            theta_values = np.random.rand(len(thetas))
 
-    # Tratamos de dar valores iniciales "mejores" que el primer aleatorio que se encuentra
-    educated_guess = 10
-    if educated_guess is not None:
-        best_loss = np.inf
-        for i in range(educated_guess):
-            p = np.random.rand(len(thetas))
-            c_loss = loss_f(p)
-            if c_loss < best_loss:
-                best_loss, theta_values = c_loss, p
+        print(f"====== Fase de entrenamiento ======\n")
+        # VERSIÓN BUCLE FOR MANUAL
+
+        # loss_file = open("loss_history.txt", "w")
+        # loss_file.write("epoch,loss\n")
+
+        # Implementación seguida de: https://pennylane.ai/qml/demos/tutorial_spsa
+        # for it in range(iterations):
+        #     c_k = spsa_c / (it + 1) ** spsa_gamma
+        #     a_k = spsa_a / (it + 1 + spsa_A) ** spsa_alpha
+        #
+        #     # 2. Vector de perturbación aleatorio ±1 (distribución de Rademacher)
+        #     delta = np.random.choice([-1.0, 1.0], size=len(theta_values))
+        #
+        #     # 3. Dos evaluaciones de la función de pérdida con parámetros perturbados
+        #     loss_plus  = loss_f(theta_values + c_k * delta)
+        #     loss_minus = loss_f(theta_values - c_k * delta)
+        #
+        #     # 4. Estimación del gradiente SPSA:
+        #     #    g_k = (L(θ + c_k·Δ) - L(θ - c_k·Δ)) / (2·c_k·Δ)
+        #     #    Con solo 2 evaluaciones se estiman los N gradientes simultáneamente
+        #     grad = (loss_plus - loss_minus) / (2 * c_k * delta)
+        #
+        #     # 5. Actualización de pesos (SGD estándar):
+        #     #    θ_{k+1} = θ_k - a_k · g_k
+        #     theta_values = theta_values - a_k * grad
+        #
+        #     current_loss = (loss_plus + loss_minus) / 2.0
+        #     loss_history.append(current_loss)
+        #     loss_file.write(f"{it + 1},{current_loss}\n")
+        #     loss_file.flush()
+        #     if (it + 1) % step_show == 0 or it == 0:
+        #         print(f"  Época {it + 1:>4}/{iterations}  |  Pérdida ≈ {current_loss:.6f}")
+
+        # loss_file.close()
+
+        # FIN VERSIÓN BUCLE FOR MANUAL
+
+        # VERSIÓN UTILIZANDO LA CLASE SPSA DE QISKIT
+
+        # Secuencias decrecientes como generadores (Spall 1998)
+        def make_learning_rate():
+            k = 0
+            while True:
+                yield spsa_a / (k + 1 + spsa_A) ** spsa_alpha
+                k += 1
+
+        def make_perturbation():
+            k = 0
+            while True:
+                yield spsa_c / (k + 1) ** spsa_gamma
+                k += 1
+
+        class EarlyStop(Exception):
+            pass
+
+        last_x = [None]  # lista para poder mutar desde dentro del callback
+
+        loss_file = open("loss_history_qiskit.txt", "w")
+        loss_file.write("epoch,loss\n")
+
+        def spsa_callback(_nfev, x, fx, _dx, _accept):
+            last_x[0] = x.copy()
+            loss_history.append(fx)
+            it = len(loss_history)
+            loss_file.write(f"{it},{fx}\n")
+            loss_file.flush()
+            if it % step_show == 0 or it == 1:
+                probs = forward_pass(qc_data, thetas, x, n_shots, sim)
+                er = calculate_error_rate(probs, label_vectors)
+                print(f"  Época {it:>4}/{iterations}  |  Pérdida ≈ {fx:.4f}  |  Error rate ≈ {er:.4f}")
+                if round(er, 1) == 0.0:
+                    raise EarlyStop()
+
+        spsa = SPSA(
+            maxiter=iterations,
+            blocking=True,
+            learning_rate=make_learning_rate,
+            perturbation=make_perturbation,
+            callback=spsa_callback,
+        )
+
+        try:
+            result = spsa.minimize(loss_f, theta_values)
+            theta_values = result.x
+        except EarlyStop:
+            theta_values = last_x[0]
+            print("Early stop: error rate ≈ 0.0 alcanzado.")
+        finally:
+            loss_file.close()
+
+        with open(WEIGHTS_FILE, "wb") as f:
+            pickle.dump(theta_values, f)
+        print(f"Pesos guardados en {WEIGHTS_FILE}")
+
+        # FIN DE LA VERSIÓN UTILIZANDO SPSA DE QISKIT
+
     else:
-        theta_values = np.random.rand(len(thetas))
-
-    print(f"====== Fase de entrenamiento ======\n")
-
-    # VERSIÓN BUCLE FOR MANUAL (comentado — para depuración manual si se necesita)
-
-    # loss_file = open("loss_history.txt", "w")
-    # loss_file.write("epoch,loss\n")
-
-    # Implementación seguida de: https://pennylane.ai/qml/demos/tutorial_spsa
-    # for it in range(iterations):
-    #     c_k = spsa_c / (it + 1) ** spsa_gamma
-    #     a_k = spsa_a / (it + 1 + spsa_A) ** spsa_alpha
-    #
-    #     # 2. Vector de perturbación aleatorio ±1 (distribución de Rademacher)
-    #     delta = np.random.choice([-1.0, 1.0], size=len(theta_values))
-    #
-    #     # 3. Dos evaluaciones de la función de pérdida con parámetros perturbados
-    #     loss_plus  = loss_f(theta_values + c_k * delta)
-    #     loss_minus = loss_f(theta_values - c_k * delta)
-    #
-    #     # 4. Estimación del gradiente SPSA:
-    #     #    g_k = (L(θ + c_k·Δ) - L(θ - c_k·Δ)) / (2·c_k·Δ)
-    #     #    Con solo 2 evaluaciones se estiman los N gradientes simultáneamente
-    #     grad = (loss_plus - loss_minus) / (2 * c_k * delta)
-    #
-    #     # 5. Actualización de pesos (SGD estándar):
-    #     #    θ_{k+1} = θ_k - a_k · g_k
-    #     theta_values = theta_values - a_k * grad
-    #
-    #     current_loss = (loss_plus + loss_minus) / 2.0
-    #     loss_history.append(current_loss)
-    #     loss_file.write(f"{it + 1},{current_loss}\n")
-    #     loss_file.flush()
-    #     if (it + 1) % step_show == 0 or it == 0:
-    #         print(f"  Época {it + 1:>4}/{iterations}  |  Pérdida ≈ {current_loss:.6f}")
-
-    # loss_file.close()
-
-    # FIN VERSIÓN BUCLE FOR MANUAL
-
-    # VERSIÓN UTILIZANDO LA CLASE SPSA DE QISKIT
-
-    # Secuencias decrecientes como generadores (Spall 1998)
-    # SPSA acepta un callable que devuelve un iterador
-    def make_learning_rate():
-        k = 0
-        while True:
-            yield spsa_a / (k + 1 + spsa_A) ** spsa_alpha
-            k += 1
-
-    def make_perturbation():
-        k = 0
-        while True:
-            yield spsa_c / (k + 1) ** spsa_gamma
-            k += 1
-
-    loss_file = open("loss_history_qiskit.txt", "w")
-    loss_file.write("epoch,loss\n")
-
-    def spsa_callback(nfev, x, fx, dx, accept):
-        loss_history.append(fx)
-        it = len(loss_history)
-        loss_file.write(f"{it},{fx}\n")
-        loss_file.flush()
-        if it % step_show == 0 or it == 1:
-            print(f"  Época {it:>4}/{iterations}  |  Pérdida ≈ {fx:.4f}")
-
-    spsa = SPSA(
-        maxiter=iterations,
-        blocking=True,
-        learning_rate=make_learning_rate,
-        perturbation=make_perturbation,
-        callback=spsa_callback,
-    )
-
-    result = spsa.minimize(loss_f, theta_values)
-    theta_values = result.x
-    loss_file.close()
-
-    # FIN DE LA VERSIÓN UTILIZANDO SPSA DE QISKIT
-
-    # FIN DE LA VERSIÓN UTILIZANDO SPSA DE QISKIT
+        print(f"Cargando pesos desde {WEIGHTS_FILE} ...")
+        with open(WEIGHTS_FILE, "rb") as f:
+            theta_values = pickle.load(f)
 
     final_probs = forward_pass(qc_data, thetas, theta_values, n_shots, sim)
     error_rate = calculate_error_rate(final_probs, label_vectors)
