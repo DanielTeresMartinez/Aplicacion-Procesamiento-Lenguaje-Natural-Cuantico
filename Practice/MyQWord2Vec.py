@@ -239,9 +239,9 @@ if __name__ == "__main__":
     # c_k = spsa_c / (k+1)^gamma  →  perturbación que decrece con las épocas
     # a_k = spsa_a / (k+1+A)^alpha →  learning rate que decrece con las épocas
     spsa_c = 0.2
-    spsa_gamma = 1 / 6
+    spsa_gamma = 0.101
     spsa_a = 0.1
-    spsa_A = 100  # estabilizador: ≈ 10% de las iteraciones
+    spsa_A = 200
     spsa_alpha = 0.602
     loss_history = []
     step_show = 100
@@ -251,7 +251,7 @@ if __name__ == "__main__":
         return calculate_custom_loss(prob_array, target_distances, label_vectors, c_val)
 
     if TRAIN:
-        ERROR_TOLERANCE = 1e-4
+        ERROR_TOLERANCE = 0.1
         # Valores de parámetros iniciales (ángulos [-pi, pi])
         # Tratamos de dar valores iniciales "mejores" que el primer aleatorio que se encuentra
         educated_guess = 10
@@ -326,17 +326,20 @@ if __name__ == "__main__":
             pass
 
         loss_file = open("loss_history_qiskit.txt", "w")
-        loss_file.write("epoch,loss,error rate\n")
+        loss_file.write("epoch,loss,error_rate\n")
         last_x = [None]
 
         def spsa_callback(_nfev, x, fx, _dx, _accept):
             last_x[0] = x.copy()
             loss_history.append(fx)
             it = len(loss_history)
+
             probs = forward_pass(qc_data, thetas, x, n_shots, sim)
-            er = calculate_error_rate(probs, label_vectors, er)
+            er = calculate_error_rate(probs, label_vectors)
+
             loss_file.write(f"{it},{fx},{er}\n")
             loss_file.flush()
+
             if it % step_show == 0 or it == 1:
                 print(
                     f"  Época {it:>4}/{iterations}  |  Pérdida ≈ {fx:.4f}  |  Error rate ≈ {er:.4f}"
@@ -346,7 +349,6 @@ if __name__ == "__main__":
 
         spsa = SPSA(
             maxiter=iterations,
-            blocking=True,
             learning_rate=make_learning_rate,
             perturbation=make_perturbation,
             callback=spsa_callback,
