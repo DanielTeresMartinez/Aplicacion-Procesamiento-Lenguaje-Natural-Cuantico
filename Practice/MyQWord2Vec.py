@@ -251,6 +251,7 @@ if __name__ == "__main__":
         return calculate_custom_loss(prob_array, target_distances, label_vectors, c_val)
 
     if TRAIN:
+        ERROR_TOLERANCE = 1e-4
         # Valores de parámetros iniciales (ángulos [-pi, pi])
         # Tratamos de dar valores iniciales "mejores" que el primer aleatorio que se encuentra
         educated_guess = 10
@@ -275,19 +276,18 @@ if __name__ == "__main__":
         #     c_k = spsa_c / (it + 1) ** spsa_gamma
         #     a_k = spsa_a / (it + 1 + spsa_A) ** spsa_alpha
         #
-        #     # 2. Vector de perturbación aleatorio ±1 (distribución de Rademacher)
+        #     # Vector de perturbación aleatorio ±1 (distribución de Rademacher)
         #     delta = np.random.choice([-1.0, 1.0], size=len(theta_values))
         #
-        #     # 3. Dos evaluaciones de la función de pérdida con parámetros perturbados
+        #     # Dos evaluaciones de la función de pérdida con parámetros perturbados
         #     loss_plus  = loss_f(theta_values + c_k * delta)
         #     loss_minus = loss_f(theta_values - c_k * delta)
         #
-        #     # 4. Estimación del gradiente SPSA:
+        #     # Estimación del gradiente SPSA:
         #     #    g_k = (L(θ + c_k·Δ) - L(θ - c_k·Δ)) / (2·c_k·Δ)
-        #     #    Con solo 2 evaluaciones se estiman los N gradientes simultáneamente
         #     grad = (loss_plus - loss_minus) / (2 * c_k * delta)
         #
-        #     # 5. Actualización de pesos (SGD estándar):
+        #     # Actualización de pesos:
         #     #    θ_{k+1} = θ_k - a_k · g_k
         #     theta_values = theta_values - a_k * grad
         #
@@ -296,8 +296,13 @@ if __name__ == "__main__":
         #     loss_file.write(f"{it + 1},{current_loss}\n")
         #     loss_file.flush()
         #     if (it + 1) % step_show == 0 or it == 0:
-        #         print(f"  Época {it + 1:>4}/{iterations}  |  Pérdida ≈ {current_loss:.6f}")
-
+        #         probs = forward_pass(qc_data, thetas, theta_values, n_shots, sim)
+        #         er = calculate_error_rate(probs, label_vectors)
+        #         print(f"  Época {it + 1:>4}/{iterations}  |  Pérdida ≈ {current_loss:.4f}  |  Error rate ≈ {er:.4f}")
+        #         if np.isclose(er, 0.0, atol=ERROR_TOLERANCE):
+        #             print(f"Early stop: error rate ≈ {ERROR_TOLERANCE} alcanzado.")
+        #             break
+        #
         # loss_file.close()
 
         # FIN VERSIÓN BUCLE FOR MANUAL
@@ -320,22 +325,23 @@ if __name__ == "__main__":
         class EarlyStop(Exception):
             pass
 
-        last_x = [None]  # lista para poder mutar desde dentro del callback
-
         loss_file = open("loss_history_qiskit.txt", "w")
-        loss_file.write("epoch,loss\n")
+        loss_file.write("epoch,loss,error rate\n")
+        last_x = [None]
 
         def spsa_callback(_nfev, x, fx, _dx, _accept):
             last_x[0] = x.copy()
             loss_history.append(fx)
             it = len(loss_history)
-            loss_file.write(f"{it},{fx}\n")
+            probs = forward_pass(qc_data, thetas, x, n_shots, sim)
+            er = calculate_error_rate(probs, label_vectors, er)
+            loss_file.write(f"{it},{fx},{er}\n")
             loss_file.flush()
             if it % step_show == 0 or it == 1:
-                probs = forward_pass(qc_data, thetas, x, n_shots, sim)
-                er = calculate_error_rate(probs, label_vectors)
-                print(f"  Época {it:>4}/{iterations}  |  Pérdida ≈ {fx:.4f}  |  Error rate ≈ {er:.4f}")
-                if round(er, 1) == 0.0:
+                print(
+                    f"  Época {it:>4}/{iterations}  |  Pérdida ≈ {fx:.4f}  |  Error rate ≈ {er:.4f}"
+                )
+                if np.isclose(er, 0.0, atol=ERROR_TOLERANCE):
                     raise EarlyStop()
 
         spsa = SPSA(
@@ -351,7 +357,7 @@ if __name__ == "__main__":
             theta_values = result.x
         except EarlyStop:
             theta_values = last_x[0]
-            print("Early stop: error rate ≈ 0.0 alcanzado.")
+            print(f"Early stop: error rate ≈ {ERROR_TOLERANCE} alcanzado.")
         finally:
             loss_file.close()
 
