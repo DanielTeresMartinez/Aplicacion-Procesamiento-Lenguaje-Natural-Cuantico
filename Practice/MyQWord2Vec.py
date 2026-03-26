@@ -13,7 +13,7 @@ from MyTools import calculate_error_rate
 import numpy as np
 from IPython.display import display
 import matplotlib.pyplot as plt
-from scipy.spatial.distance import pdist, squareform, cdist
+from scipy.spatial.distance import pdist, squareform
 from scipy.stats import pearsonr
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.circuit import ParameterVector
@@ -128,6 +128,8 @@ def calculate_custom_loss(
 
     assert len(target_distances) == len(q_dists)
     correlation, _ = pearsonr(q_dists, target_distances)
+    if np.isnan(correlation):
+        correlation = 0.0
 
     # Entropía cruzada
     eps, loss, count = 1e-10, 0.0, 0
@@ -226,35 +228,22 @@ if __name__ == "__main__":
     # Matriz NxN de distancias W2V, es el ground truth fijo
     dist_matrix = squareform(target_distances)
 
-    iterations = 100
+    iterations = 2000
     c_val = 3
-    # Parameter shift rule por lo que he entendido del artículo
-    shift = np.pi / 2
-    learning_rate = 0.001
-    momentum = 0.9
-    velocity = np.zeros(len(thetas))
+    # Hiperparámetros SPSA con secuencias decrecientes (Spall 1998)
+    # c_k = spsa_c / (k+1)^gamma  →  perturbación que decrece con las épocas
+    # a_k = spsa_a / (k+1+A)^alpha →  learning rate que decrece con las épocas
+    spsa_c = 0.2
+    spsa_gamma = 1 / 6
+    spsa_a = 0.1
+    spsa_A = 100  # estabilizador: ≈ 10% de las iteraciones
+    spsa_alpha = 0.602
     loss_history = []
-    step_show = 20
+    step_show = 100
 
-    def loss_f(param, idx_batch=None):
-        if idx_batch is None:
-            idx_batch = np.random.randint(len(qc_data))
-        # Distancias W2V de la palabra elegida contra todas las demás
-        target_fila = dist_matrix[idx_batch]
-        # Forward pass con todos los circuitos para poder calcular distancias cuánticas
+    def loss_f(param):
         prob_array = forward_pass(qc_data, thetas, param, n_shots, sim)
-        # Distancias cuánticas de la palabra elegida contra todas las demás
-        q_fila = cdist([prob_array[idx_batch]], prob_array)[0]
-        # Label vector de la palabra elegida
-        lab_vec_filt = {0: label_vectors[idx_batch]}
-
-        return calculate_custom_loss(
-            prob_array[idx_batch : idx_batch + 1],
-            target_fila,
-            lab_vec_filt,
-            c_val,
-            q_fila,
-        )
+        return calculate_custom_loss(prob_array, target_distances, label_vectors, c_val)
 
     # Valores de parámetros iniciales (ángulos [-pi, pi])
 
@@ -271,63 +260,84 @@ if __name__ == "__main__":
         theta_values = np.random.rand(len(thetas))
 
     print(f"====== Fase de entrenamiento ======\n")
-    # VERSIÓN BUCLE FOR MANUAL
 
-    loss_file = open("loss_history.txt", "w")
-    loss_file.write("epoch,loss\n")
+    # VERSIÓN BUCLE FOR MANUAL (comentado — para depuración manual si se necesita)
 
-    for it in range(iterations):
-        batch_idx = np.random.randint(len(qc_data))
-        delta = np.random.choice([-1.0, 1.0], size=len(theta_values))
+    # loss_file = open("loss_history.txt", "w")
+    # loss_file.write("epoch,loss\n")
 
-        theta_plus = theta_values + shift * delta
-        loss_plus = loss_f(theta_plus, batch_idx)
+    # Implementación seguida de: https://pennylane.ai/qml/demos/tutorial_spsa
+    # for it in range(iterations):
+    #     c_k = spsa_c / (it + 1) ** spsa_gamma
+    #     a_k = spsa_a / (it + 1 + spsa_A) ** spsa_alpha
+    #
+    #     # 2. Vector de perturbación aleatorio ±1 (distribución de Rademacher)
+    #     delta = np.random.choice([-1.0, 1.0], size=len(theta_values))
+    #
+    #     # 3. Dos evaluaciones de la función de pérdida con parámetros perturbados
+    #     loss_plus  = loss_f(theta_values + c_k * delta)
+    #     loss_minus = loss_f(theta_values - c_k * delta)
+    #
+    #     # 4. Estimación del gradiente SPSA:
+    #     #    g_k = (L(θ + c_k·Δ) - L(θ - c_k·Δ)) / (2·c_k·Δ)
+    #     #    Con solo 2 evaluaciones se estiman los N gradientes simultáneamente
+    #     grad = (loss_plus - loss_minus) / (2 * c_k * delta)
+    #
+    #     # 5. Actualización de pesos (SGD estándar):
+    #     #    θ_{k+1} = θ_k - a_k · g_k
+    #     theta_values = theta_values - a_k * grad
+    #
+    #     current_loss = (loss_plus + loss_minus) / 2.0
+    #     loss_history.append(current_loss)
+    #     loss_file.write(f"{it + 1},{current_loss}\n")
+    #     loss_file.flush()
+    #     if (it + 1) % step_show == 0 or it == 0:
+    #         print(f"  Época {it + 1:>4}/{iterations}  |  Pérdida ≈ {current_loss:.6f}")
 
-        theta_minus = theta_values - shift * delta
-        loss_minus = loss_f(theta_minus, batch_idx)
-
-        # Estimación del gradiente SPSA: (f+ - f-) / (2 * c * delta)
-        grad = (loss_plus - loss_minus) / (2 * shift * delta)
-
-        velocity = momentum * velocity + learning_rate * grad
-        theta_values = theta_values - velocity
-
-        current_loss = (loss_plus + loss_minus) / 2.0
-        loss_history.append(current_loss)
-        loss_file.write(f"{it + 1},{current_loss}\n")
-        loss_file.flush()
-
-        if (it + 1) % step_show == 0 or it == 0:
-            print(f"  Época {it + 1:>4}/{iterations}  |  Pérdida ≈ {current_loss:.6f}")
-
-    loss_file.close()
+    # loss_file.close()
 
     # FIN VERSIÓN BUCLE FOR MANUAL
 
     # VERSIÓN UTILIZANDO LA CLASE SPSA DE QISKIT
 
-    # loss_file = open("loss_history.txt", "w")
-    # loss_file.write("epoch,loss\n")
+    # Secuencias decrecientes como generadores (Spall 1998)
+    # SPSA acepta un callable que devuelve un iterador
+    def make_learning_rate():
+        k = 0
+        while True:
+            yield spsa_a / (k + 1 + spsa_A) ** spsa_alpha
+            k += 1
 
-    # def spsa_callback(nfev, x, fx, dx, accept):
-    #     loss_history.append(fx)
-    #     it = len(loss_history)
-    #     loss_file.write(f"{it},{fx}\n")
-    #     loss_file.flush()
-    #     if it % step_show == 0 or it == 1:
-    #         print(f"  Época {it:>4}/{iterations}  |  Pérdida ≈ {fx:.4f}")
+    def make_perturbation():
+        k = 0
+        while True:
+            yield spsa_c / (k + 1) ** spsa_gamma
+            k += 1
 
-    # spsa = SPSA(
-    #     maxiter=iterations,
-    #     blocking=True,
-    #     learning_rate=learning_rate,
-    #     perturbation=shift,
-    #     callback=spsa_callback,
-    # )
+    loss_file = open("loss_history_qiskit.txt", "w")
+    loss_file.write("epoch,loss\n")
 
-    # result = spsa.minimize(loss_f, theta_values)
-    # theta_values = result.x
-    # loss_file.close()
+    def spsa_callback(nfev, x, fx, dx, accept):
+        loss_history.append(fx)
+        it = len(loss_history)
+        loss_file.write(f"{it},{fx}\n")
+        loss_file.flush()
+        if it % step_show == 0 or it == 1:
+            print(f"  Época {it:>4}/{iterations}  |  Pérdida ≈ {fx:.4f}")
+
+    spsa = SPSA(
+        maxiter=iterations,
+        blocking=True,
+        learning_rate=make_learning_rate,
+        perturbation=make_perturbation,
+        callback=spsa_callback,
+    )
+
+    result = spsa.minimize(loss_f, theta_values)
+    theta_values = result.x
+    loss_file.close()
+
+    # FIN DE LA VERSIÓN UTILIZANDO SPSA DE QISKIT
 
     # FIN DE LA VERSIÓN UTILIZANDO SPSA DE QISKIT
 
