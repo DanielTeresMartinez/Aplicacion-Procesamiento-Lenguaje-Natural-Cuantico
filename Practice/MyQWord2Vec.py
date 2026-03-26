@@ -233,7 +233,7 @@ if __name__ == "__main__":
     # Matriz NxN de distancias W2V, es el ground truth fijo
     dist_matrix = squareform(target_distances)
 
-    iterations = 2000
+    iterations = 5000
     c_val = 3
     # Hiperparámetros SPSA con secuencias decrecientes (Spall 1998)
     # c_k = spsa_c / (k+1)^gamma  →  perturbación que decrece con las épocas
@@ -241,7 +241,7 @@ if __name__ == "__main__":
     spsa_c = 0.2
     spsa_gamma = 0.101
     spsa_a = 0.1
-    spsa_A = 200
+    spsa_A = iterations * 0.15
     spsa_alpha = 0.602
     loss_history = []
     step_show = 100
@@ -328,6 +328,8 @@ if __name__ == "__main__":
         loss_file = open("loss_history_qiskit.txt", "w")
         loss_file.write("epoch,loss,error_rate\n")
         last_x = [None]
+        best_er = [np.inf]
+        best_x = [None]
 
         def spsa_callback(_nfev, x, fx, _dx, _accept):
             last_x[0] = x.copy()
@@ -337,12 +339,18 @@ if __name__ == "__main__":
             probs = forward_pass(qc_data, thetas, x, n_shots, sim)
             er = calculate_error_rate(probs, label_vectors)
 
+            if er < best_er[0]:
+                best_er[0] = er
+                best_x[0] = x.copy()
+                with open(WEIGHTS_FILE, "wb") as f:
+                    pickle.dump(best_x[0], f)
+
             loss_file.write(f"{it},{fx},{er}\n")
             loss_file.flush()
 
             if it % step_show == 0 or it == 1:
                 print(
-                    f"  Época {it:>4}/{iterations}  |  Pérdida ≈ {fx:.4f}  |  Error rate ≈ {er:.4f}"
+                    f"  Época {it:>4}/{iterations}  |  Pérdida ≈ {fx:+.4f}  |  Error rate ≈ {er:.4f}  |  Mejor ≈ {best_er[0]:.4f}"
                 )
                 if np.isclose(er, 0.0, atol=ERROR_TOLERANCE):
                     raise EarlyStop()
@@ -356,16 +364,17 @@ if __name__ == "__main__":
 
         try:
             result = spsa.minimize(loss_f, theta_values)
-            theta_values = result.x
         except EarlyStop:
-            theta_values = last_x[0]
             print(f"Early stop: error rate ≈ {ERROR_TOLERANCE} alcanzado.")
         finally:
             loss_file.close()
 
-        with open(WEIGHTS_FILE, "wb") as f:
-            pickle.dump(theta_values, f)
-        print(f"Pesos guardados en {WEIGHTS_FILE}")
+        # Cargamos los mejores pesos encontrados durante el entrenamiento
+        with open(WEIGHTS_FILE, "rb") as f:
+            theta_values = pickle.load(f)
+        print(
+            f"Mejor error rate encontrado: {best_er[0]:.4f} — pesos cargados desde {WEIGHTS_FILE}"
+        )
 
         # FIN DE LA VERSIÓN UTILIZANDO SPSA DE QISKIT
 
