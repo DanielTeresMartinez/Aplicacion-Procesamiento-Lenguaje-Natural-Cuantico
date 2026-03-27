@@ -20,7 +20,7 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.circuit import ParameterVector
 from qiskit_aer import AerSimulator
 from qiskit_algorithms.optimizers import QNSPSA
-from qiskit_aer.primitives import Sampler as AerSampler
+from qiskit_aer.primitives import SamplerV2 as AerSampler
 
 np.random.seed(42)
 
@@ -231,12 +231,15 @@ if __name__ == "__main__":
 
     sim = AerSimulator()
     aer_sampler = AerSampler()
-    fidelity = QNSPSA.get_fidelity(qc_data[0], aer_sampler)
+    # get_fidelity necesita un circuito sin medidas y con las instrucciones
+    # descompuestas a puertas básicas (sin subcircuitos anidados)
+    fidelity_circuit = qc_data[0].remove_final_measurements(inplace=False).decompose()
+    fidelity = QNSPSA.get_fidelity(fidelity_circuit, aer_sampler)
 
     # Matriz NxN de distancias W2V, es el ground truth fijo
     dist_matrix = squareform(target_distances)
 
-    iterations = 5000
+    iterations = 1000
     c_val = 3
     # Hiperparámetros SPSA con secuencias decrecientes (Spall 1998)
     # c_k = spsa_c / (k+1)^gamma  →  perturbación que decrece con las épocas
@@ -244,7 +247,7 @@ if __name__ == "__main__":
     spsa_c = 0.2
     spsa_gamma = 0.101
     spsa_a = 0.1
-    spsa_A = iterations * 0.15
+    spsa_A = iterations * 0.1
     spsa_alpha = 0.602
     loss_history = []
     step_show = 100
@@ -283,14 +286,12 @@ if __name__ == "__main__":
                 yield spsa_c / (k + 1) ** spsa_gamma
                 k += 1
 
-        class EarlyStop(Exception):
-            pass
-
         loss_file = open("loss_history_QNSPSA.txt", "w")
         loss_file.write("epoch,loss,error_rate\n")
         last_x = [None]
         best_er = [np.inf]
         best_x = [None]
+        last_er = [np.inf]  # compartido con termination_checker
 
         def spsa_callback(_nfev, x, fx, _dx, _accept):
             last_x[0] = x.copy()
@@ -299,6 +300,7 @@ if __name__ == "__main__":
 
             probs = forward_pass(qc_data, thetas, x, n_shots, sim)
             er = calculate_error_rate(probs, label_vectors)
+            last_er[0] = er
 
             if er < best_er[0]:
                 best_er[0] = er
@@ -313,24 +315,26 @@ if __name__ == "__main__":
                 print(
                     f"  Época {it:>4}/{iterations}  |  Pérdida ≈ {fx:+.4f}  |  Error rate ≈ {er:.4f}  |  Mejor ≈ {best_er[0]:.4f}"
                 )
-                if np.isclose(er, 0.0, atol=ERROR_TOLERANCE):
-                    raise EarlyStop()
+
+        def termination_checker(_x, _fx, _nfev, _stepsize, _accept):
+            if np.isclose(last_er[0], 0.0, atol=ERROR_TOLERANCE):
+                print(f"Early stop: error rate ≈ {ERROR_TOLERANCE} alcanzado.")
+                return True
+            return False
 
         qnspsa = QNSPSA(
             fidelity=fidelity,
             maxiter=iterations,
             blocking=True,
             regularization=1e-3,
-            hessian_delay=200,
             learning_rate=make_learning_rate,
             perturbation=make_perturbation,
             callback=spsa_callback,
+            termination_checker=termination_checker,
         )
 
         try:
             result = qnspsa.minimize(loss_f, theta_values)
-        except EarlyStop:
-            print(f"Early stop: error rate ≈ {ERROR_TOLERANCE} alcanzado.")
         finally:
             loss_file.close()
 

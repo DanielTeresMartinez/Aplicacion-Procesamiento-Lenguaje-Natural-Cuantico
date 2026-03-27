@@ -352,8 +352,9 @@ if __name__ == "__main__":
                 print(
                     f"  Época {it:>4}/{iterations}  |  Pérdida ≈ {fx:+.4f}  |  Error rate ≈ {er:.4f}  |  Mejor ≈ {best_er[0]:.4f}"
                 )
-                if np.isclose(er, 0.0, atol=ERROR_TOLERANCE):
-                    raise EarlyStop()
+
+            if np.isclose(er, 0.0, atol=ERROR_TOLERANCE):
+                raise EarlyStop()
 
         spsa = SPSA(
             maxiter=iterations,
