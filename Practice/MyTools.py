@@ -189,7 +189,11 @@ def calculate_error_rate(prob_distributions, label_vectors):
 
 
 def plot_embeddings_comparison(
-    final_probs, w2v_embeddings, word_to_id, id_to_word, save_path="embeddings_comparison.png"
+    final_probs,
+    w2v_embeddings,
+    word_to_id,
+    id_to_word,
+    save_path="embeddings_comparison.png",
 ):
     """
     Visualización side-by-side de los embeddings Word2Vec y Q-word2vec (como Fig. 8 del paper).

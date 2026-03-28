@@ -1,7 +1,6 @@
 import itertools
 import os
 import numpy as np
-from scipy.spatial.distance import squareform
 from qiskit_aer import AerSimulator
 from qiskit_aer.primitives import SamplerV2 as AerSampler
 from qiskit_algorithms.optimizers import QNSPSA
@@ -24,15 +23,12 @@ np.random.seed(42)
 # ── Configuración fija ────────────────────────────────────────────────────
 N_QUBITS = 4
 N_EMBEDDING = 2
-N_LAYERS = None
-GS_SHOTS = 256  # menos shots para acelerar cada trial
-GS_ITERATIONS = 1500  # iteraciones por combinación
-EDUCATED_GUESS = 6  # intentos de punto inicial por trial
+GS_SHOTS = 256
+GS_ITERATIONS = 1000
+EDUCATED_GUESS = 6
 C_VAL = 3
-ATH = 0.02
-ERROR_TOL = 0.1
 
-# Hiperparámetros SPSA fijos (solo spsa_A varía con spsa_A_pct)
+# Hiperparámetros SPSA fijos
 SPSA_C = 0.2
 SPSA_GAMMA = 0.101
 SPSA_A = 0.1
@@ -50,54 +46,57 @@ training_data = generate_training_data_from_text(corpus, word_to_id, window_size
 label_vectors = generate_label_vectors(training_data, N_QUBITS)
 target_distances = build_target_distances(w2v_embeddings, word_to_id)
 
-if N_LAYERS is None:
-    N_LAYERS = estimate_num_layers(N_QUBITS, N_EMBEDDING, len(word_to_id), ATH)
-
-qc, input_p, thetas = qword2vec_circuit(N_QUBITS, N_EMBEDDING, N_LAYERS)
-
-qc_data = []
-for embedded_word in label_vectors:
-    bin_word = bin(embedded_word)[2:].rjust(N_QUBITS, "0")
-    int_word = [int(bit) for bit in bin_word]
-    qc_data.append(qc.assign_parameters({input_p: int_word}))
-
 sim = AerSimulator()
 aer_sampler = AerSampler()
 
-# Precalcula los tres circuitos de fidelidad candidatos
-n_circuits = len(qc_data)
-fid_indices = {
-    "primero": 0,
-    "medio": n_circuits // 2,
-    "último": n_circuits - 1,
-}
-fidelities = {
-    name: QNSPSA.get_fidelity(
-        qc_data[idx].remove_final_measurements(inplace=False).decompose(),
+print(f"Datos listos — vocab={len(word_to_id)}, muestras={len(label_vectors)}")
+
+
+# ── Caché de circuitos por L (evita reconstruir cuando dos Ath dan el mismo L) ──
+_circuit_cache = {}
+
+
+def get_circuit_for_ath(ath):
+    n_layers = estimate_num_layers(N_QUBITS, N_EMBEDDING, len(word_to_id), ath)
+    if n_layers in _circuit_cache:
+        return _circuit_cache[n_layers]
+
+    print(f"  [caché] Construyendo circuito para Ath={ath:.3f} → L={n_layers}...")
+    qc, input_p, thetas_pv = qword2vec_circuit(N_QUBITS, N_EMBEDDING, n_layers)
+
+    qc_data_local = []
+    for embedded_word in label_vectors:
+        bin_word = bin(embedded_word)[2:].rjust(N_QUBITS, "0")
+        int_word = [int(bit) for bit in bin_word]
+        qc_data_local.append(qc.assign_parameters({input_p: int_word}))
+
+    fidelity_local = QNSPSA.get_fidelity(
+        qc_data_local[0].remove_final_measurements(inplace=False).decompose(),
         aer_sampler,
     )
-    for name, idx in fid_indices.items()
-}
 
-print(
-    f"Datos listos — vocab={len(word_to_id)}, muestras={len(label_vectors)}, L={N_LAYERS}"
-)
+    _circuit_cache[n_layers] = (n_layers, qc_data_local, thetas_pv, fidelity_local)
+    return _circuit_cache[n_layers]
 
 
-# ── Función de pérdida ────────────────────────────────────────────────────
-def loss_f(param):
-    probs = forward_pass(qc_data, thetas, param, GS_SHOTS, sim)
-    return calculate_custom_loss(probs, target_distances, label_vectors, C_VAL)
+# ── Función de pérdida (depende del circuito) ─────────────────────────────
+def make_loss_f(qc_data_local, thetas_local):
+    def loss_f(param):
+        probs = forward_pass(qc_data_local, thetas_local, param, GS_SHOTS, sim)
+        return calculate_custom_loss(probs, target_distances, label_vectors, C_VAL)
+
+    return loss_f
 
 
 # ── Ejecución de un trial ─────────────────────────────────────────────────
-def run_trial(regularization, hessian_delay, spsa_A_pct):
+def run_trial(ath, regularization, hessian_delay, spsa_A_pct):
+    n_layers, qc_data_local, thetas_local, fidelity_local = get_circuit_for_ath(ath)
     spsa_A_val = GS_ITERATIONS * spsa_A_pct
+    loss_f = make_loss_f(qc_data_local, thetas_local)
 
-    # Punto inicial: educated guess
     best_init, theta_init = np.inf, None
     for _ in range(EDUCATED_GUESS):
-        p = np.random.rand(len(thetas))
+        p = np.random.rand(len(thetas_local))
         l = loss_f(p)
         if l < best_init:
             best_init, theta_init = l, p
@@ -118,17 +117,17 @@ def run_trial(regularization, hessian_delay, spsa_A_pct):
             k += 1
 
     def callback(_nfev, x, fx, _dx, _accept):
-        probs = forward_pass(qc_data, thetas, x, GS_SHOTS, sim)
+        probs = forward_pass(qc_data_local, thetas_local, x, GS_SHOTS, sim)
         er = calculate_error_rate(probs, label_vectors)
         last_er[0] = er
         if er < best_er[0]:
             best_er[0] = er
 
     def termination_checker(_x, _fx, _nfev, _stepsize, _accept):
-        return np.isclose(last_er[0], 0.0, atol=ERROR_TOL)
+        return np.isclose(last_er[0], 0.0, atol=0.1)
 
     qnspsa = QNSPSA(
-        fidelity=fidelities["primero"],
+        fidelity=fidelity_local,
         maxiter=GS_ITERATIONS,
         blocking=True,
         regularization=regularization,
@@ -139,40 +138,42 @@ def run_trial(regularization, hessian_delay, spsa_A_pct):
         termination_checker=termination_checker,
     )
     qnspsa.minimize(loss_f, theta_init)
-    return best_er[0]
+    return best_er[0], n_layers
 
 
 # ── Grid ──────────────────────────────────────────────────────────────────
+# Ath en el rango [0, 0.1] del paper (se omite 0.01 → L=22, muy costoso;
+# se omite 0.02 → L=11, ya probado con error_rate ≈ 0.3)
 param_grid = {
-    "regularization": [5e-4, 3e-3],
-    "hessian_delay":  [300, 500, 700],
-    "spsa_A_pct":     [0.03, 0.08],
+    "ath": [0.03, 0.04, 0.05],
+    "regularization": [1e-4, 5e-4, 3e-3],
+    "hessian_delay": [200, 500, 700],
+    "spsa_A_pct": [0.03, 0.05, 0.08],
 }
-# blocking=True fijado (recomendación estándar para landscapes cuánticos ruidosos)
-# fidelity_name="primero" fijado (el circuito elegido afecta poco al tensor métrico)
 
 keys = list(param_grid.keys())
 combos = list(itertools.product(*param_grid.values()))
 total = len(combos)
 
-print(f"\nGrid search: {total} combinaciones × {GS_ITERATIONS} iter/combo\n" + "=" * 60)
+print(f"\nGrid search: {total} combinaciones × {GS_ITERATIONS} iter/combo\n" + "=" * 65)
 
 results = []
 for i, combo in enumerate(combos, 1):
     params = dict(zip(keys, combo))
     label = (
+        f"ath={params['ath']:.2f}  "
         f"reg={params['regularization']:.0e}  "
         f"hd={params['hessian_delay']:>3}  "
         f"A%={params['spsa_A_pct']:.0%}"
     )
     print(f"[{i:>3}/{total}]  {label}", end="  →  ", flush=True)
     try:
-        best_er = run_trial(**params)
-        print(f"best_er={best_er:.4f}")
+        best_er, n_layers = run_trial(**params)
+        print(f"L={n_layers:>2}  best_er={best_er:.4f}")
     except Exception as e:
-        best_er = np.inf
+        best_er, n_layers = np.inf, -1
         print(f"ERROR: {e}")
-    results.append({**params, "best_er": best_er})
+    results.append({**params, "L": n_layers, "best_er": best_er})
 
 results.sort(key=lambda x: x["best_er"])
 
@@ -180,20 +181,20 @@ results.sort(key=lambda x: x["best_er"])
 out_file = "grid_search_results_refined.txt"
 with open(out_file, "w") as f:
     f.write(f"Grid Search QNSPSA — {GS_ITERATIONS} iter/combo, {GS_SHOTS} shots\n")
-    f.write("=" * 55 + "\n")
-    header = f"{'Rank':>4}  {'reg':>6}  {'hd':>5}  {'A_pct':>5}  {'best_er':>8}\n"
+    f.write("=" * 65 + "\n")
+    header = f"{'Rank':>4}  {'ath':>5}  {'L':>3}  {'reg':>6}  {'hd':>5}  {'A_pct':>5}  {'best_er':>8}\n"
     f.write(header)
-    f.write("-" * 55 + "\n")
+    f.write("-" * 65 + "\n")
     for rank, r in enumerate(results, 1):
         f.write(
-            f"{rank:>4}  {r['regularization']:>6.0e}  {r['hessian_delay']:>5}  "
-            f"{r['spsa_A_pct']:>5.0%}  {r['best_er']:>8.4f}\n"
+            f"{rank:>4}  {r['ath']:>5.2f}  {r['L']:>3}  {r['regularization']:>6.0e}  "
+            f"{r['hessian_delay']:>5}  {r['spsa_A_pct']:>5.0%}  {r['best_er']:>8.4f}\n"
         )
     f.write("\n=== MEJOR COMBINACIÓN ===\n")
     for k, v in results[0].items():
         f.write(f"  {k}: {v}\n")
 
-print(f"\n{'=' * 60}")
+print(f"\n{'=' * 65}")
 print("=== MEJOR COMBINACIÓN ===")
 for k, v in results[0].items():
     print(f"  {k}: {v}")
