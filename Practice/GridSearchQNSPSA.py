@@ -25,9 +25,9 @@ np.random.seed(42)
 N_QUBITS = 4
 N_EMBEDDING = 2
 N_LAYERS = None
-GS_SHOTS = 1024  # menos shots para acelerar cada trial
-GS_ITERATIONS = 1000  # iteraciones por combinación
-EDUCATED_GUESS = 10  # intentos de punto inicial por trial
+GS_SHOTS = 256  # menos shots para acelerar cada trial
+GS_ITERATIONS = 1500  # iteraciones por combinación
+EDUCATED_GUESS = 6  # intentos de punto inicial por trial
 C_VAL = 3
 ATH = 0.02
 ERROR_TOL = 0.1
@@ -91,7 +91,7 @@ def loss_f(param):
 
 
 # ── Ejecución de un trial ─────────────────────────────────────────────────
-def run_trial(regularization, hessian_delay, blocking, spsa_A_pct, fidelity_name):
+def run_trial(regularization, hessian_delay, spsa_A_pct):
     spsa_A_val = GS_ITERATIONS * spsa_A_pct
 
     # Punto inicial: educated guess
@@ -128,9 +128,9 @@ def run_trial(regularization, hessian_delay, blocking, spsa_A_pct, fidelity_name
         return np.isclose(last_er[0], 0.0, atol=ERROR_TOL)
 
     qnspsa = QNSPSA(
-        fidelity=fidelities[fidelity_name],
+        fidelity=fidelities["primero"],
         maxiter=GS_ITERATIONS,
-        blocking=blocking,
+        blocking=True,
         regularization=regularization,
         hessian_delay=hessian_delay,
         learning_rate=make_lr,
@@ -144,12 +144,12 @@ def run_trial(regularization, hessian_delay, blocking, spsa_A_pct, fidelity_name
 
 # ── Grid ──────────────────────────────────────────────────────────────────
 param_grid = {
-    "regularization": [1e-3, 1e-2, 1e-1],
-    "hessian_delay": [0, 200, 500],
-    "blocking": [True, False],
-    "spsa_A_pct": [0.05, 0.10, 0.20],
-    "fidelity_name": list(fidelities.keys()),
+    "regularization": [5e-4, 3e-3],
+    "hessian_delay":  [300, 500, 700],
+    "spsa_A_pct":     [0.03, 0.08],
 }
+# blocking=True fijado (recomendación estándar para landscapes cuánticos ruidosos)
+# fidelity_name="primero" fijado (el circuito elegido afecta poco al tensor métrico)
 
 keys = list(param_grid.keys())
 combos = list(itertools.product(*param_grid.values()))
@@ -163,9 +163,7 @@ for i, combo in enumerate(combos, 1):
     label = (
         f"reg={params['regularization']:.0e}  "
         f"hd={params['hessian_delay']:>3}  "
-        f"block={str(params['blocking']):>5}  "
-        f"A%={params['spsa_A_pct']:.0%}  "
-        f"fid={params['fidelity_name']}"
+        f"A%={params['spsa_A_pct']:.0%}"
     )
     print(f"[{i:>3}/{total}]  {label}", end="  →  ", flush=True)
     try:
@@ -179,18 +177,17 @@ for i, combo in enumerate(combos, 1):
 results.sort(key=lambda x: x["best_er"])
 
 # ── Guardar resultados ────────────────────────────────────────────────────
-out_file = "grid_search_results.txt"
+out_file = "grid_search_results_refined.txt"
 with open(out_file, "w") as f:
     f.write(f"Grid Search QNSPSA — {GS_ITERATIONS} iter/combo, {GS_SHOTS} shots\n")
-    f.write("=" * 85 + "\n")
-    header = f"{'Rank':>4}  {'reg':>6}  {'hd':>5}  {'block':>5}  {'A_pct':>5}  {'fidelidad':>8}  {'best_er':>8}\n"
+    f.write("=" * 55 + "\n")
+    header = f"{'Rank':>4}  {'reg':>6}  {'hd':>5}  {'A_pct':>5}  {'best_er':>8}\n"
     f.write(header)
-    f.write("-" * 85 + "\n")
+    f.write("-" * 55 + "\n")
     for rank, r in enumerate(results, 1):
         f.write(
             f"{rank:>4}  {r['regularization']:>6.0e}  {r['hessian_delay']:>5}  "
-            f"{str(r['blocking']):>5}  {r['spsa_A_pct']:>5.0%}  "
-            f"{r['fidelity_name']:>8}  {r['best_er']:>8.4f}\n"
+            f"{r['spsa_A_pct']:>5.0%}  {r['best_er']:>8.4f}\n"
         )
     f.write("\n=== MEJOR COMBINACIÓN ===\n")
     for k, v in results[0].items():
