@@ -89,9 +89,9 @@ def make_loss_f(qc_data_local, thetas_local):
 
 
 # ── Ejecución de un trial ─────────────────────────────────────────────────
-def run_trial(ath, regularization, hessian_delay, spsa_A_pct):
+def run_trial(ath, regularization, hessian_delay):
     n_layers, qc_data_local, thetas_local, fidelity_local = get_circuit_for_ath(ath)
-    spsa_A_val = GS_ITERATIONS * spsa_A_pct
+    spsa_A_val = GS_ITERATIONS * 0.1  # 10% de iteraciones (Spall 1998)
     loss_f = make_loss_f(qc_data_local, thetas_local)
 
     best_init, theta_init = np.inf, None
@@ -147,8 +147,7 @@ def run_trial(ath, regularization, hessian_delay, spsa_A_pct):
 param_grid = {
     "ath": [0.03, 0.04, 0.05],
     "regularization": [1e-4, 5e-4, 3e-3],
-    "hessian_delay": [200, 500, 700],
-    "spsa_A_pct": [0.03, 0.05, 0.08],
+    "hessian_delay": [200, 300, 500, 700],
 }
 
 keys = list(param_grid.keys())
@@ -163,8 +162,7 @@ for i, combo in enumerate(combos, 1):
     label = (
         f"ath={params['ath']:.2f}  "
         f"reg={params['regularization']:.0e}  "
-        f"hd={params['hessian_delay']:>3}  "
-        f"A%={params['spsa_A_pct']:.0%}"
+        f"hd={params['hessian_delay']:>3}"
     )
     print(f"[{i:>3}/{total}]  {label}", end="  →  ", flush=True)
     try:
@@ -182,13 +180,13 @@ out_file = "grid_search_results_refined.txt"
 with open(out_file, "w") as f:
     f.write(f"Grid Search QNSPSA — {GS_ITERATIONS} iter/combo, {GS_SHOTS} shots\n")
     f.write("=" * 65 + "\n")
-    header = f"{'Rank':>4}  {'ath':>5}  {'L':>3}  {'reg':>6}  {'hd':>5}  {'A_pct':>5}  {'best_er':>8}\n"
+    header = f"{'Rank':>4}  {'ath':>5}  {'L':>3}  {'reg':>6}  {'hd':>5}  {'best_er':>8}\n"
     f.write(header)
-    f.write("-" * 65 + "\n")
+    f.write("-" * 55 + "\n")
     for rank, r in enumerate(results, 1):
         f.write(
             f"{rank:>4}  {r['ath']:>5.2f}  {r['L']:>3}  {r['regularization']:>6.0e}  "
-            f"{r['hessian_delay']:>5}  {r['spsa_A_pct']:>5.0%}  {r['best_er']:>8.4f}\n"
+            f"{r['hessian_delay']:>5}  {r['best_er']:>8.4f}\n"
         )
     f.write("\n=== MEJOR COMBINACIÓN ===\n")
     for k, v in results[0].items():
