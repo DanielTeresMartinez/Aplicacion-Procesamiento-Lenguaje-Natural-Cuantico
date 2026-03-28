@@ -19,9 +19,11 @@ Como se indicó con anterioridad, la arquitectura de \textit{QWord2Vec} mantiene
   \label{fig:resumen_circuito_qword2vec}
 \end{figure}
 
-En la imagen anterior, se aprecia como hay dos matrices parametrizadas, $U(\theta_u)$ (matriz unitaria parametrizada) y $V(\theta_v)$ (matriz entrelazada unitaria). En este sistema, $n$ denota el número total de qubits, mientras que $n_e$ indica el número de qubits destinados específicamente a la representación de los \textit{embeddings}, debiendo cumplirse la restricción $1 \leq n_e \leq n$.
+En la imagen anterior, se aprecia como hay dos matrices parametrizadas, $U(\theta_u)$ y $V(\theta_v)$ junto a una matriz unitaria de entrelazamiento $U(_\text{enta})$. En este sistema, $n$ denota el número total de qubits, mientras que $n_e$ indica el número de qubits destinados específicamente a la representación de los \textit{embeddings}, debiendo cumplirse la restricción $1 \leq n_e \leq n$.
 
-La entrada al circuito viene dada por el estado cuántico $\ket{k}$, el cual representa a una palabra codificada mediante un vector \textit{one-hot} tal que $0 \leq k \leq 2^n - 1$. A partir de este estado inicial, el sistema evoluciona hacia un estado de salida $\ket{\psi}$, estableciendo un mapeo directo de la misma manera al que realiza la red neuronal de Word2Vec. Los estados cuánticos de salida resultantes codifican la información correspondiente al contexto de la palabra de entrada, cuya extracción se lleva a cabo realizando mediciones en la base computacional (observable Pauli $Z$).
+La entrada al circuito viene dada por el estado cuántico $\ket{k}$, el cual representa a una palabra codificada mediante un vector \textit{one-hot}en Word2Vec donde $0 \leq k \leq 2^n - 1$. A partir de este estado inicial, el sistema evoluciona hacia un estado de salida $\ket{\psi}$. Parecido al mapeo directo que realiza Word2Vec, el mapeo que hay entre $\ket{k}$ y $\ket{\psi}$, lo realizan los bloques $U$ y $V$.
+
+Los estados cuánticos de salida resultantes codifican la información correspondiente al contexto de la palabra de entrada, cuya extracción se lleva a cabo realizando mediciones en la base computacional (observable Pauli $Z$).
 
 El modelo $U(\theta_u)$ y $V(\theta_v)$ utilizan las matrices unitarias parametrizadas y las matrices unitarias ($U_\text{enta}$) para proporcionar el entrelazamiento cuántico de la siguiente manera:
 
@@ -35,13 +37,13 @@ El modelo $U(\theta_u)$ y $V(\theta_v)$ utilizan las matrices unitarias parametr
 
 donde $L$ representa la longitud del circuito cuántico. Por simplicidad, se asumirá que tanto $U(\theta_u)$ como $V(\theta_v)$ poseen la misma profundidad, a menos que se indique explícitamente lo contrario.
 
-Para implementar $U_\text{enta}$, se ha usado puertas controladas Pauli $X$ (CNOT), organizadas siguiendo una configuración de circuito por bloques \cite{sim2019expressibility}. Esta disposición favorece notablemente la expresividad del circuito y maximiza su capacidad para generar entrelazamiento. La Figura \ref{fig:qword2vec_circuit} muestra visualmente la estructura del circuito resultante al combinar las rotaciones de Pauli con el bloque de entrelazamiento descrito.
+Para implementar $U_\text{enta}$, se ha usado puertas controladas Pauli $X$ (CNOT), siguiendo una configuración de circuito por bloques \cite{sim2019expressibility}. Esta disposición favorece notablemente la expresividad del circuito y maximiza su capacidad para generar entrelazamiento. La Figura \ref{fig:qword2vec_circuit} muestra visualmente la estructura del circuito resultante al combinar las rotaciones de Pauli con el bloque de entrelazamiento descrito.
 
 \newpage
 \begin{figure}[h]
   \centering
   \includegraphics[width=1.0\linewidth]{imagenes/qword2vec_circuit.png}
-  \caption{Circuito cuántico parametrizado de QWord2Vec con puertas de rotación de Pauli ($R_X$, $R_Y$, $R_Z$) y entrelazamiento con configuración por bloques mediante puertas CNOT. Elaboración propia.}
+  \caption{Circuito cuántico parametrizado de QWord2Vec con puertas de rotación de Pauli ($R_X$, $R_Y$, $R_Z$) y entrelazamiento con configuración por bloques mediante puertas CNOT.}
   \label{fig:qword2vec_circuit}
 \end{figure}
 
@@ -54,9 +56,26 @@ El uso combinado de las tres puertas de rotación ($R_X, R_Y, R_Z$) permite que 
   \label{fig:esferas_bloch_rotaciones_pauli}
 \end{figure}
 
-\section{Cálculo de similitud en hardware cuántico (Test de Swap / Fidelidad)}
+\section{Definición de la función de evaluación y pérdida usadas}
 
-\section{Definición de la función de coste cuántica}
+\subsection{Evaluación de los datos de embeddings}
+
+Para evaluar la calidad de los \textit{embeddings} generados por QWord2Vec, se emplea el coeficiente de correlación de Pearson, calculado a partir de las distancias entre los vectores producidos por ambos modelos, Word2Vec y QWord2Vec.
+
+Una vez completado el entrenamiento, se realiza una medición sobre los qubits destinados a los \textit{embeddings}, obteniendo así los vectores clásicos correspondientes a cada palabra. A partir de estos vectores, se construye un \textit{vector distancia}, cuyas componentes son las distancias euclídeas entre los vectores de \textit{embeddings} de todas las palabras del vocabulario. Este proceso se aplica tanto al modelo clásico como al cuántico, tomando el vector distancia de Word2Vec como referencia de comparación (\textit{ground truth}).
+
+El motivo por el que no se utiliza únicamente la entropía cruzada como métrica de evaluación reside en que los circuitos cuánticos con un elevado número de parámetros tienden a reducir su valor. Por ello, se añade el coeficiente de correlación de Pearson sobre los vectores distancia ya que constituye una métrica más adecuada y robusta para valorar la capacidad del modelo. En la siguiente subsección se describe en detalle la función de pérdida empleada durante el entrenamiento del circuito.
+
+\subsection{Función de pérdida}
+
+La función de pérdida usada, además de tener el componente de la pérdida de entropía cruzada, se le añade un término junto al coeficiente de correlación de Pearson. Por lo que la función de pérdida queda de la siguiente manera:
+
+\[
+  \text{Loss} := \text{CrossEntropyLoss} - C \cdot \text{CorrelationCoefficient}(\textit{EmbeddingData}, \textit{ReferencesDistances}),
+\]
+
+Donde $C > 0$ es un parámetro de balanceo. $\text{CorrelationCoefficient}(\textit{EmbeddingData}, \textit{ReferencesDistances})$ se refiere al coeficiente de correlación entre el vector distancia de los datos de embeddings (\textit{EmbeddingData}) en QWord2Vec el cual se actualiza en cada iteración mientras que \textit{ReferencesDistances}, se refiere al vector de distancias referencias en este caso el obtenido de Word2Vec.
+
 
 
 

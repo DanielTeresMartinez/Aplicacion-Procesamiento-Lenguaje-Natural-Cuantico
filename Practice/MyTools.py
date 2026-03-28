@@ -2,6 +2,8 @@ from collections import Counter
 import os
 import numpy as np
 from scipy.spatial.distance import pdist
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
 
 
 def load_corpus(file_path):
@@ -184,3 +186,46 @@ def calculate_error_rate(prob_distributions, label_vectors):
         # los elementos que están en `label_peaks` pero no en `model_peaks`
         total_mismatches += len(label_peaks - model_peaks)
     return total_mismatches / (2 * len(label_vectors))
+
+
+def plot_embeddings_comparison(
+    final_probs, w2v_embeddings, word_to_id, id_to_word, save_path="embeddings_comparison.png"
+):
+    """
+    Visualización side-by-side de los embeddings Word2Vec y Q-word2vec (como Fig. 8 del paper).
+    Q-word2vec: PCA de las distribuciones de probabilidad a 2D.
+    Word2Vec:   embeddings directos (ya son 2D).
+    """
+    words = [id_to_word[i] for i in range(len(word_to_id))]
+
+    # Q-word2vec: PCA de prob_distributions (n_words x 2^n_qubits) → 2D
+    pca = PCA(n_components=2)
+    qw2v_2d = pca.fit_transform(final_probs)
+
+    # Word2vec: ordenar embeddings por índice de vocabulario
+    w2v_dim = next(iter(w2v_embeddings.values())).shape[0]
+    w2v_matrix = np.zeros((len(word_to_id), w2v_dim))
+    for word, idx in word_to_id.items():
+        if word in w2v_embeddings:
+            w2v_matrix[idx] = w2v_embeddings[word]
+
+    # Si Word2Vec tiene más de 2 dimensiones, reducir también con PCA
+    if w2v_dim > 2:
+        w2v_2d = PCA(n_components=2).fit_transform(w2v_matrix)
+    else:
+        w2v_2d = w2v_matrix
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    for ax, coords, title in [
+        (axes[0], w2v_2d, "Word2vec"),
+        (axes[1], qw2v_2d, "Q-word2vec"),
+    ]:
+        ax.scatter(coords[:, 0], coords[:, 1])
+        for i, word in enumerate(words):
+            ax.annotate(word, (coords[i, 0], coords[i, 1]), fontsize=9)
+        ax.set_title(title)
+
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=150)
+    print(f"Gráfica guardada en '{save_path}'")
+    plt.show()

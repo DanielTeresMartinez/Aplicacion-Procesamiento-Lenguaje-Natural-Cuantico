@@ -8,7 +8,7 @@ from MyTools import (
 )
 from MyTools import generate_training_data_from_text, generate_label_vectors
 from MyTools import estimate_num_layers, build_target_distances
-from MyTools import calculate_error_rate
+from MyTools import calculate_error_rate, plot_embeddings_comparison
 
 
 import numpy as np
@@ -354,7 +354,12 @@ if __name__ == "__main__":
 
     final_probs = forward_pass(qc_data, thetas, theta_values, n_shots, sim)
     error_rate = calculate_error_rate(final_probs, label_vectors)
-    print(f"Error rate final: {error_rate:.4f}")
+    q_dists_final = pdist(final_probs, metric="euclidean")
+    correlation_final, _ = pearsonr(q_dists_final, target_distances)
+    print(f"Error rate final:          {error_rate:.4f}")
+    print(f"Correlación de Pearson:    {correlation_final:.4f}  (paper: 0.81)")
 
     plt.plot(loss_history)
     plt.show()
+
+    plot_embeddings_comparison(final_probs, w2v_embeddings, word_to_id, id_to_word)
