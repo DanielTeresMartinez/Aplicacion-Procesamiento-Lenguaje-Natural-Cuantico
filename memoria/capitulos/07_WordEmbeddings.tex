@@ -1,6 +1,6 @@
 \chapter{Representación Vectorial de Palabras (Word Embeddings)}
 
-Los word embeddings son una de las técnicas más usadas en \glsentrytext{nlp}. Gracias a los word embeddings, existen lenguajes de modelo como GPT-3, GPT-4, etc.
+Los word embeddings son una de las técnicas más usadas en \gls{nlp}. Gracias a los word embeddings, existen lenguajes de modelo como GPT-3, GPT-4, etc.
 
 Estos algoritmos son rápidos y pueden generar secuencias de lenguaje y realizar otras tareas derivadas con alta precisión, incluyendo la comprensión contextual, propiedades semánticas y sintácticas, así como la relación lineal entre las palabras.
 
@@ -27,9 +27,9 @@ Al procesar el párrafo anterior mediante el modelo \textit{text-embedding-ada-0
   \label{fig:ejemploValoresEmbedding}
 \end{figure}
 
-Un \textbf{espacio de embedding} o \textbf{espacio latente} se define matemáticamente como un espacio donde los elementos están posicionados de manera más cercana uno del otro cuando tienen valores parecidos, mientras que si difieren dichos elementos, se posicionan más lejos entre ellos. En el caso del \glsentrytext{pln}, frases que son semánticamente más similares a otras, tendrán un vector de embedding similar por lo que estarán más juntas en el espacio.
+Un \textbf{espacio de embedding} o \textbf{espacio latente} se define matemáticamente como un espacio donde los elementos están posicionados de manera más cercana uno del otro cuando tienen valores parecidos, mientras que si difieren dichos elementos, se posicionan más lejos entre ellos. En el caso del \gls{pln}, frases que son semánticamente más similares a otras, tendrán un vector de embedding similar por lo que estarán más juntas en el espacio.
 
-Aunque la comparación entre frases es una de las aplicaciones más conocidas, los \textit{embeddings} también se aplica en modelos de \glsentrytext{ml} y en arquitecturas de redes neuronales complejas.
+Aunque la comparación entre frases es una de las aplicaciones más conocidas, los \textit{embeddings} también se aplica en modelos de \gls{ml} y en arquitecturas de redes neuronales complejas.
 
 \subsection{Embeddings de palabras (\textit{Word Embeddings})}
 
@@ -43,7 +43,7 @@ Esta técnica de representación surgió fuertemente ligada al desarrollo de los
 
 Para lograrlo, emplean una red neuronal sencilla dotada de una ventana de contexto de tamaño fijo y móvil (por ejemplo, avanzando de cinco en cinco palabras). A medida que lee el texto, el modelo intenta predecir el significado de una palabra central en base a las palabras vecinas de esta ventana, o a la inversa, predecir el contexto apoyándose únicamente en dicho término central.
 
-El aspecto fundamental en todo esto, es que tras finalizar el entrenamiento, el objetivo de \glsentrytext{ml} deja de ser la capacidad del modelo para adivinar con exactitud. En su lugar, de la red neuronal, se extraen los \textbf{pesos y valores} que ha ajustado internamente. Estos valores que fueron ajustados durante el entrenamiento, se convierten directamente en el \textit{word embedding}. En consecuencia, el mecanismo iterativo garantiza que aquellas palabras empleadas en contextos idénticos acaben reteniendo representaciones vectoriales prácticamente iguales.
+El aspecto fundamental en todo esto, es que tras finalizar el entrenamiento, el objetivo de \gls{ml} deja de ser la capacidad del modelo para adivinar con exactitud. En su lugar, de la red neuronal, se extraen los \textbf{pesos y valores} que ha ajustado internamente. Estos valores que fueron ajustados durante el entrenamiento, se convierten directamente en el \textit{word embedding}. En consecuencia, el mecanismo iterativo garantiza que aquellas palabras empleadas en contextos idénticos acaben reteniendo representaciones vectoriales prácticamente iguales.
 
 \begin{figure}[h]
   \centering
@@ -64,7 +64,7 @@ Para solventar esta carencia y la falta de memoria, se reduce la dimensionalidad
 
 La \textbf{mayor ventaja} de esta táctica estadística contable, frente al sistema predictivo, reside precisamente en que es capaz de aprovechar la información global de todo el \textit{corpus}, un aspecto estadístico que se le escapa a las ventanas de lectura en las redes neuronales por definición.
 
-El modelo híbrido con más popularidad en este ámbito es el de \textbf{GloVe (\textit{Global Vectors})}. Desarrollado por un equipo de investigadores de la Universidad de Stanford, logra exitosamente agrupar los beneficios numéricos de las matrices grandes de conteo global, con las altas capacidades de optimización paramétrica propias de los modelos del \glsentrytext{ml}.
+El modelo híbrido con más popularidad en este ámbito es el de \textbf{GloVe (\textit{Global Vectors})}. Desarrollado por un equipo de investigadores de la Universidad de Stanford, logra exitosamente agrupar los beneficios numéricos de las matrices grandes de conteo global, con las altas capacidades de optimización paramétrica propias de los modelos del \gls{ml}.
 
 \begin{figure}[h]
   \centering
@@ -129,13 +129,13 @@ De la misma forma, términos más amplios como "mascota" o "mamífero" represent
 
 \section{Paralelismo entre Espacio Semántico y Espacio de Hilbert}
 
-Como se vio en capítulos anteriores, los estados en computación cuántica están representados por vectores definidos en un espacio complejo, el cual se conoce formalmente como \textbf{espacio de Hilbert} ($\mathcal{H}$). Por su parte, en el \glsentrytext{pln} clásico se modela el significado de las palabras mapeándolas a vectores en un espacio vectorial puramente real ($\mathbb{R}^n$).
+Como se vio en capítulos anteriores, los estados en computación cuántica están representados por vectores definidos en un espacio complejo, el cual se conoce formalmente como \textbf{espacio de Hilbert} ($\mathcal{H}$). Por su parte, en el \gls{pln} clásico se modela el significado de las palabras mapeándolas a vectores en un espacio vectorial puramente real ($\mathbb{R}^n$).
 
 A partir de esta analogía natural, surge la posibilidad de modelar las palabras y sus significados como estados dentro del propio espacio de Hilbert \cite{wittek_combining_semantics}.
 
 \subsection{Codificación multidimensional: Forma y Contenido}
 
-En un espacio semántico tradicional, el significado de una palabra adquiere "sustancia" al ubicarse en unas coordenadas determinadas que definen su forma. Sin embargo, al restringirse al uso exclusivo de los números reales, el \glsentrytext{pln} clásico queda comúnmente limitado a capturar únicamente su \textit{semántica distribucional} (las estadísticas y frecuencias con las que coocurre junto a otras palabras).
+En un espacio semántico tradicional, el significado de una palabra adquiere "sustancia" al ubicarse en unas coordenadas determinadas que definen su forma. Sin embargo, al restringirse al uso exclusivo de los números reales, el \gls{pln} clásico queda comúnmente limitado a capturar únicamente su \textit{semántica distribucional} (las estadísticas y frecuencias con las que coocurre junto a otras palabras).
 
 Al trasladar el procesamiento de lenguaje al dominio cuántico de Hilbert, las propiedades exclusivas de los números complejos permiten unificar distintos niveles de información semántica en un único vector de estado. Esto logra vincular el uso externo del lenguaje (su \textit{forma}) directamente con su fundamento conceptual intrínseco (su \textit{contenido}). Para ello, se propone una división explícita de las dimensiones de almacenamiento:
 

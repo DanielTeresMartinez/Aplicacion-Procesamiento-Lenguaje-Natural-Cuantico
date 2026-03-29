@@ -56,6 +56,41 @@ El uso combinado de las tres puertas de rotación ($R_X, R_Y, R_Z$) permite que 
   \label{fig:esferas_bloch_rotaciones_pauli}
 \end{figure}
 
+\subsection{Estimación de la longitud del circuito}
+
+Con el fin de acotar el espacio de búsqueda durante el ajuste de hiperparámetros, se emplea la fórmula heurística propuesta en \cite{ohno_qword2vec_2025} para estimar la profundidad $L$ del circuito cuántico:
+
+\[
+  L = \left\lceil \frac{\# \mathit{data}}{3(n + n_e)A_{th}} p(n, n_e) \right\rceil
+\]
+
+donde los términos que intervienen en la expresión son:
+
+\begin{itemize}
+  \item $\#\mathit{data}$: número de pares de entrenamiento disponibles.
+  \item $n$: número total de qubits del sistema.
+  \item $n_e$: número de qubits de embeddings.
+  \item $A_{th}$: umbral de tolerancia determinado de forma empírica.
+  \item $p(n, n_e) \in [0, 0{,}5)$: probabilidad de error en función de $n$ y $n_e$.
+\end{itemize}
+
+La expresión determina la profundidad mínima necesaria para que la cantidad promedio de datos por parámetro no supere el umbral $A_{th}$. Dado que cada capa aporta $3(n + n_e)$ parámetros entrenables (un parámetro entrenable por cada matriz de rotación de Pauli), la fórmula divide la carga total de entrenamiento entre dicha capacidad ponderada por el umbral. La función techo $\lceil \cdot \rceil$ garantiza que $L$ tome un valor entero.
+
+La probabilidad de error $p(n, n_e)$ se obtiene a partir de la siguiente inecuación la cual relaciona la probabilidad de error entre $n$ y $n_e$:
+
+\[
+  n_e \geq (1 - H(p)) \cdot 2^n
+\]
+
+donde $H(p)$ es la función de entropía binaria, representada en la Figura \ref{fig:entropia_binaria}.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.6\linewidth]{imagenes/entropiaBinaria.png}
+  \caption{Entropía binaria $H(p)$, donde $p$ denota la probabilidad de error empleada en este estudio. Fuente: \cite{ohno_qword2vec_2025}.}
+  \label{fig:entropia_binaria}
+\end{figure}
+
 \section{Definición de la función de evaluación y pérdida usadas}
 
 \subsection{Evaluación de los datos de embeddings}
@@ -74,10 +109,94 @@ La función de pérdida usada, además de tener el componente de la pérdida de 
   \text{Loss} := \text{CrossEntropyLoss} - C \cdot \text{CorrelationCoefficient}(\textit{EmbeddingData}, \textit{ReferencesDistances}),
 \]
 
-Donde $C > 0$ es un parámetro de balanceo. $\text{CorrelationCoefficient}(\textit{EmbeddingData}, \textit{ReferencesDistances})$ se refiere al coeficiente de correlación entre el vector distancia de los datos de embeddings (\textit{EmbeddingData}) en QWord2Vec el cual se actualiza en cada iteración mientras que \textit{ReferencesDistances}, se refiere al vector de distancias referencias en este caso el obtenido de Word2Vec.
+Donde $C > 0$ es un parámetro de balanceo. El operador que acompaña a dicho parámetro, se refiere al coeficiente de correlación entre el vector distancia de los datos de embeddings (\textit{EmbeddingData}) en QWord2Vec. Este se actualiza en cada iteración mientras que \textit{ReferencesDistances}, se refiere al vector de distancias referencias en este caso el obtenido de Word2Vec.
 
 
+\section{Estrategia de optimización}
 
+El algoritmo de optimización empleado en QWord2Vec es \gls{qn-spsa}, propuesto por Gacon et al. \cite{gacon_qnspsa_2021}. En cada paso de optimización, requiere únicamente 2 ejecuciones del circuito cuántico para estimar el gradiente y otras 4 para aproximar el tensor métrico de Fubini-Study, con un coste independiente del número de parámetros del circuito. Esta capacidad de escalado lo convierte en un candidato especialmente adecuado para tareas de optimización en dispositivos \gls{nisq}.
 
-\section{Estrategia de optimización híbrida (Clásica-Cuántica)}
+Para entender el funcionamiento de \gls{qn-spsa}, es necesario introducir previamente los algoritmos en los que se basa \cite{duan_qnspsa_pennylane_2022}.
 
+\subsection{Funcionamiento del algoritmo}
+
+Los optimizadores empleados en \glspl{cvc} operan bajo el mismo principio que los utilizados en \gls{ml} clásico: en cada iteración estiman el gradiente de la función de coste y, a partir de este, actualizan los parámetros del modelo con el objetivo de minimizar dicha función.
+
+El punto de partida es el \gls{gd}, cuya regla de actualización de parámetros es:
+
+\[
+  \mathbf{x}^{(t+1)} = \mathbf{x}^{(t)} - \eta \nabla f(\mathbf{x}^{(t)})
+\]
+
+donde $f$ es la función de pérdida, $\mathbf{x}$ el vector de parámetros, $\eta$ la tasa de aprendizaje y el superíndice $t$ la iteración actual. El gradiente $\nabla f$ se calcula dimensión a dimensión, lo que implica $\mathcal{O}(d)$ mediciones cuánticas, siendo $d$ el número de parámetros entrenables. Dado el elevado coste de las mediciones en un circuito cuántico, el \gls{gd} resulta inviable para circuitos con un número alto de parámetros así como un gran número de iteraciones para la optimización.
+
+Para resolver este problema de escalado, surgió el optimizador \gls{spsa} \cite{wikipedia_spsa_2026}. En lugar de calcular el gradiente componente a componente, \gls{spsa} selecciona una dirección aleatoria $\mathbf{h} \in U(\{-1, 1\}^d)$, donde $U(\{-1, 1\}^d)$ es una distribución uniforme discreta de $d$ dimensiones, y estima el gradiente proyectado mediante una aproximación de diferencias finitas con perturbación $\epsilon$:
+
+\[
+  \nabla_{\mathbf{h}} f(\mathbf{x}) \equiv \mathbf{h} \cdot \nabla f(\mathbf{x}) \simeq \frac{1}{2\epsilon} \bigl(f(\mathbf{x} + \epsilon \mathbf{h}) - f(\mathbf{x} - \epsilon \mathbf{h})\bigr).
+\]
+
+A partir de esta expresión se construye el estimador estocástico del gradiente:
+
+\[
+  \widehat{\nabla} f(\mathbf{x}, \mathbf{h})_{\text{SPSA}} = \nabla_{\mathbf{h}} f(\mathbf{x})\, \mathbf{h},
+\]
+
+con el que la regla de actualización de parámetros queda:
+
+\[
+  \mathbf{x}^{(t+1)} = \mathbf{x}^{(t)} - \eta\, \widehat{\nabla} f(\mathbf{x}^{(t)}, \mathbf{h}^{(t)})_{\text{SPSA}},
+\]
+
+donde $\mathbf{h}^{(t)}$ se muestrea en cada iteración. Al tratarse de una aproximación estocástica, el gradiente estimado no es exacto, pero se ha demostrado que el algoritmo converge de forma efectiva cuando se realizan suficientes iteraciones de optimización.
+
+Sin embargo, \gls{spsa} hereda del \gls{gd} el problema de operar en el espacio euclídeo de los parámetros, lo que hace que el resultado de la optimización dependa de la parametrización elegida. Para eliminar esta dependencia, Amari (1998) propuso el algoritmo clásico \textit{Natural Gradient Descent}, que reformula el problema de optimización en términos de distribuciones de probabilidad sobre las posibles salidas del modelo. De este modo, cada paso de optimización resulta invariante frente a reparametrizaciones, ya que se realiza en el espacio de distribuciones en lugar del espacio de parámetros. Su regla de actualización incorpora la matriz de información de Fisher $F$ como tensor métrico:
+
+\[
+  \mathbf{x}^{(t+1)} = \mathbf{x}^{(t)} - \eta F^{-1} \nabla f(\mathbf{x}^{(t)}).
+\]
+
+La matriz de información de Fisher actúa como un tensor métrico que transforma los pasos de descenso realizados en el espacio euclídeo de los parámetros en pasos de descenso en el espacio de distribuciones de probabilidad.
+
+La versión cuántica de este algoritmo, \gls{qng} \cite{stokes_qng_2020}, traslada este mismo principio al espacio de estados cuánticos. En dicho espacio, el tensor métrico invariante es el \textbf{tensor de Fubini-Study} $\mathbf{g}$, de dimensiones $d \times d$, definido como:
+
+\[
+  g_{ij}(\mathbf{x}) = -\frac{1}{2} \frac{\partial}{\partial \mathbf{x}_i} \frac{\partial}{\partial \mathbf{x}_j} F(\mathbf{x}', \mathbf{x}) \bigg|_{\mathbf{x}'=\mathbf{x}},
+\]
+
+donde $F(\mathbf{x}', \mathbf{x}) = \left| \braket{\phi(\mathbf{x}')}{\phi(\mathbf{x})} \right|^2$ y $\phi(\mathbf{x})$ es el circuito ansatz parametrizado con entrada $\mathbf{x}$. La regla de actualización de \gls{qng} es:
+
+\[
+  \mathbf{x}^{(t+1)} = \mathbf{x}^{(t)} - \eta\, \mathbf{g}^{-1}(\mathbf{x}^{(t)}) \nabla f(\mathbf{x}^{(t)}).
+\]
+
+El uso del tensor $\mathbf{g}$ permite una convergencia más rápida y hacia mejores mínimos que el \gls{gd}. No obstante, su cálculo requiere un gran número de mediciones cuánticas, lo que lo hace igualmente inescalable para circuitos de gran tamaño y con gran número de iteraciones para optimizarlos.
+
+\gls{qn-spsa} surge precisamente como solución a esta limitación, combinando las ventajas de \gls{spsa} y \gls{qng}. Estima de forma estocástica tanto el gradiente como el tensor de Fubini-Study, manteniendo un coste constante independiente de $d$. El gradiente se estima con el mismo procedimiento que en \gls{spsa}, mientras que el tensor se aproxima mediante un estimador de segundo orden con dos perturbaciones estocásticas adicionales:
+
+\[
+  \widehat{\mathbf{g}}(\mathbf{x}, \mathbf{h}_1, \mathbf{h}_2)_{\text{SPSA}} = \frac{\delta F}{8\epsilon^2} \left( \mathbf{h}_1 \mathbf{h}_2^\top + \mathbf{h}_2 \mathbf{h}_1^\top \right),
+\]
+
+donde
+
+\[
+  \delta F = F(\mathbf{x}, \mathbf{x} + \epsilon \mathbf{h}_1 + \epsilon \mathbf{h}_2) - F(\mathbf{x}, \mathbf{x} + \epsilon \mathbf{h}_1) - F(\mathbf{x}, \mathbf{x} - \epsilon \mathbf{h}_1 + \epsilon \mathbf{h}_2) + F(\mathbf{x}, \mathbf{x} - \epsilon \mathbf{h}_1),
+\]
+
+y $\mathbf{h}_1, \mathbf{h}_2 \in U(\{-1, 1\}^d)$ son dos direcciones de perturbación muestreadas aleatoriamente. La regla de actualización de parámetros resultante es:
+
+\[
+  \mathbf{x}^{(t+1)} = \mathbf{x}^{(t)} - \eta\, \widehat{\mathbf{g}}^{-1}(\mathbf{x}^{(t)}, \mathbf{h}_1^{(t)}, \mathbf{h}_2^{(t)})_{\text{SPSA}}\, \widehat{\nabla} f(\mathbf{x}^{(t)}, \mathbf{h}^{(t)})_{\text{SPSA}}.
+\]
+
+Cada paso de optimización $t$ requiere tres direcciones de perturbación $\mathbf{h}^{(t)}, \mathbf{h}_1^{(t)}, \mathbf{h}_2^{(t)}$, lo que se traduce en 2 evaluaciones del circuito para el gradiente y 4 para el tensor, con una complejidad total de $\mathcal{O}(1)$ respecto al número de parámetros. Esta propiedad lo convierte en el optimizador idóneo para su uso en dispositivos \gls{nisq}. La Figura \ref{fig:comparacion_optimizadores} muestra una comparativa del comportamiento de los distintos algoritmos de optimización descritos.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.7\linewidth]{imagenes/comparacionAlgoritmosOptimizacion.png}
+  \caption{Comparativa de los algoritmos de optimización \gls{gd}, \gls{spsa}, \gls{qng} y \gls{qn-spsa} en términos de convergencia y coste computacional. Fuente: \cite{duan_qnspsa_pennylane_2022}.}
+  \label{fig:comparacion_optimizadores}
+\end{figure}
+
+Como se puede apreciar, en este caso sale que el que mejor resultados tiene es \gls{qng}. Sin embargo aquí no se está contemplando el tiempo de ejecución, que como se comentó, este optimizador es menos eficiente y malo escalando (aquí se tienen pocas iteraciones). Con esto se demuestra como el \gls{qn-spsa} es el que mejor un mejor resultado ofrece de manera equlibrada, teniendo un loss bajo así como un tiempo de ejecución también menor y siendo una opción buena en cuanto a la escalabilidad.

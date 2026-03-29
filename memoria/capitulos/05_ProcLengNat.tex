@@ -1,10 +1,10 @@
-\chapter{Procesamiento Lenguaje Natural (\glsentrytext{pln})}
+\chapter{Procesamiento Lenguaje Natural (\glsentryshort{pln})}
 
 \section{¿Qué es el procesamiento de lenguaje natural?}
 
-El \glsentrytext{pln}, es la rama de la \glsentrytext{ia} encargada de la interacción entre computadoras y el lenguaje humano. Este campo integra la lingüística computacional, basada en el modelado de reglas del lenguaje, con modelos estadísticos y algoritmos de aprendizaje profundo (\glsentrytext{dl}) y aprendizaje automático (\glsentrytext{ml}).
+El \gls{pln}, es la rama de la \gls{ia} encargada de la interacción entre computadoras y el lenguaje humano. Este campo integra la lingüística computacional, basada en el modelado de reglas del lenguaje, con modelos estadísticos y algoritmos de aprendizaje profundo (\gls{dl}) y aprendizaje automático (\gls{ml}).
 
-El \glsentrytext{pln} forma parte a día de hoy de muchos motores de búsqueda, chatbots para atención al cliente (ya sea por escrito o por voz), y asistentes digitales como Alexa de Amazon o Siri de Apple.
+El \gls{pln} forma parte a día de hoy de muchos motores de búsqueda, chatbots para atención al cliente (ya sea por escrito o por voz), y asistentes digitales como Alexa de Amazon o Siri de Apple.
 
 El campo de la computación lingüística incluye tradicionalmente diversas fases para el análisis. Para el análisis de las palabras existen dos formas principales de hacerlo:
 
@@ -14,9 +14,9 @@ El campo de la computación lingüística incluye tradicionalmente diversas fase
   \item \textbf{Análisis de constituyentes:} Construye un árbol sintáctico que representa la estructura gramatical anidada de una oración, descomponiéndola en sintagmas o frases ordenadas jerárquicamente.
 \end{itemize}
 
-\section{Fases del \glsentrytext{pln}}
+\section{Fases del \glsentryshort{pln}}
 
-Las fases para realizar el \glsentrytext{pln} se pueden observar en la siguiente imagen:
+Las fases para realizar el \gls{pln} se pueden observar en la siguiente imagen:
 
 \begin{figure}[h]
   \centering
@@ -42,9 +42,9 @@ Esta fase constituye el primer nivel de procesamiento y su objetivo es transform
 
         Ejemplo: La oración \textit{Me gusta programar} se transformaría en la lista de tokens: \texttt{["Me", "gusta", "programar"]}.
 
-        Dependiendo del modelo, los tokens pueden ser palabras completas, subpalabras (como en los modelos \glsentrytext{gpt}) o incluso caracteres. Una vez tokenizado el texto, cada token se asocia a un índice numérico único en un vocabulario, preparando el terreno para la generación de \textit{Embeddings}.
+        Dependiendo del modelo, los tokens pueden ser palabras completas, subpalabras (como en los modelos \gls{gpt}) o incluso caracteres. Una vez tokenizado el texto, cada token se asocia a un índice numérico único en un vocabulario, preparando el terreno para la generación de \textit{Embeddings}.
 
-  \item \textbf{Etiquetado gramatical (\glsentrytext{pos} Tagging):} Asigna a cada token una categoría morfológica (sustantivo, verbo, adjetivo, etc.) basándose en su definición y contexto. Esto permite desambiguar el rol sintáctico de cada palabra.
+  \item \textbf{Etiquetado gramatical (\gls{pos} Tagging):} Asigna a cada token una categoría morfológica (sustantivo, verbo, adjetivo, etc.) basándose en su definición y contexto. Esto permite desambiguar el rol sintáctico de cada palabra.
 
         Ejemplo: Para los tokens del ejemplo anterior, el etiquetado resultante sería: \texttt{["Me" $\rightarrow$ Pronombre, "gusta" $\rightarrow$ Verbo, "programar" $\rightarrow$ Verbo]}.
 \end{enumerate}
@@ -63,11 +63,11 @@ El análisis sintáctico examina la organización de las palabras dentro de una 
 Esta fase se centra en la coherencia lógica y la relevancia contextual del enunciado. Su objetivo principal es interpretar el significado de las palabras, analizando tanto su definición de diccionario como su variación según el contexto de uso. De este modo, se busca comprender el rol semántico de cada palabra para construir una representación lógica del mensaje. Las tareas fundamentales que abarca esta fase son:
 
 \begin{enumerate}
-  \item \textbf{\glsentrytext{ner} (NER):} Se ocupa de la identificación y clasificación de elementos clave en el texto, tales como nombres de personas, ubicaciones geográficas, organizaciones, etc.
+  \item \textbf{\gls{ner} (NER):} Se ocupa de la identificación y clasificación de elementos clave en el texto, tales como nombres de personas, ubicaciones geográficas, organizaciones, etc.
         \\
-        Ejemplo: En la oración \textit{Mercedes anunció un nuevo coche en Berlín}, el sistema \glsentrytext{ner} identificaría a \textit{Mercedes} como una \textit{Organización} y a \textit{Berlín} como un \textit{Lugar}.
+        Ejemplo: En la oración \textit{Mercedes anunció un nuevo coche en Berlín}, el sistema \gls{ner} identificaría a \textit{Mercedes} como una \textit{Organización} y a \textit{Berlín} como un \textit{Lugar}.
 
-  \item \textbf{\glsentrytext{wsd} (WSD):} Identifica el significado correcto de las palabras en función del contexto.
+  \item \textbf{\gls{wsd} (WSD):} Identifica el significado correcto de las palabras en función del contexto.
         \\
         Ejemplo: El término \textit{Banco} puede interpretarse como una \textit{entidad financiera} o como \textit{un lugar donde sentarse} dependiendo del resto de palabras de la oración.
 \end{enumerate}

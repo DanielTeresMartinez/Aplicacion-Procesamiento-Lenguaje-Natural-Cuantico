@@ -1,6 +1,6 @@
 \chapter{Implementación Clásica: Algoritmo Word2Vec}
 
-Word2Vec, cuyo nombre proviene de la contracción de \textit{Word to Vector}, es un modelo de \glsentrytext{ml} que permite representar palabras como vectores de grandes dimensiones. Su principal virtud reside en que las relaciones semánticas y sintácticas entre palabras quedan codificadas como proximidad geométrica entre dichos vectores, permitiendo así capturar el significado de forma numérica y operable.
+Word2Vec, cuyo nombre proviene de la contracción de \textit{Word to Vector}, es un modelo de \gls{ml} que permite representar palabras como vectores de grandes dimensiones. Su principal virtud reside en que las relaciones semánticas y sintácticas entre palabras quedan codificadas como proximidad geométrica entre dichos vectores, permitiendo así capturar el significado de forma numérica y operable.
 
 Fue desarrollado y publicado por Google en 2013 \cite{google_word2vec_2013}, además en esa misma fecha, se introdujo este modelo en su motor de búsqueda. Desde entonces, el modelo ha sido ampliamente adoptado y ha dado lugar a múltiples mejoras y variantes de rendimiento.
 
@@ -41,20 +41,20 @@ En esta expresión, al restar al vector de \textit{Rey} la componente que codifi
   \label{fig:similitudes_palabras_word2vec}
 \end{figure}
 
-\subsection{Modelos de entrenamiento: \glsentrytext{cbow} y Skip-gram}
+\subsection{Modelos de entrenamiento: \glsentryshort{cbow} y Skip-gram}
 
-Word2Vec ofrece dos variantes arquitectónicas para aprender los vectores de palabras: el modelo \textbf{\glsentrytext{cbow}} y el modelo \textbf{Skip-gram}. Ambos comparten la misma red neuronal superficial como base, pero se diferencian en el aprendizaje, qué se usa como entrada y qué se predice como salida.
+Word2Vec ofrece dos variantes arquitectónicas para aprender los vectores de palabras: el modelo \textbf{\gls{cbow}} y el modelo \textbf{Skip-gram}. Ambos comparten la misma red neuronal superficial como base, pero se diferencian en el aprendizaje, qué se usa como entrada y qué se predice como salida.
 
 En este trabajo se ha optado por implementar el modelo \textbf{Skip-gram}, ya que, como se verá en los capítulos siguientes, sus características lo hacen especialmente adecuado para la adaptación al entorno cuántico propuesto.
 
-\subsubsection{Continuous Bag of Words (\glsentrytext{cbow})}
+\subsubsection{Continuous Bag of Words (\gls{cbow})}
 
-El modelo \glsentrytext{cbow} toma como entrada las palabras del contexto que rodean a una posición central y predice cuál es la palabra que debería ocupar dicha posición. En otras palabras, dadas las palabras vecinas, el modelo intenta adivinar la palabra central.
+El modelo \gls{cbow} toma como entrada las palabras del contexto que rodean a una posición central y predice cuál es la palabra que debería ocupar dicha posición. En otras palabras, dadas las palabras vecinas, el modelo intenta adivinar la palabra central.
 
 \begin{figure}[h]
   \centering
   \includegraphics[width=0.8\linewidth]{imagenes/bowExample.png}
-  \caption{Ejemplo del funcionamiento del modelo \glsentrytext{cbow}: a partir de las palabras de contexto circundantes se predice la palabra objetivo central. Fuente: \cite{logunova_word2vec_serokell}.}
+  \caption{Ejemplo del funcionamiento del modelo \gls{cbow}: a partir de las palabras de contexto circundantes se predice la palabra objetivo central. Fuente: \cite{logunova_word2vec_serokell}.}
   \label{fig:cbow_example}
 \end{figure}
 
@@ -62,7 +62,7 @@ Este enfoque resulta eficiente cuando el corpus es grande y las palabras frecuen
 
 \subsubsection{Skip-gram}
 
-Skip-gram es un modelo diseñado para hacer lo opuesto a \glsentrytext{cbow}. En lugar de predecir la palabra central a partir del contexto que tiene en su ventana, toma una única palabra central como entrada e intenta predecir las palabras que aparecen a su alrededor.
+Skip-gram es un modelo diseñado para hacer lo opuesto a \gls{cbow}. En lugar de predecir la palabra central a partir del contexto que tiene en su ventana, toma una única palabra central como entrada e intenta predecir las palabras que aparecen a su alrededor.
 
 El proceso de entrenamiento de esta red neuronal superficial funciona de la siguiente manera: dada la palabra central (la palabra de entrada), se selecciona aleatoriamente una palabra de su contexto inmediato. La red calcula cuál es la probabilidad de que cada palabra del vocabulario sea una palabra "cercana" a la palabra de entrada \cite{mccormick_skipgram_2016}.
 

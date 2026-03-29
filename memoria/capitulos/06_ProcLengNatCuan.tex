@@ -1,16 +1,16 @@
-\chapter{Procesamiento del Lenguaje Natural Cuántico (\glsentrytext{plnc})}
+\chapter{Procesamiento del Lenguaje Natural Cuántico (\glsentryshort{plnc})}
 
-El procesamiento de datos clásicos utilizando algoritmos de aprendizaje automático a través de sistemas cuánticos, ha generado una línea de investigación de especial foto de interés estos últimos años. El \glsentrytext{qml} se ha utilizado con distintos propósitos: profundizar en el uso de los fenómenos cuánticos para sistemas de aprendizaje, explorar la capacidad de los computadores cuánticos en aprender sobre datos cuánticos, y la posibilidad de reformular e implementar algoritmos de \glsentrytext{ml} en hardware cuántico.
+El procesamiento de datos clásicos utilizando algoritmos de aprendizaje automático a través de sistemas cuánticos, ha generado una línea de investigación de especial foto de interés estos últimos años. El \gls{qml} se ha utilizado con distintos propósitos: profundizar en el uso de los fenómenos cuánticos para sistemas de aprendizaje, explorar la capacidad de los computadores cuánticos en aprender sobre datos cuánticos, y la posibilidad de reformular e implementar algoritmos de \gls{ml} en hardware cuántico.
 
-Como ocurrió anteriormente en el caso del \glsentrytext{ml} clásico, el rápido crecimiento de los algoritmos de \glsentrytext{qml}, tanto desde el lado del hardware como del software (en términos de dispositivos y algoritmos), ha involucrado al campo de \glsentrytext{pln}. Esto ha dado lugar al llamado \glsentrytext{plnc}, definido como la implementación del procesamiento del lenguaje natural en hardware cuántico.
+Como ocurrió anteriormente en el caso del \gls{ml} clásico, el rápido crecimiento de los algoritmos de \gls{qml}, tanto desde el lado del hardware como del software (en términos de dispositivos y algoritmos), ha involucrado al campo de \gls{pln}. Esto ha dado lugar al llamado \gls{plnc}, definido como la implementación del procesamiento del lenguaje natural en hardware cuántico.
 
-\section{Motivación para el uso de \glsentrytext{plnc}}
+\section{Motivación para el uso de \glsentryshort{plnc}}
 
-La investigación del Procesamiento de Lenguaje Natural Cuántico (\glsentrytext{plnc}) está motivada fundamentalmente por las limitaciones físicas y computacionales de los modelos clásicos ante la creciente complejidad del lenguaje, especialmente tras la aparición de los \glsentryplural{llm}. Los sistemas tradicionales requieren recursos masivos de tiempo y memoria para procesar grandes conjuntos de datos (corpus, como por ejemplo la Wikipedia). Además, los modelos \glsentrytext{pln} clásicos sufren degradación en precisión y fiabilidad al enfrentarse por ejemplo a la polisemia, es decir, cuando una palabra tiene distintos significados según el contexto, debido a las restricciones de las arquitecturas clásicas (frecuentemente basadas en estructuras de árbol) \cite{guarasci_qnlp_2022}.
+La investigación del Procesamiento de Lenguaje Natural Cuántico (\gls{plnc}) está motivada fundamentalmente por las limitaciones físicas y computacionales de los modelos clásicos ante la creciente complejidad del lenguaje, especialmente tras la aparición de los \glsentryplural{llm}. Los sistemas tradicionales requieren recursos masivos de tiempo y memoria para procesar grandes conjuntos de datos (corpus, como por ejemplo la Wikipedia). Además, los modelos \gls{pln} clásicos sufren degradación en precisión y fiabilidad al enfrentarse por ejemplo a la polisemia, es decir, cuando una palabra tiene distintos significados según el contexto, debido a las restricciones de las arquitecturas clásicas (frecuentemente basadas en estructuras de árbol) \cite{guarasci_qnlp_2022}.
 
-Para afrontar estos retos, el \glsentrytext{plnc} aprovecha fenómenos de la mecánica cuántica como la \textbf{superposición} y el \textbf{entrelazamiento}. Al operar en el espacio de \textit{Hilbert}, esta arquitectura permite almacenar múltiples significados y contextos simultáneamente en un solo registro y ejecutar operaciones en paralelo. Esto no solo ofrece una ventaja exponencial acelerando la computación \cite{qnlp_comp_survey}, sino que también proporciona una 'expresividad' superior, capturando las dependencias semánticas del lenguaje humano de una manera que los espacios numéricos clásicos replican con menor eficiencia.
+Para afrontar estos retos, el \gls{plnc} aprovecha fenómenos de la mecánica cuántica como la \textbf{superposición} y el \textbf{entrelazamiento}. Al operar en el espacio de \textit{Hilbert}, esta arquitectura permite almacenar múltiples significados y contextos simultáneamente en un solo registro y ejecutar operaciones en paralelo. Esto no solo ofrece una ventaja exponencial acelerando la computación \cite{qnlp_comp_survey}, sino que también proporciona una 'expresividad' superior, capturando las dependencias semánticas del lenguaje humano de una manera que los espacios numéricos clásicos replican con menor eficiencia.
 
-No obstante, hay que tener en cuenta que, aunque teóricamente el \glsentrytext{plnc} puede resolver estos problemas, aún no se ha podido realizar una comparación a gran escala en hardware real (sin usar simuladores) frente a la computación clásica. Los modelos cuánticos actuales se han implementado sobre corpus pequeños, por lo que todavía no representan la escala completa que maneja un \glsentrytext{llm} moderno.
+No obstante, hay que tener en cuenta que, aunque teóricamente el \gls{plnc} puede resolver estos problemas, aún no se ha podido realizar una comparación a gran escala en hardware real (sin usar simuladores) frente a la computación clásica. Los modelos cuánticos actuales se han implementado sobre corpus pequeños, por lo que todavía no representan la escala completa que maneja un \gls{llm} moderno.
 
 \section{Codificación de información clásica en estados cuánticos}
 
@@ -22,7 +22,7 @@ El framework \gls{discocat} \cite{wu2019categoricalcompositionaldistributionalmo
   \item \textbf{Composicional:} Basado en la estructura gramatical, donde el significado de una frase depende de sus partes y de cómo se combinan (reglas sintácticas).
 \end{itemize}
 
-La relevancia de DisCoCat para el \glsentrytext{plnc} radica en que modela el lenguaje utilizando diagramas de palabras y productos tensoriales, una estructura matemática que es a la que describe a su vez la computación cuántica. Esto sugiere que los ordenadores cuánticos son, de manera nativa, idóneos para procesar el lenguaje natural.
+La relevancia de DisCoCat para el \gls{plnc} radica en que modela el lenguaje utilizando diagramas de palabras y productos tensoriales, una estructura matemática que es a la que describe a su vez la computación cuántica. Esto sugiere que los ordenadores cuánticos son, de manera nativa, idóneos para procesar el lenguaje natural.
 
 \begin{figure}[h]
   \centering
@@ -39,13 +39,13 @@ En la imagen, las cajas representan el significado de las palabras que se transm
 
 Este vector generado en el espacio de productos tensoriales, se puede considerar como el significado de la oración "Dani come pizza". Por ende, se dice que este framework lo ha expresado en términos de computación cuántica.
 
-Cabe destacar que, aunque el modelo DisCoCat original funciona perfectamente sin referencias explícitas a la teoría cuántica (a pesar de originarse en el formalismo de la \gls{cqm}). La novedad yace en el argumento de que el \glsentrytext{plnc} puede considerarse "nativo cuántico".
+Cabe destacar que, aunque el modelo DisCoCat original funciona perfectamente sin referencias explícitas a la teoría cuántica (a pesar de originarse en el formalismo de la \gls{cqm}). La novedad yace en el argumento de que el \gls{plnc} puede considerarse "nativo cuántico".
 
 Esto se debe a que la teoría cuántica y el lenguaje natural comparten una misma estructura de interacción y el uso fundamental de espacios vectoriales para describir sus estados. Esta estructura de interacción determina por completo la estructura los procesos, incluyendo la especificación de los espacios donde "viven" los estados. Esta coincidencia estructural implica que el lenguaje natural podría encajar de manera más natural y eficiente en hardware cuántico que en hardware clásico.
 
 \subsection{Técnicas de codificación de datos clásicos a estados cuánticos}
 
-Al igual que en computación clásica la información necesita ser codificada de manera que los modelos pueda entender los datos que se le proporciona y así trabajar con ellos, la computación cuántica necesita poder codificar los datos de la computación clásica (texto en este caso, ya que estamos dentro del ámbito de \glsentrytext{pln} y \glsentrytext{plnc}), a estados cuánticos. Para ello existe diversas técnicas que son:
+Al igual que en computación clásica la información necesita ser codificada de manera que los modelos pueda entender los datos que se le proporciona y así trabajar con ellos, la computación cuántica necesita poder codificar los datos de la computación clásica (texto en este caso, ya que estamos dentro del ámbito de \gls{pln} y \gls{plnc}), a estados cuánticos. Para ello existe diversas técnicas que son:
 
 \begin{itemize}
   \item \textbf{Basis Encoding:} Utiliza $n$ qubits. Complejidad $O(1)$. Simple, entradas cortas y simbólicas.
@@ -76,14 +76,14 @@ Finalmente, esta secuencia se representa mediante el estado cuántico conjunto e
 
 De esta forma, hemos codificado una frase de lengua clásica directamente en un estado cuántico en la base computacional.
 
-\section{Circuitos Variacionales Cuánticos (\glsentrytext{cvc}) como modelos de aprendizaje}
+\section{Circuitos Variacionales Cuánticos (\glsentryshort{cvc}) como modelos de aprendizaje}
 
 En 2016, se tuvo acceso al primer ordenador cuántico en la nube aunque el ruido y las limitaciones
 de quibits de las que se disponía, hacía que fuera difícil implementar algoritmos cuánticos.
 
-A pesar de ello, hubo una emoción muy grande con lo que se podría hacer con estos nuevos ordenadores llamados \glsentrytext{nisq}. Estos nuevos ordenadores tenían entre 50 y 100 \glsentryplural{qubit}, lo que les permitía sobrepasar en rendimiento a los mejores superordenadores clásicos en algunas áreas matemáticas \cite{arute2019quantum,zhong2020quantum}.
+A pesar de ello, hubo una emoción muy grande con lo que se podría hacer con estos nuevos ordenadores llamados \gls{nisq}. Estos nuevos ordenadores tenían entre 50 y 100 \glsentryplural{qubit}, lo que les permitía sobrepasar en rendimiento a los mejores superordenadores clásicos en algunas áreas matemáticas \cite{arute2019quantum,zhong2020quantum}.
 
-Los \glsentrytext{cvc} nacieron como la mejor estrategia para hacer frente a los ordenadores \glsentrytext{nisq}. Debido a las limitaciones de estos dipsositivos, se utilizó la estrategia de optimización basado en el aprendizaje. No son más que una analogía cuántica a los técnicas existentes del campo de \glsentrytext{ml} como pueden ser las redes neuronales.
+Los \gls{cvc} nacieron como la mejor estrategia para hacer frente a los ordenadores \gls{nisq}. Debido a las limitaciones de estos dipsositivos, se utilizó la estrategia de optimización basado en el aprendizaje. No son más que una analogía cuántica a los técnicas existentes del campo de \gls{ml} como pueden ser las redes neuronales.
 
 En definitiva, son algoritmos cuánticos que tienen parámetros libres \cite{pennylane_variational_circuit}. Al igual que cualquier otro circuito cuántico estándar, se necesita hacer uso de estos tres conceptos básicos:
 
