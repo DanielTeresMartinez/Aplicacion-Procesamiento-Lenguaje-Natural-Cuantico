@@ -219,14 +219,28 @@ def plot_embeddings_comparison(
     else:
         w2v_2d = w2v_matrix
 
+    colors = plt.cm.hsv(np.linspace(0, 0.9, len(words)))
+    _offsets = [
+        (10, 6), (-55, 6), (10, -16), (-55, -16),
+        (10, 18), (-55, 18), (10, -28), (-55, -28),
+    ]
+
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
     for ax, coords, title in [
         (axes[0], w2v_2d, "Word2vec"),
         (axes[1], qw2v_2d, "Q-word2vec"),
     ]:
-        ax.scatter(coords[:, 0], coords[:, 1])
+        ax.scatter(coords[:, 0], coords[:, 1], c=colors, s=80, zorder=3)
         for i, word in enumerate(words):
-            ax.annotate(word, (coords[i, 0], coords[i, 1]), fontsize=9)
+            ox, oy = _offsets[i % len(_offsets)]
+            ax.annotate(
+                word,
+                (coords[i, 0], coords[i, 1]),
+                textcoords="offset points",
+                xytext=(ox, oy),
+                fontsize=9,
+                arrowprops=dict(arrowstyle="-", color="gray", lw=0.5),
+            )
         ax.set_title(title)
 
     plt.tight_layout()

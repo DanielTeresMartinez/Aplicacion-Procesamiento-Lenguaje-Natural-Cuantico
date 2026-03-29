@@ -16,7 +16,7 @@ from MyTools import (
     build_target_distances,
     calculate_error_rate,
 )
-from MyQWord2VecQNSPSA import qword2vec_circuit, forward_pass, calculate_custom_loss
+from my_qword2vec_qnspsa import qword2vec_circuit, forward_pass, calculate_custom_loss
 
 np.random.seed(42)
 
@@ -142,19 +142,31 @@ def run_trial(ath, regularization, hessian_delay):
 
 
 # ── Grid ──────────────────────────────────────────────────────────────────
-# Ath en el rango [0, 0.1] del paper (se omite 0.01 → L=22, muy costoso;
-# se omite 0.02 → L=11, ya probado con error_rate ≈ 0.3)
+# Primera exploración (grid_search_results.txt) con el espacio amplio:
+#   ath          ∈ {0.02, 0.03, 0.04, 0.05}
+#   regularization ∈ {1e-4, 5e-4, 3e-3}
+#   hessian_delay  ∈ {200, 500, 700, 1000}
+#
+# Observaciones tras esa primera pasada:
+#  · Los valores de ath más altos (0.04-0.05) producen L muy pequeño (≤6)
+#    y el circuito tiene poca capacidad expresiva → error rate > 0.40.
+#  · ath ∈ {0.02, 0.03} con L∈{8,11} concentra los mejores resultados.
+#  · hessian_delay bajo (200-500) converge más lento o a peores mínimos;
+#    los mejores trials usaban hd ≥ 700.
+#  · regularization=5e-4 dominó el top-5, los extremos 1e-4 y 3e-3 peores.
+#
+# Grid refinado: se estrecha la búsqueda hacia la zona prometedora.
 param_grid = {
-    "ath": [0.03, 0.04, 0.05],
-    "regularization": [1e-4, 5e-4, 3e-3],
-    "hessian_delay": [200, 300, 500, 700],
+    "ath": [0.020, 0.025, 0.030],
+    "regularization": [2e-4, 5e-4, 1e-3],
+    "hessian_delay": [700, 900, 1100],
 }
 
 keys = list(param_grid.keys())
 combos = list(itertools.product(*param_grid.values()))
 total = len(combos)
 
-print(f"\nGrid search: {total} combinaciones × {GS_ITERATIONS} iter/combo\n" + "=" * 65)
+print(f"\nGrid search refinado: {total} combinaciones × {GS_ITERATIONS} iter/combo\n" + "=" * 65)
 
 results = []
 for i, combo in enumerate(combos, 1):
@@ -178,9 +190,11 @@ results.sort(key=lambda x: x["best_er"])
 # ── Guardar resultados ────────────────────────────────────────────────────
 out_file = "grid_search_results_refined.txt"
 with open(out_file, "w") as f:
-    f.write(f"Grid Search QNSPSA — {GS_ITERATIONS} iter/combo, {GS_SHOTS} shots\n")
+    f.write(f"Grid Search QNSPSA (refinado) — {GS_ITERATIONS} iter/combo, {GS_SHOTS} shots\n")
     f.write("=" * 65 + "\n")
-    header = f"{'Rank':>4}  {'ath':>5}  {'L':>3}  {'reg':>6}  {'hd':>5}  {'best_er':>8}\n"
+    header = (
+        f"{'Rank':>4}  {'ath':>5}  {'L':>3}  {'reg':>6}  {'hd':>5}  {'best_er':>8}\n"
+    )
     f.write(header)
     f.write("-" * 55 + "\n")
     for rank, r in enumerate(results, 1):
