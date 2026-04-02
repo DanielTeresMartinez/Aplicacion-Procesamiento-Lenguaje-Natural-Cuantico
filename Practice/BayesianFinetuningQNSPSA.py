@@ -45,7 +45,7 @@ SPSA_A = 0.1
 SPSA_ALPHA = 0.602
 
 # Número de trials Bayesianos
-N_TRIALS = 10
+N_TRIALS = 12
 
 # ── Espacio de búsqueda ───────────────────────────────────────────────────
 # Basado en resultados empíricos del grid search:
@@ -104,7 +104,7 @@ def get_circuit_for_ath(ath):
 def make_loss_f(qc_data_local, thetas_local):
     def loss_f(param):
         probs = forward_pass(qc_data_local, thetas_local, param, BF_SHOTS, sim)
-        return calculate_custom_loss(probs, target_distances, label_vectors, C_VAL)
+        return calculate_custom_loss(probs, label_vectors, C_VAL)
 
     return loss_f
 
@@ -169,7 +169,7 @@ def run_trial(ath, regularization, hessian_delay, n_iter=BF_ITERATIONS):
 # Pesos del mejor trial global (se actualiza en objective)
 _global_best_er = [np.inf]
 _global_best_x = [None]
-WEIGHTS_FILE = "theta_values_QNSPSA.pkl"
+WEIGHTS_FILE = "theta_values_QNSPSA_v2.pkl"
 
 
 # ── Objetivo Optuna ───────────────────────────────────────────────────────
@@ -192,7 +192,7 @@ def objective(trial: optuna.Trial) -> float:
         print(f"L={n_layers:>2}  best_er={best_er:.4f}")
 
         # Guardar historial de pérdida de este trial en su propio fichero
-        loss_file = f"loss_history_trial{trial_num}.txt"
+        loss_file = f"loss_history_trial{trial_num}_v2.txt"
         with open(loss_file, "w") as f:
             f.write(
                 f"# Trial {trial_num}: ath={ath:.4f}  reg={regularization:.2e}  hd={hessian_delay}  L={n_layers}  best_er={best_er:.4f}\n"
@@ -244,7 +244,7 @@ trials_sorted = sorted(
     key=lambda t: t.value,
 )
 
-out_file = "bayesian_finetuning_results.txt"
+out_file = "bayesian_finetuning_results_v2.txt"
 with open(out_file, "w") as f:
     f.write(
         f"Bayesian Fine-Tuning QNSPSA — {BF_ITERATIONS} iter/trial, {BF_SHOTS} shots\n"

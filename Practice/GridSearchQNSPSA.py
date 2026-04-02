@@ -83,7 +83,7 @@ def get_circuit_for_ath(ath):
 def make_loss_f(qc_data_local, thetas_local):
     def loss_f(param):
         probs = forward_pass(qc_data_local, thetas_local, param, GS_SHOTS, sim)
-        return calculate_custom_loss(probs, target_distances, label_vectors, C_VAL)
+        return calculate_custom_loss(probs, label_vectors, C_VAL)
 
     return loss_f
 

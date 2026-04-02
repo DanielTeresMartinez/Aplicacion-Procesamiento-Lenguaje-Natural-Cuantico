@@ -107,14 +107,15 @@ def forward_pass(
     return prob_array
 
 
-def calculate_custom_loss(
-    prob_distributions, target_distances, label_vectors, C, q_dists=None
-):
+def calculate_custom_loss(prob_distributions, label_vectors, C, q_dists=None):
     if q_dists is None:
         q_dists = pdist(prob_distributions, metric="euclidean")
 
-    assert len(target_distances) == len(q_dists)
-    correlation, _ = pearsonr(q_dists, target_distances)
+    # Distancias entre los propios training labels (vectores 0.5), como indica el paper
+    label_matrix = np.array([label_vectors[k] for k in label_vectors])
+    label_dists = pdist(label_matrix, metric="euclidean")
+
+    correlation, _ = pearsonr(q_dists, label_dists)
     if np.isnan(correlation):
         correlation = 0.0
 
@@ -190,8 +191,6 @@ if __name__ == "__main__":
     fidelity_circuit = qc_data[0].remove_final_measurements(inplace=False).decompose()
     fidelity = QNSPSA.get_fidelity(fidelity_circuit, aer_sampler)
 
-    dist_matrix = squareform(target_distances)
-
     iterations = 1500
     c_val = 3
     spsa_c = 0.2
@@ -203,7 +202,7 @@ if __name__ == "__main__":
 
     def loss_f(param):
         prob_array = forward_pass(qc_data, thetas, param, n_shots, sim)
-        return calculate_custom_loss(prob_array, target_distances, label_vectors, c_val)
+        return calculate_custom_loss(prob_array, label_vectors, c_val)
 
     if TRAIN:
         # ── Inicialización educada: elegir el mejor entre N arranques aleatorios
@@ -240,9 +239,9 @@ if __name__ == "__main__":
         loss_file.write("epoch,loss,error_rate\n")
 
         # Estado compartido entre los dos callbacks
+        # para que Python lo trate como si fueran variables pasadas por referencia
         best_er = [np.inf]
         best_x = [None]
-        last_er = [np.inf]
         no_improve_count = [0]
         stop_flag = [False]
 
@@ -250,28 +249,22 @@ if __name__ == "__main__":
             loss_history.append(fx)
             it = len(loss_history)
 
-            probs = forward_pass(qc_data, thetas, x, n_shots, sim)
-            er = calculate_error_rate(probs, label_vectors)
-            last_er[0] = er
-
-            # Guardar los mejores pesos siempre que haya mejora real
-            if er < best_er[0] - MIN_DELTA:
-                best_er[0] = er
-                best_x[0] = x.copy()
-                with open(WEIGHTS_FILE, "wb") as f:
-                    pickle.dump(best_x[0], f)
-
-            loss_file.write(f"{it},{fx},{er}\n")
+            loss_file.write(f"{it},{fx}\n")
             loss_file.flush()
 
             # ── Checkpoint de early stopping cada EVAL_EVERY iteraciones ─────
             if it % EVAL_EVERY == 0 or it == 1:
-                if er < best_er[0] + MIN_DELTA:
-                    # Dentro del rango de mejora → resetear contador
+                probs = forward_pass(qc_data, thetas, x, n_shots, sim)
+                er = calculate_error_rate(probs, label_vectors)
+
+                if er < best_er[0] - MIN_DELTA:
+                    best_er[0] = er
+                    best_x[0] = x.copy()
                     no_improve_count[0] = 0
-                    improve_tag = " (new best)" if er <= best_er[0] else ""
+                    improve_tag = " (new best)"
+                    with open(WEIGHTS_FILE, "wb") as f:
+                        pickle.dump(best_x[0], f)
                 else:
-                    # Sin mejora suficiente → incrementar contador
                     no_improve_count[0] += 1
                     improve_tag = ""
 
