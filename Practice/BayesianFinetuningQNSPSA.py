@@ -15,7 +15,7 @@ from qiskit_aer import AerSimulator
 from qiskit_aer.primitives import SamplerV2 as AerSampler
 from qiskit_algorithms.optimizers import QNSPSA
 
-from MyTools import (
+from my_tools import (
     load_corpus,
     load_word_list,
     load_word2vec_embeddings,
@@ -26,7 +26,7 @@ from MyTools import (
     build_target_distances,
     calculate_error_rate,
 )
-from MyQWord2VecQNSPSA import qword2vec_circuit, forward_pass, calculate_custom_loss
+from my_qword2vec_qnspsa import qword2vec_circuit, forward_pass, calculate_custom_loss
 
 np.random.seed(42)
 
@@ -122,10 +122,10 @@ def run_trial(ath, regularization, hessian_delay, n_iter=BF_ITERATIONS):
         if l < best_init:
             best_init, theta_init = l, p
 
-    best_er    = [np.inf]
-    best_x     = [None]
-    last_er    = [np.inf]
-    loss_hist  = []   # (iter, loss, error_rate) de este trial
+    best_er = [np.inf]
+    best_x = [None]
+    last_er = [np.inf]
+    loss_hist = []  # (iter, loss, error_rate) de este trial
 
     def make_lr():
         k = 0
@@ -168,7 +168,7 @@ def run_trial(ath, regularization, hessian_delay, n_iter=BF_ITERATIONS):
 
 # Pesos del mejor trial global (se actualiza en objective)
 _global_best_er = [np.inf]
-_global_best_x  = [None]
+_global_best_x = [None]
 WEIGHTS_FILE = "theta_values_QNSPSA.pkl"
 
 
@@ -185,14 +185,18 @@ def objective(trial: optuna.Trial) -> float:
     print(f"\n[Trial {trial_num:>3}/{N_TRIALS}]  {label}", end="  →  ", flush=True)
 
     try:
-        best_er, best_x, n_layers, loss_hist = run_trial(ath, regularization, hessian_delay)
+        best_er, best_x, n_layers, loss_hist = run_trial(
+            ath, regularization, hessian_delay
+        )
         trial.set_user_attr("n_layers", n_layers)
         print(f"L={n_layers:>2}  best_er={best_er:.4f}")
 
         # Guardar historial de pérdida de este trial en su propio fichero
         loss_file = f"loss_history_trial{trial_num}.txt"
         with open(loss_file, "w") as f:
-            f.write(f"# Trial {trial_num}: ath={ath:.4f}  reg={regularization:.2e}  hd={hessian_delay}  L={n_layers}  best_er={best_er:.4f}\n")
+            f.write(
+                f"# Trial {trial_num}: ath={ath:.4f}  reg={regularization:.2e}  hd={hessian_delay}  L={n_layers}  best_er={best_er:.4f}\n"
+            )
             f.write("iter,loss,error_rate\n")
             for it, fx, er in loss_hist:
                 f.write(f"{it},{fx},{er}\n")
@@ -203,7 +207,9 @@ def objective(trial: optuna.Trial) -> float:
             _global_best_x[0] = best_x
             with open(WEIGHTS_FILE, "wb") as f:
                 pickle.dump(best_x, f)
-            print(f"  → Nuevos mejores pesos guardados en {WEIGHTS_FILE}  (er={best_er:.4f})")
+            print(
+                f"  → Nuevos mejores pesos guardados en {WEIGHTS_FILE}  (er={best_er:.4f})"
+            )
 
         return best_er
     except Exception as e:

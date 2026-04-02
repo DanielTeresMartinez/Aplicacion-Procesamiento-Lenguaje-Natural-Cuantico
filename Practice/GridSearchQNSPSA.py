@@ -5,7 +5,7 @@ from qiskit_aer import AerSimulator
 from qiskit_aer.primitives import SamplerV2 as AerSampler
 from qiskit_algorithms.optimizers import QNSPSA
 
-from MyTools import (
+from my_tools import (
     load_corpus,
     load_word_list,
     load_word2vec_embeddings,

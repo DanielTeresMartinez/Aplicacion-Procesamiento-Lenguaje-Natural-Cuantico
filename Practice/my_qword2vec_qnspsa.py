@@ -1,19 +1,19 @@
 import os
 import pickle
-from MyTools import (
+from my_tools import (
     load_corpus,
     load_word_list,
     load_word2vec_embeddings,
     build_vocabulary,
 )
-from MyTools import generate_training_data_from_text, generate_label_vectors
-from MyTools import estimate_num_layers, build_target_distances
-from MyTools import calculate_error_rate, plot_embeddings_comparison
+from my_tools import generate_training_data_from_text, generate_label_vectors
+from my_tools import estimate_num_layers, build_target_distances
+from my_tools import calculate_error_rate, plot_embeddings_comparison
+from my_tools import plot_loss_history, plot_bloch_sphere
 
 
 import numpy as np
 from IPython.display import display
-import matplotlib.pyplot as plt
 from scipy.spatial.distance import pdist, squareform
 from scipy.stats import pearsonr
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
@@ -130,8 +130,10 @@ if __name__ == "__main__":
     SHOW_VISUALIZATIONS = True
     # True  → entrena y guarda los pesos en WEIGHTS_FILE
     # False → carga los pesos desde WEIGHTS_FILE y salta el entrenamiento
-    TRAIN = True
+    TRAIN = False
     WEIGHTS_FILE = "theta_values_QNSPSA.pkl"
+    # Fichero de historial de pérdida para la gráfica (renombrado desde loss_history_trial5.txt)
+    LOSS_FILE = "loss_history_qword2vec.txt"
     n_qubits = 4
     n_embedding = 2
     n_layers = None
@@ -164,7 +166,7 @@ if __name__ == "__main__":
 
     # ── §3.4 · Estimación de la profundidad L ────────────────────────────────
     num_data = len(word_to_id)
-    ath = 0.030
+    ath = 0.020
     if n_layers is None:
         n_layers = estimate_num_layers(n_qubits, n_embedding, num_data, ath)
         print(f"L heurístico = {n_layers}  (pares={num_data}, Ath={ath})")
@@ -190,7 +192,7 @@ if __name__ == "__main__":
 
     dist_matrix = squareform(target_distances)
 
-    iterations = 2500
+    iterations = 1500
     c_val = 3
     spsa_c = 0.2
     spsa_gamma = 0.101
@@ -234,7 +236,7 @@ if __name__ == "__main__":
                 yield spsa_c / (k + 1) ** spsa_gamma
                 k += 1
 
-        loss_file = open("loss_history_QNSPSA.txt", "w")
+        loss_file = open(LOSS_FILE, "w")
         loss_file.write("epoch,loss,error_rate\n")
 
         # Estado compartido entre los dos callbacks
@@ -296,8 +298,8 @@ if __name__ == "__main__":
             fidelity=fidelity,
             maxiter=iterations,
             blocking=True,
-            regularization=5e-4,    # mejor valor encontrado por fine-tuning bayesiano
-            hessian_delay=1000,     # mejor valor encontrado por fine-tuning bayesiano
+            regularization=5e-4,  # mejor valor encontrado por fine-tuning bayesiano
+            hessian_delay=1000,  # mejor valor encontrado por fine-tuning bayesiano
             learning_rate=make_learning_rate,
             perturbation=make_perturbation,
             callback=spsa_callback,
@@ -329,7 +331,8 @@ if __name__ == "__main__":
     print(f"Error rate final:          {error_rate:.4f}")
     print(f"Correlación de Pearson:    {correlation_final:.4f}  (paper: 0.81)")
 
-    plt.plot(loss_history)
-    plt.show()
-
+    plot_loss_history(LOSS_FILE, save_path="lossCurvesQWord2Vec.png")
     plot_embeddings_comparison(final_probs, w2v_embeddings, word_to_id, id_to_word)
+    plot_bloch_sphere(
+        qc_data, thetas, theta_values, n_embedding, word_to_id, id_to_word
+    )
