@@ -24,7 +24,7 @@ np.random.seed(42)
 N_QUBITS = 4
 N_EMBEDDING = 2
 GS_SHOTS = 256
-GS_ITERATIONS = 1000
+GS_ITERATIONS = 1500
 EDUCATED_GUESS = 6
 C_VAL = 3
 
@@ -155,11 +155,15 @@ def run_trial(ath, regularization, hessian_delay):
 #    los mejores trials usaban hd ≥ 700.
 #  · regularization=5e-4 dominó el top-5, los extremos 1e-4 y 3e-3 peores.
 #
-# Grid refinado: se estrecha la búsqueda hacia la zona prometedora.
+# Grid refinado: se estrecha ath a [0.018, 0.021, 0.027], se exploran
+# hessian_delay más altos (hasta 1200) y regularizaciones mayores (hasta
+# 1.75e-3), dado que los mejores resultados de la primera pasada apuntaban
+# a que el hessiano necesita más iteraciones para estabilizarse y que
+# regularizaciones más altas mejoran la convergencia en este problema.
 param_grid = {
-    "ath": [0.020, 0.025, 0.030],
-    "regularization": [2e-4, 5e-4, 1e-3],
-    "hessian_delay": [700, 900, 1100],
+    "ath": [0.018, 0.021, 0.027],
+    "regularization": [5e-4, 1.75e-3],
+    "hessian_delay": [900, 1200],
 }
 
 keys = list(param_grid.keys())

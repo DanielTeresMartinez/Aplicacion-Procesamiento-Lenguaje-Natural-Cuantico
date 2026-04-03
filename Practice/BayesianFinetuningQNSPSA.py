@@ -50,11 +50,12 @@ N_TRIALS = 12
 # ── Espacio de búsqueda ───────────────────────────────────────────────────
 # Basado en resultados empíricos del grid search:
 #   · ath ∈ [0.015, 0.03]  — vecindad de 0.02 y 0.03
-#   · hessian_delay ∈ [700, 2000]  — por encima del mejor encontrado (700)
-#   · regularization ∈ [1e-5, 5e-2]  — rango más amplio (log-uniform)
+#   · hessian_delay ∈ [200, 700]  — acotado para garantizar que el gradiente
+#     natural se aplique antes de la convergencia (~1500 iters máx.)
+#   · regularization ∈ [5e-5, 2e-2]  — rango ampliado (log-uniform)
 ATH_LOW, ATH_HIGH = 0.015, 0.03
-HD_LOW, HD_HIGH = 600, 1200
-REG_LOW, REG_HIGH = 1e-4, 5e-3
+HD_LOW, HD_HIGH = 200, 700
+REG_LOW, REG_HIGH = 5e-5, 2e-2
 
 # ── Carga de datos ────────────────────────────────────────────────────────
 print("Cargando datos...")
@@ -169,7 +170,7 @@ def run_trial(ath, regularization, hessian_delay, n_iter=BF_ITERATIONS):
 # Pesos del mejor trial global (se actualiza en objective)
 _global_best_er = [np.inf]
 _global_best_x = [None]
-WEIGHTS_FILE = "theta_values_QNSPSA_v2.pkl"
+WEIGHTS_FILE = "theta_values_QNSPSA.pkl"
 
 
 # ── Objetivo Optuna ───────────────────────────────────────────────────────
@@ -192,7 +193,7 @@ def objective(trial: optuna.Trial) -> float:
         print(f"L={n_layers:>2}  best_er={best_er:.4f}")
 
         # Guardar historial de pérdida de este trial en su propio fichero
-        loss_file = f"loss_history_trial{trial_num}_v2.txt"
+        loss_file = f"loss_history_trial{trial_num}.txt"
         with open(loss_file, "w") as f:
             f.write(
                 f"# Trial {trial_num}: ath={ath:.4f}  reg={regularization:.2e}  hd={hessian_delay}  L={n_layers}  best_er={best_er:.4f}\n"
@@ -231,10 +232,10 @@ study = optuna.create_study(direction="minimize", sampler=sampler)
 
 # Añadir puntos de arranque conocidos (warm start) para que TPE parta
 # de las regiones que ya sabemos que funcionan bien.
-study.enqueue_trial({"ath": 0.02, "hessian_delay": 700, "regularization": 5e-4})
-study.enqueue_trial({"ath": 0.03, "hessian_delay": 700, "regularization": 5e-4})
-study.enqueue_trial({"ath": 0.02, "hessian_delay": 1000, "regularization": 5e-4})
-study.enqueue_trial({"ath": 0.03, "hessian_delay": 1000, "regularization": 5e-4})
+study.enqueue_trial({"ath": 0.02, "hessian_delay": 400, "regularization": 5e-4})
+study.enqueue_trial({"ath": 0.03, "hessian_delay": 400, "regularization": 5e-4})
+study.enqueue_trial({"ath": 0.02, "hessian_delay": 700, "regularization": 1.75e-3})
+study.enqueue_trial({"ath": 0.03, "hessian_delay": 700, "regularization": 1.75e-3})
 
 study.optimize(objective, n_trials=N_TRIALS, show_progress_bar=False)
 
@@ -244,7 +245,7 @@ trials_sorted = sorted(
     key=lambda t: t.value,
 )
 
-out_file = "bayesian_finetuning_results_v2.txt"
+out_file = "bayesian_finetuning_results.txt"
 with open(out_file, "w") as f:
     f.write(
         f"Bayesian Fine-Tuning QNSPSA — {BF_ITERATIONS} iter/trial, {BF_SHOTS} shots\n"

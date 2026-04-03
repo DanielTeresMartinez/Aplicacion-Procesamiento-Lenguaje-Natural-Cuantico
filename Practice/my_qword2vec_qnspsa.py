@@ -1,20 +1,8 @@
 import os
 import pickle
-from my_tools import (
-    load_corpus,
-    load_word_list,
-    load_word2vec_embeddings,
-    build_vocabulary,
-)
-from my_tools import generate_training_data_from_text, generate_label_vectors
-from my_tools import estimate_num_layers, build_target_distances
-from my_tools import calculate_error_rate, plot_embeddings_comparison
-from my_tools import plot_loss_history, plot_bloch_sphere
-
-
+from my_tools import *
 import numpy as np
-from IPython.display import display
-from scipy.spatial.distance import pdist, squareform
+from scipy.spatial.distance import pdist
 from scipy.stats import pearsonr
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.circuit import ParameterVector
@@ -25,8 +13,8 @@ from qiskit_aer.primitives import SamplerV2 as AerSampler
 np.random.seed(42)
 
 # Early stopping
-EVAL_EVERY = 100
-PATIENCE = 5
+EVAL_EVERY = 50
+PATIENCE = 10
 MIN_DELTA = 0.005
 
 
@@ -133,12 +121,11 @@ if __name__ == "__main__":
     # False → carga los pesos desde WEIGHTS_FILE y salta el entrenamiento
     TRAIN = False
     WEIGHTS_FILE = "theta_values_QNSPSA.pkl"
-    # Fichero de historial de pérdida para la gráfica (renombrado desde loss_history_trial5.txt)
     LOSS_FILE = "loss_history_qword2vec.txt"
     n_qubits = 4
     n_embedding = 2
     n_layers = None
-    n_shots = 2048  # más shots que en Bayesiano para menor varianza
+    n_shots = 1024
 
     print(f"--- Q-Word2Vec (n={n_qubits}, ne={n_embedding}) ---")
 
@@ -167,7 +154,7 @@ if __name__ == "__main__":
 
     # ── §3.4 · Estimación de la profundidad L ────────────────────────────────
     num_data = len(word_to_id)
-    ath = 0.020
+    ath = 0.021
     if n_layers is None:
         n_layers = estimate_num_layers(n_qubits, n_embedding, num_data, ath)
         print(f"L heurístico = {n_layers}  (pares={num_data}, Ath={ath})")
@@ -191,7 +178,7 @@ if __name__ == "__main__":
     fidelity_circuit = qc_data[0].remove_final_measurements(inplace=False).decompose()
     fidelity = QNSPSA.get_fidelity(fidelity_circuit, aer_sampler)
 
-    iterations = 1500
+    iterations = 2500
     c_val = 3
     spsa_c = 0.2
     spsa_gamma = 0.101
@@ -249,13 +236,12 @@ if __name__ == "__main__":
             loss_history.append(fx)
             it = len(loss_history)
 
-            loss_file.write(f"{it},{fx}\n")
-            loss_file.flush()
-
             # ── Checkpoint de early stopping cada EVAL_EVERY iteraciones ─────
             if it % EVAL_EVERY == 0 or it == 1:
                 probs = forward_pass(qc_data, thetas, x, n_shots, sim)
                 er = calculate_error_rate(probs, label_vectors)
+                loss_file.write(f"{it},{fx},{er}\n")
+                loss_file.flush()
 
                 if er < best_er[0] - MIN_DELTA:
                     best_er[0] = er
@@ -291,8 +277,8 @@ if __name__ == "__main__":
             fidelity=fidelity,
             maxiter=iterations,
             blocking=True,
-            regularization=5e-4,  # mejor valor encontrado por fine-tuning bayesiano
-            hessian_delay=1000,  # mejor valor encontrado por fine-tuning bayesiano
+            regularization=1.75e-3,  # mejor valor encontrado por fine-tuning bayesiano
+            hessian_delay=700,  # activación del gradiente natural tras fase SPSA inicial
             learning_rate=make_learning_rate,
             perturbation=make_perturbation,
             callback=spsa_callback,
@@ -326,6 +312,4 @@ if __name__ == "__main__":
 
     plot_loss_history(LOSS_FILE, save_path="lossCurvesQWord2Vec.png")
     plot_embeddings_comparison(final_probs, w2v_embeddings, word_to_id, id_to_word)
-    plot_bloch_sphere(
-        qc_data, thetas, theta_values, n_embedding, word_to_id, id_to_word
-    )
+    plot_bloch_sphere(qc_data, thetas, theta_values, n_embedding, word_to_id, id_to_word)

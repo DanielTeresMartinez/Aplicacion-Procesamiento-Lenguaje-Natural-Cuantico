@@ -220,19 +220,41 @@ def plot_embeddings_comparison(
         w2v_2d = w2v_matrix
 
     colors = plt.cm.hsv(np.linspace(0, 0.9, len(words)))
-    _offsets = [
-        (10, 6), (-55, 6), (10, -16), (-55, -16),
-        (10, 18), (-55, 18), (10, -28), (-55, -28),
+    _offsets_w2v = [
+        (10, 6),
+        (-55, 6),
+        (10, -16),
+        (-55, -16),
+        (10, 18),
+        (-55, 18),
+        (10, -28),
+        (-55, -28),
+    ]
+    _offsets_qw2v = [
+        (22, 4),
+        (-72, 4),
+        (22, -24),
+        (-72, -24),
+        (22, 28),
+        (-72, 28),
+        (22, -44),
+        (-72, -44),
+        (6, 42),
+        (-20, 42),
+        (6, -50),
+        (-20, -50),
+        (40, 14),
+        (-88, 14),
     ]
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-    for ax, coords, title in [
-        (axes[0], w2v_2d, "Word2vec"),
-        (axes[1], qw2v_2d, "Q-word2vec"),
+    for ax, coords, title, offsets in [
+        (axes[0], w2v_2d, "Word2vec", _offsets_w2v),
+        (axes[1], qw2v_2d, "Q-word2vec", _offsets_qw2v),
     ]:
         ax.scatter(coords[:, 0], coords[:, 1], c=colors, s=80, zorder=3)
         for i, word in enumerate(words):
-            ox, oy = _offsets[i % len(_offsets)]
+            ox, oy = offsets[i % len(offsets)]
             ax.annotate(
                 word,
                 (coords[i, 0], coords[i, 1]),
@@ -266,17 +288,23 @@ def plot_loss_history(filepath, save_path=None):
             if line.startswith("#"):
                 header_info = line[1:].strip()
                 continue
-            if line.startswith("iter") or not line:
+            if not line:
                 continue
             parts = line.split(",")
-            if len(parts) >= 3:
-                iters.append(int(parts[0]))
+            try:
+                it = int(parts[0])
+            except ValueError:
+                continue  # salta cabeceras como "epoch,loss,error_rate"
+            if len(parts) >= 3 and it % 50 == 0:
+                iters.append(it)
                 losses.append(float(parts[1]))
                 error_rates.append(float(parts[2]))
 
     fig, ax1 = plt.subplots(figsize=(10, 5))
 
-    ax1.plot(iters, losses, color="steelblue", linewidth=1.0, alpha=0.8, label="Pérdida")
+    ax1.plot(
+        iters, losses, color="steelblue", linewidth=1.0, alpha=0.8, label="Pérdida"
+    )
     ax1.set_xlabel("Iteración")
     ax1.set_ylabel("Pérdida", color="steelblue")
     ax1.tick_params(axis="y", labelcolor="steelblue")
@@ -293,9 +321,10 @@ def plot_loss_history(filepath, save_path=None):
     ax2.annotate(
         f"best={best_er:.4f} (it={best_it})",
         xy=(best_it, best_er),
-        xytext=(best_it + len(iters) * 0.02, best_er + 0.02),
+        xytext=(best_it + len(iters) * 0.02, best_er - 0.015),
         fontsize=8,
         color="darkorange",
+        va="top",
     )
 
     title = "Historial de entrenamiento Q-Word2Vec"
@@ -324,92 +353,93 @@ def plot_bloch_sphere(
     save_path="bloch_sphere.png",
 ):
     """
-    Visualiza el estado de cada qubit de embedding como punto en la esfera de Bloch.
-    Para cada palabra, calcula la matriz de densidad reducida de cada qubit de
-    embedding (trazando el resto) y extrae el vector de Bloch (⟨X⟩, ⟨Y⟩, ⟨Z⟩).
-
-    Se muestran n_embedding esferas (una por qubit de embedding) con todas las
-    palabras del vocabulario superpuestas.
+    Visualiza todos los embeddings sobre una única esfera de Bloch.
+    Se usa el estado reducido del primer qubit de embedding (trazando el resto)
+    y se etiqueta cada punto con el nombre de la palabra.
     """
     from qiskit.quantum_info import Statevector, partial_trace
 
     words = [id_to_word[i] for i in range(len(word_to_id))]
     colors = plt.cm.hsv(np.linspace(0, 0.9, len(words)))
 
-    # ── Calcular vectores de Bloch por palabra y qubit de embedding ──────────
-    # bloch[k][q] = [x, y, z]  para la palabra k en el qubit embedding q
-    bloch = []
+    # ── Calcular vector de Bloch del qubit 0 de embedding para cada palabra ──
+    bvecs = []
     for k in range(len(word_to_id)):
         qc_bound = qc_data[k].assign_parameters({thetas_pv: theta_values})
         qc_no_meas = qc_bound.remove_final_measurements(inplace=False).decompose()
         sv = Statevector(qc_no_meas)
         n_total = qc_no_meas.num_qubits
+        trace_out = [i for i in range(n_total) if i != 0]
+        rho = partial_trace(sv, trace_out)
+        r = rho.data
+        bx = 2.0 * r[0, 1].real
+        by = -2.0 * r[0, 1].imag
+        bz = (r[0, 0] - r[1, 1]).real
+        bvecs.append([bx, by, bz])
 
-        word_bvecs = []
-        for q in range(n_embedding):
-            # Trazar todos los qubits menos el qubit q del embedding
-            trace_out = [i for i in range(n_total) if i != q]
-            rho = partial_trace(sv, trace_out)
-            r = rho.data
-            # Convención estándar: ρ = (I + x·σx + y·σy + z·σz)/2
-            # → x = 2·Re(ρ₀₁), y = −2·Im(ρ₀₁), z = ρ₀₀ − ρ₁₁
-            bx = 2.0 * r[0, 1].real
-            by = -2.0 * r[0, 1].imag
-            bz = (r[0, 0] - r[1, 1]).real
-            word_bvecs.append([bx, by, bz])
-        bloch.append(word_bvecs)
-
-    # ── Dibujar esferas ──────────────────────────────────────────────────────
-    fig = plt.figure(figsize=(7 * n_embedding, 6))
+    # ── Dibujar esfera única ─────────────────────────────────────────────────
     u = np.linspace(0, 2 * np.pi, 60)
     v = np.linspace(0, np.pi, 60)
     xs = np.outer(np.cos(u), np.sin(v))
     ys = np.outer(np.sin(u), np.sin(v))
     zs = np.outer(np.ones_like(u), np.cos(v))
 
-    for q in range(n_embedding):
-        ax = fig.add_subplot(1, n_embedding, q + 1, projection="3d")
+    fig = plt.figure(figsize=(8, 7))
+    ax = fig.add_subplot(111, projection="3d")
 
-        # Superficie semitransparente
-        ax.plot_surface(xs, ys, zs, alpha=0.08, color="lightblue", linewidth=0)
+    ax.plot_surface(xs, ys, zs, alpha=0.08, color="lightblue", linewidth=0)
 
-        # Ejes coordenados
-        for d in range(3):
-            start, end = [0, 0, 0], [0, 0, 0]
-            start[d], end[d] = -1.3, 1.3
-            ax.plot(
-                [start[0], end[0]], [start[1], end[1]], [start[2], end[2]],
-                "k-", alpha=0.25, linewidth=0.7,
-            )
+    for d in range(3):
+        start, end = [0, 0, 0], [0, 0, 0]
+        start[d], end[d] = -1.3, 1.3
+        ax.plot(
+            [start[0], end[0]],
+            [start[1], end[1]],
+            [start[2], end[2]],
+            "k-",
+            alpha=0.25,
+            linewidth=0.7,
+        )
 
-        ax.text(0, 0, 1.45, "|0⟩", ha="center", va="bottom", fontsize=9)
-        ax.text(0, 0, -1.50, "|1⟩", ha="center", va="top", fontsize=9)
-        ax.text(1.45, 0, 0, "|+⟩", ha="left", fontsize=8, alpha=0.6)
-        ax.text(0, 1.45, 0, "|i+⟩", ha="left", fontsize=8, alpha=0.6)
+    ax.text(0, 0, 1.45, "|0⟩", ha="center", va="bottom", fontsize=9)
+    ax.text(0, 0, -1.50, "|1⟩", ha="center", va="top", fontsize=9)
+    ax.text(1.45, 0, 0, "|+⟩", ha="left", fontsize=8, alpha=0.6)
+    ax.text(0, 1.45, 0, "|i+⟩", ha="left", fontsize=8, alpha=0.6)
 
-        # Vector de Bloch de cada palabra
-        for k, word in enumerate(words):
-            bvec = bloch[k][q]
-            ax.quiver(
-                0, 0, 0, bvec[0], bvec[1], bvec[2],
-                color=colors[k], alpha=0.85, arrow_length_ratio=0.15, linewidth=1.2,
-            )
-            ax.scatter(*bvec, color=colors[k], s=40, zorder=5)
-            ax.text(
-                bvec[0] * 1.12, bvec[1] * 1.12, bvec[2] * 1.12,
-                word, fontsize=7, color=colors[k],
-            )
+    for k, word in enumerate(words):
+        bv = bvecs[k]
+        ax.quiver(
+            0,
+            0,
+            0,
+            bv[0],
+            bv[1],
+            bv[2],
+            color=colors[k],
+            alpha=0.85,
+            arrow_length_ratio=0.15,
+            linewidth=1.2,
+        )
+        ax.scatter(*bv, color=colors[k], s=40, zorder=5)
+        ax.text(
+            bv[0] * 1.15,
+            bv[1] * 1.15,
+            bv[2] * 1.15,
+            word,
+            fontsize=8,
+            color=colors[k],
+            fontweight="bold",
+        )
 
-        ax.set_xlim([-1.5, 1.5])
-        ax.set_ylim([-1.5, 1.5])
-        ax.set_zlim([-1.5, 1.5])
-        ax.set_box_aspect([1, 1, 1])
-        ax.set_title(f"Qubit embedding {q}  (qEmb[{q}])", fontsize=10)
-        ax.set_xlabel("X", fontsize=8)
-        ax.set_ylabel("Y", fontsize=8)
-        ax.set_zlabel("Z", fontsize=8)
+    ax.set_xlim([-1.5, 1.5])
+    ax.set_ylim([-1.5, 1.5])
+    ax.set_zlim([-1.5, 1.5])
+    ax.set_box_aspect([1, 1, 1])
+    ax.set_title("Q-Word2Vec — Esfera de Bloch (qubit embedding 0)", fontsize=11)
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
 
-    fig.suptitle("Q-Word2Vec — Representación en esfera de Bloch", fontsize=12)
     plt.tight_layout()
     plt.savefig(save_path, dpi=150)
     print(f"Esfera de Bloch guardada en '{save_path}'")
