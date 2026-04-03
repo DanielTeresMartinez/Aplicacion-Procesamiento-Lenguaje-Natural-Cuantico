@@ -277,8 +277,9 @@ if __name__ == "__main__":
             fidelity=fidelity,
             maxiter=iterations,
             blocking=True,
-            regularization=1.75e-3,  # mejor valor encontrado por fine-tuning bayesiano
+            regularization=1.75e-3,  # actualizar con el mejor valor del próximo fine-tuning bayesiano
             hessian_delay=700,  # activación del gradiente natural tras fase SPSA inicial
+            resamplings=5,  # promedia 4 estimaciones del tensor métrico por iteración
             learning_rate=make_learning_rate,
             perturbation=make_perturbation,
             callback=spsa_callback,
@@ -312,4 +313,6 @@ if __name__ == "__main__":
 
     plot_loss_history(LOSS_FILE, save_path="lossCurvesQWord2Vec.png")
     plot_embeddings_comparison(final_probs, w2v_embeddings, word_to_id, id_to_word)
-    plot_bloch_sphere(qc_data, thetas, theta_values, n_embedding, word_to_id, id_to_word)
+    plot_bloch_sphere(
+        qc_data, thetas, theta_values, n_embedding, word_to_id, id_to_word
+    )

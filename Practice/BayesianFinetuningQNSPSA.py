@@ -50,12 +50,12 @@ N_TRIALS = 12
 # ── Espacio de búsqueda ───────────────────────────────────────────────────
 # Basado en resultados empíricos del grid search:
 #   · ath ∈ [0.015, 0.03]  — vecindad de 0.02 y 0.03
-#   · hessian_delay ∈ [200, 700]  — acotado para garantizar que el gradiente
-#     natural se aplique antes de la convergencia (~1500 iters máx.)
-#   · regularization ∈ [5e-5, 2e-2]  — rango ampliado (log-uniform)
+#   · hessian_delay ∈ [200, 800]  — garantiza activación QNSPSA con margen
+#     suficiente para mejorar antes de convergencia (~1500 iters máx.)
+#   · regularization ∈ [1e-5, 5e-2]  — exploración amplia 3 órdenes magnitud
 ATH_LOW, ATH_HIGH = 0.015, 0.03
-HD_LOW, HD_HIGH = 200, 700
-REG_LOW, REG_HIGH = 5e-5, 2e-2
+HD_LOW, HD_HIGH = 200, 800
+REG_LOW, REG_HIGH = 1e-5, 5e-2
 
 # ── Carga de datos ────────────────────────────────────────────────────────
 print("Cargando datos...")
@@ -158,6 +158,7 @@ def run_trial(ath, regularization, hessian_delay, n_iter=BF_ITERATIONS):
         blocking=True,
         regularization=regularization,
         hessian_delay=hessian_delay,
+        resamplings=5,
         learning_rate=make_lr,
         perturbation=make_pert,
         callback=callback,
