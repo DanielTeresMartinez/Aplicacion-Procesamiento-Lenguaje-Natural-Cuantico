@@ -33,29 +33,30 @@ np.random.seed(42)
 # ── Configuración fija ────────────────────────────────────────────────────
 N_QUBITS = 4
 N_EMBEDDING = 2
-BF_SHOTS = 256
-BF_ITERATIONS = 1500
+BF_SHOTS = 512
+BF_ITERATIONS = 800
 EDUCATED_GUESS = 6
 C_VAL = 3
 
-# Hiperparámetros SPSA fijos
-SPSA_C = 0.2
+# Exponentes de los schedules (fijos — no se buscan)
 SPSA_GAMMA = 0.101
-SPSA_A = 0.1
 SPSA_ALPHA = 0.602
 
 # Número de trials Bayesianos
-N_TRIALS = 12
+N_TRIALS = 20
 
 # ── Espacio de búsqueda ───────────────────────────────────────────────────
-# Basado en resultados empíricos del grid search:
-#   · ath ∈ [0.015, 0.03]  — vecindad de 0.02 y 0.03
-#   · hessian_delay ∈ [200, 800]  — garantiza activación QNSPSA con margen
-#     suficiente para mejorar antes de convergencia (~1500 iters máx.)
-#   · regularization ∈ [1e-5, 5e-2]  — exploración amplia 3 órdenes magnitud
+#   · ath ∈ [0.015, 0.03]  — vecindad del mejor ath conocido (0.021)
+#   · hessian_delay ∈ [150, 400]  — warmup SPSA corto; QNSPSA activo
+#     la mayor parte de las 800 iteraciones
+#   · regularization ∈ [1e-4, 1e-1]  — controla cuánto pesa el tensor métrico
+#   · spsa_a ∈ [0.01, 1.0]  — learning rate inicial (log-uniform)
+#   · spsa_c ∈ [0.05, 0.5]  — magnitud de perturbación (log-uniform)
 ATH_LOW, ATH_HIGH = 0.015, 0.03
-HD_LOW, HD_HIGH = 200, 800
-REG_LOW, REG_HIGH = 1e-5, 5e-2
+HD_LOW, HD_HIGH = 150, 400
+REG_LOW, REG_HIGH = 1e-4, 1e-1
+A_LOW, A_HIGH = 0.01, 1.0
+C_LOW, C_HIGH = 0.05, 0.5
 
 # ── Carga de datos ────────────────────────────────────────────────────────
 print("Cargando datos...")
@@ -92,12 +93,13 @@ def get_circuit_for_ath(ath):
         int_word = [int(bit) for bit in bin_word]
         qc_data_local.append(qc.assign_parameters({input_p: int_word}))
 
-    fidelity_local = QNSPSA.get_fidelity(
-        qc_data_local[0].remove_final_measurements(inplace=False).decompose(),
-        aer_sampler,
-    )
+    # Circuitos sin medición para calcular fidelidad (uno por palabra)
+    qc_no_meas = [
+        qc.remove_final_measurements(inplace=False).decompose()
+        for qc in qc_data_local
+    ]
 
-    _circuit_cache[n_layers] = (n_layers, qc_data_local, thetas_pv, fidelity_local)
+    _circuit_cache[n_layers] = (n_layers, qc_data_local, thetas_pv, qc_no_meas)
     return _circuit_cache[n_layers]
 
 
@@ -111,9 +113,18 @@ def make_loss_f(qc_data_local, thetas_local):
 
 
 # ── Ejecución de un trial ─────────────────────────────────────────────────
-def run_trial(ath, regularization, hessian_delay, n_iter=BF_ITERATIONS):
-    n_layers, qc_data_local, thetas_local, fidelity_local = get_circuit_for_ath(ath)
+def run_trial(ath, regularization, hessian_delay, spsa_a, spsa_c, n_iter=BF_ITERATIONS):
+    n_layers, qc_data_local, thetas_local, qc_no_meas = get_circuit_for_ath(ath)
     spsa_A_val = n_iter * 0.1
+
+    # Fidelidad rotante: cada llamada usa el siguiente circuito del vocabulario
+    fidelity_idx = [0]
+    fidelities = [QNSPSA.get_fidelity(qc, aer_sampler) for qc in qc_no_meas]
+
+    def rotating_fidelity(params1, params2):
+        f = fidelities[fidelity_idx[0]]
+        fidelity_idx[0] = (fidelity_idx[0] + 1) % len(fidelities)
+        return f(params1, params2)
     loss_f = make_loss_f(qc_data_local, thetas_local)
 
     best_init, theta_init = np.inf, None
@@ -131,13 +142,13 @@ def run_trial(ath, regularization, hessian_delay, n_iter=BF_ITERATIONS):
     def make_lr():
         k = 0
         while True:
-            yield SPSA_A / (k + 1 + spsa_A_val) ** SPSA_ALPHA
+            yield spsa_a / (k + 1 + spsa_A_val) ** SPSA_ALPHA
             k += 1
 
     def make_pert():
         k = 0
         while True:
-            yield SPSA_C / (k + 1) ** SPSA_GAMMA
+            yield spsa_c / (k + 1) ** SPSA_GAMMA
             k += 1
 
     def callback(_nfev, x, fx, _dx, _accept):
@@ -153,12 +164,12 @@ def run_trial(ath, regularization, hessian_delay, n_iter=BF_ITERATIONS):
         return np.isclose(last_er[0], 0.0, atol=0.1)
 
     qnspsa = QNSPSA(
-        fidelity=fidelity_local,
+        fidelity=rotating_fidelity,
         maxiter=n_iter,
         blocking=True,
         regularization=regularization,
         hessian_delay=hessian_delay,
-        resamplings=5,
+        resamplings=3,
         learning_rate=make_lr,
         perturbation=make_pert,
         callback=callback,
@@ -181,14 +192,16 @@ def objective(trial: optuna.Trial) -> float:
     ath = trial.suggest_float("ath", ATH_LOW, ATH_HIGH)
     hessian_delay = trial.suggest_int("hessian_delay", HD_LOW, HD_HIGH, step=50)
     regularization = trial.suggest_float("regularization", REG_LOW, REG_HIGH, log=True)
+    spsa_a = trial.suggest_float("spsa_a", A_LOW, A_HIGH, log=True)
+    spsa_c = trial.suggest_float("spsa_c", C_LOW, C_HIGH, log=True)
 
     trial_num = trial.number + 1
-    label = f"ath={ath:.3f}  reg={regularization:.2e}  hd={hessian_delay}"
+    label = f"ath={ath:.3f}  hd={hessian_delay}  reg={regularization:.2e}  a={spsa_a:.3f}  c={spsa_c:.3f}"
     print(f"\n[Trial {trial_num:>3}/{N_TRIALS}]  {label}", end="  →  ", flush=True)
 
     try:
         best_er, best_x, n_layers, loss_hist = run_trial(
-            ath, regularization, hessian_delay
+            ath, regularization, hessian_delay, spsa_a, spsa_c
         )
         trial.set_user_attr("n_layers", n_layers)
         print(f"L={n_layers:>2}  best_er={best_er:.4f}")
@@ -197,7 +210,7 @@ def objective(trial: optuna.Trial) -> float:
         loss_file = f"loss_history_trial{trial_num}.txt"
         with open(loss_file, "w") as f:
             f.write(
-                f"# Trial {trial_num}: ath={ath:.4f}  reg={regularization:.2e}  hd={hessian_delay}  L={n_layers}  best_er={best_er:.4f}\n"
+                f"# Trial {trial_num}: ath={ath:.4f}  hd={hessian_delay}  reg={regularization:.2e}  a={spsa_a:.4f}  c={spsa_c:.4f}  L={n_layers}  best_er={best_er:.4f}\n"
             )
             f.write("iter,loss,error_rate\n")
             for it, fx, er in loss_hist:
@@ -221,11 +234,11 @@ def objective(trial: optuna.Trial) -> float:
 
 # ── Ejecutar optimización Bayesiana ──────────────────────────────────────
 print(f"\nBayesian fine-tuning: {N_TRIALS} trials, espacio de búsqueda:")
-print(f"  ath          ∈ [{ATH_LOW}, {ATH_HIGH}]  (continuo)")
+print(f"  ath          ∈ [{ATH_LOW}, {ATH_HIGH}]")
 print(f"  hessian_delay∈ [{HD_LOW}, {HD_HIGH}]  (paso 50)")
-print(
-    f"  regularization∈ [{REG_LOW:.0e}, {REG_HIGH:.0e}]  (log-uniform, centrado en 5e-4)"
-)
+print(f"  regularization∈ [{REG_LOW:.0e}, {REG_HIGH:.0e}]  (log-uniform)")
+print(f"  spsa_a       ∈ [{A_LOW:.2f}, {A_HIGH:.2f}]  (log-uniform)")
+print(f"  spsa_c       ∈ [{C_LOW:.2f}, {C_HIGH:.2f}]  (log-uniform)")
 print("=" * 65)
 
 sampler = TPESampler(seed=42)
@@ -233,10 +246,42 @@ study = optuna.create_study(direction="minimize", sampler=sampler)
 
 # Añadir puntos de arranque conocidos (warm start) para que TPE parta
 # de las regiones que ya sabemos que funcionan bien.
-study.enqueue_trial({"ath": 0.02, "hessian_delay": 400, "regularization": 5e-4})
-study.enqueue_trial({"ath": 0.03, "hessian_delay": 400, "regularization": 5e-4})
-study.enqueue_trial({"ath": 0.02, "hessian_delay": 700, "regularization": 1.75e-3})
-study.enqueue_trial({"ath": 0.03, "hessian_delay": 700, "regularization": 1.75e-3})
+study.enqueue_trial(
+    {
+        "ath": 0.021,
+        "hessian_delay": 200,
+        "regularization": 1e-3,
+        "spsa_a": 0.1,
+        "spsa_c": 0.2,
+    }
+)  # valores clásicos SPSA, hd corto
+study.enqueue_trial(
+    {
+        "ath": 0.021,
+        "hessian_delay": 300,
+        "regularization": 1e-2,
+        "spsa_a": 0.3,
+        "spsa_c": 0.1,
+    }
+)  # reg alta, lr mayor
+study.enqueue_trial(
+    {
+        "ath": 0.018,
+        "hessian_delay": 150,
+        "regularization": 1e-4,
+        "spsa_a": 0.05,
+        "spsa_c": 0.3,
+    }
+)  # hd mínimo, tensor agresivo
+study.enqueue_trial(
+    {
+        "ath": 0.027,
+        "hessian_delay": 400,
+        "regularization": 5e-2,
+        "spsa_a": 0.5,
+        "spsa_c": 0.05,
+    }
+)  # hd máximo, lr alto, pert baja
 
 study.optimize(objective, n_trials=N_TRIALS, show_progress_bar=False)
 
@@ -253,23 +298,23 @@ with open(out_file, "w") as f:
     )
     f.write(f"Trials ejecutados: {len(trials_sorted)}/{N_TRIALS}\n")
     f.write("=" * 70 + "\n")
-    header = (
-        f"{'Rank':>4}  {'ath':>6}  {'L':>3}  {'reg':>8}  {'hd':>5}  {'best_er':>8}\n"
-    )
+    header = f"{'Rank':>4}  {'ath':>6}  {'L':>3}  {'hd':>5}  {'reg':>8}  {'a':>6}  {'c':>6}  {'best_er':>8}\n"
     f.write(header)
-    f.write("-" * 60 + "\n")
+    f.write("-" * 70 + "\n")
     for rank, t in enumerate(trials_sorted, 1):
         n_layers = t.user_attrs.get("n_layers", -1)
         f.write(
             f"{rank:>4}  {t.params['ath']:>6.3f}  {n_layers:>3}  "
-            f"{t.params['regularization']:>8.2e}  "
-            f"{t.params['hessian_delay']:>5}  {t.value:>8.4f}\n"
+            f"{t.params['hessian_delay']:>5}  {t.params['regularization']:>8.2e}  "
+            f"{t.params['spsa_a']:>6.3f}  {t.params['spsa_c']:>6.3f}  {t.value:>8.4f}\n"
         )
     f.write("\n=== MEJOR COMBINACIÓN ===\n")
     best = study.best_trial
     f.write(f"  ath:            {best.params['ath']:.4f}\n")
     f.write(f"  hessian_delay:  {best.params['hessian_delay']}\n")
     f.write(f"  regularization: {best.params['regularization']:.4e}\n")
+    f.write(f"  spsa_a:         {best.params['spsa_a']:.4f}\n")
+    f.write(f"  spsa_c:         {best.params['spsa_c']:.4f}\n")
     f.write(f"  best_er:        {best.value:.4f}\n")
     f.write(f"  n_layers:       {best.user_attrs.get('n_layers', '?')}\n")
 
@@ -279,6 +324,8 @@ best = study.best_trial
 print(f"  ath:            {best.params['ath']:.4f}")
 print(f"  hessian_delay:  {best.params['hessian_delay']}")
 print(f"  regularization: {best.params['regularization']:.4e}")
+print(f"  spsa_a:         {best.params['spsa_a']:.4f}")
+print(f"  spsa_c:         {best.params['spsa_c']:.4f}")
 print(f"  best_er:        {best.value:.4f}")
 print(f"  n_layers:       {best.user_attrs.get('n_layers', '?')}")
 print(f"\nResultados completos guardados en {out_file}")

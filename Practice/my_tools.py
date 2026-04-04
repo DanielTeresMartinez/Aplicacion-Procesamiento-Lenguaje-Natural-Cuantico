@@ -266,12 +266,13 @@ def plot_embeddings_comparison(
         ax.set_title(title)
 
     plt.tight_layout()
-    plt.savefig(save_path, dpi=150)
-    print(f"Gráfica guardada en '{save_path}'")
+    for p in ([save_path] if isinstance(save_path, str) else save_path):
+        plt.savefig(p, dpi=150)
+        print(f"Gráfica guardada en '{p}'")
     plt.show()
 
 
-def plot_loss_history(filepath, save_path=None):
+def plot_loss_history(filepath, save_path=None, title_info=None):
     """
     Lee un fichero loss_history_*.txt y dibuja pérdida y error rate en ejes duales.
     Formato esperado (generado por my_qword2vec_qnspsa.py y BayesianFinetuningQNSPSA.py):
@@ -295,7 +296,7 @@ def plot_loss_history(filepath, save_path=None):
                 it = int(parts[0])
             except ValueError:
                 continue  # salta cabeceras como "epoch,loss,error_rate"
-            if len(parts) >= 3 and it % 50 == 0:
+            if len(parts) >= 3 and it % 10 == 0:
                 iters.append(it)
                 losses.append(float(parts[1]))
                 error_rates.append(float(parts[2]))
@@ -328,8 +329,9 @@ def plot_loss_history(filepath, save_path=None):
     )
 
     title = "Historial de entrenamiento Q-Word2Vec"
-    if header_info:
-        title += f"\n{header_info}"
+    info = title_info if title_info is not None else header_info
+    if info:
+        title += f"\n{info}"
     ax1.set_title(title, fontsize=10)
 
     lines1, labels1 = ax1.get_legend_handles_labels()
@@ -338,8 +340,9 @@ def plot_loss_history(filepath, save_path=None):
 
     plt.tight_layout()
     if save_path:
-        plt.savefig(save_path, dpi=150)
-        print(f"Gráfica guardada en '{save_path}'")
+        for p in ([save_path] if isinstance(save_path, str) else save_path):
+            plt.savefig(p, dpi=150)
+            print(f"Gráfica guardada en '{p}'")
     plt.show()
 
 

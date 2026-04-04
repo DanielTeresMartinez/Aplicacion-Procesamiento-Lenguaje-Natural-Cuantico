@@ -13,7 +13,7 @@ from qiskit_aer.primitives import SamplerV2 as AerSampler
 np.random.seed(42)
 
 # Early stopping
-EVAL_EVERY = 50
+EVAL_EVERY = 10
 PATIENCE = 10
 MIN_DELTA = 0.005
 
@@ -121,7 +121,7 @@ if __name__ == "__main__":
     # False → carga los pesos desde WEIGHTS_FILE y salta el entrenamiento
     TRAIN = False
     WEIGHTS_FILE = "theta_values_QNSPSA.pkl"
-    LOSS_FILE = "loss_history_qword2vec.txt"
+    LOSS_FILE = "loss_history_trial5.txt"
     n_qubits = 4
     n_embedding = 2
     n_layers = None
@@ -154,7 +154,7 @@ if __name__ == "__main__":
 
     # ── §3.4 · Estimación de la profundidad L ────────────────────────────────
     num_data = len(word_to_id)
-    ath = 0.021
+    ath = 0.02  # mejor valor encontrado en Bayesian fine-tuning (trial 5)
     if n_layers is None:
         n_layers = estimate_num_layers(n_qubits, n_embedding, num_data, ath)
         print(f"L heurístico = {n_layers}  (pares={num_data}, Ath={ath})")
@@ -173,16 +173,26 @@ if __name__ == "__main__":
         int_word = [int(bit) for bit in bin_word]
         qc_data.append(qc.assign_parameters({input_p: int_word}))
 
-    sim = AerSimulator()
+    sim = AerSimulator(seed_simulator=42)
     aer_sampler = AerSampler()
-    fidelity_circuit = qc_data[0].remove_final_measurements(inplace=False).decompose()
-    fidelity = QNSPSA.get_fidelity(fidelity_circuit, aer_sampler)
+    # Fidelidad rotante: cada llamada usa el siguiente circuito del vocabulario
+    # para estimar el tensor métrico desde la perspectiva de todas las palabras
+    qc_no_meas = [
+        qc.remove_final_measurements(inplace=False).decompose() for qc in qc_data
+    ]
+    fidelities = [QNSPSA.get_fidelity(qc, aer_sampler) for qc in qc_no_meas]
+    fidelity_idx = [0]
+
+    def rotating_fidelity(params1, params2):
+        f = fidelities[fidelity_idx[0]]
+        fidelity_idx[0] = (fidelity_idx[0] + 1) % len(fidelities)
+        return f(params1, params2)
 
     iterations = 2500
     c_val = 3
-    spsa_c = 0.2
+    spsa_c = 0.07  # mejor valor encontrado en Bayesian fine-tuning (trial 5)
     spsa_gamma = 0.101
-    spsa_a = 0.1
+    spsa_a = 0.16  # mejor valor encontrado en Bayesian fine-tuning (trial 5)
     spsa_A = iterations * 0.1
     spsa_alpha = 0.602
     loss_history = []
@@ -274,11 +284,11 @@ if __name__ == "__main__":
             return stop_flag[0]
 
         qnspsa = QNSPSA(
-            fidelity=fidelity,
+            fidelity=rotating_fidelity,
             maxiter=iterations,
             blocking=True,
-            regularization=1.75e-3,  # actualizar con el mejor valor del próximo fine-tuning bayesiano
-            hessian_delay=700,  # activación del gradiente natural tras fase SPSA inicial
+            regularization=1.6e-2,  # mejor valor encontrado en Bayesian fine-tuning (trial 5)
+            hessian_delay=400,  # mejor valor encontrado en Bayesian fine-tuning (trial 5)
             resamplings=5,  # promedia 4 estimaciones del tensor métrico por iteración
             learning_rate=make_learning_rate,
             perturbation=make_perturbation,
@@ -311,8 +321,15 @@ if __name__ == "__main__":
     print(f"Error rate final:          {error_rate:.4f}")
     print(f"Correlación de Pearson:    {correlation_final:.4f}  (paper: 0.81)")
 
-    plot_loss_history(LOSS_FILE, save_path="lossCurvesQWord2Vec.png")
-    plot_embeddings_comparison(final_probs, w2v_embeddings, word_to_id, id_to_word)
+    MEMORIA_IMG = "../memoria/imagenes"
+    title_info = (
+        f"ath={ath:.4f}  hd=400  reg=1.60e-02"
+        f"  a={spsa_a:.4f}  c={spsa_c:.4f}  L={n_layers}  C={c_val}"
+    )
+    plot_loss_history(LOSS_FILE, save_path=["lossCurvesQWord2Vec.png", f"{MEMORIA_IMG}/lossCurvesQWord2Vec.png"],
+                      title_info=title_info)
+    plot_embeddings_comparison(final_probs, w2v_embeddings, word_to_id, id_to_word,
+                               save_path=["embeddings_comparison.png", f"{MEMORIA_IMG}/embeddings_comparison.png"])
     plot_bloch_sphere(
         qc_data, thetas, theta_values, n_embedding, word_to_id, id_to_word
     )

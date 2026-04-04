@@ -1,5 +1,40 @@
 \chapter{Introducción}
 
-\section{Objetivos}
+La computación cuántica ha experimentado un avance notable en las últimas décadas, posicionándose como una de las tecnologías con mayor potencial frente a los sistemas de computación clásicos. En particular, el campo del \gls{qml} está creciendo de forma acelerada, con aplicaciones en problemas de clasificación, modelos generativos y regresión, entre otros dominios que también abarca el \gls{ml} clásico \cite{biamonte_quantum_ml_2017, benedetti_pqc_ml_2019, ohno_qword2vec_2025}. Los expertos en estos campos apuntan a que muchos de los resultados obtenidos hasta la fecha mejoran la velocidad de entrenamiento así como la capacidad de generalización.
+
+De forma paralela, el campo de la \gls{ia} ha sido sacudido por la irrupción de los \glspl{llm}, como ChatGPT, Gemini o Claude entre otros, que han demostrado una capacidad sin precedentes para procesar y generar lenguaje humano. En el centro de estos modelos se encuentran los \textit{word embeddings} que son representaciones vectoriales de palabras que codifican sus propiedades semánticas y sintácticas en un espacio continuo. Modelos como Word2Vec \cite{mikolov_skipgram_phrases_2013}, publicado por Google en 2013, sentaron las bases de esta técnica y prácticas de estos modelos, tanto que es uno de los componentes principales que hacen que su motor de búsqueda sea tan efectivo. El modelo que propuso, sigue siendo una referencia fundamental en el \gls{pln}.
+
+La intersección entre ambas disciplinas ha dado lugar al \gls{plnc}, una línea de investigación que busca aprovechar los fenómenos de la cuántica, como la superposición y el entrelazamiento, para representar y procesar el lenguaje de manera más eficiente. Aunque se han propuesto modelos de inspiración cuántica para recuperación de información \cite{xie_quantum_language_2015, zhang_quantum_qa_2018} y para embeddings de palabras \cite{li_quantum_word_embedding_2018}, hasta hace muy poco (menos de 1 año), no existía ningún circuito cuántico diseñado específicamente para aprender representaciones de palabras, es decir, un equivalente cuántico de Word2Vec.
+
+Este trabajo de fin de grado realizado se adentra en investigar si con algoritmos ya existentes, se puede mejorar en cuanto a representatividad la primera versión del modelo cuántico de Word2Vec (QWord2Vec). El paper de referencia principal utilizado para el desarrollo de este modelo, es el de Ohno \cite{ohno_qword2vec_2025}, en el que se propone \textit{QWord2Vec}, un circuito cuántico parametrizado que adapta la arquitectura de Word2Vec al entorno cuántico. Dicho circuito, entrenado mediante el optimizador \gls{qn-spsa} y una función de pérdida que combina la entropía cruzada con el coeficiente de correlación de Pearson, aprende embeddings cuánticos de palabras a partir de un corpus de texto muy pequeño (debido a las limitaciones físicas de utilizar simuladores cuánticos).
 
 \section{Motivación}
+
+La motivación principal de este trabajo es explorar si un modelo cuántico es capaz de aprender relaciones semánticas entre palabras con una calidad comparable a la del modelo clásico Word2Vec. Dicho modelo, que constituye el punto de referencia de este trabajo, lleva más de una década consolidado como uno de los estándares fundamentales del \gls{pln}. La pregunta central que se pretende responder es, por tanto: ¿puede el espacio de Hilbert, con su capacidad para representar estados en superposición y aprovechar el entrelazamiento cuántico, servir como espacio latente para los \textit{embeddings} de palabras con resultados equiparables o superiores a los del espacio euclídeo clásico?
+
+Más allá de esta pregunta, el trabajo ofrece también la oportunidad de estudiar en profundidad la frontera actual entre el \gls{pln} y la computación cuántica, dos de los campos más dinámicos de la ciencia computacional contemporánea. Para ello, se recorren tanto los fundamentos matemáticos imprescindibles (notación de Dirac, qubits y circuitos cuánticos parametrizados) como los fundamentos del \gls{pln} clásico (representaciones vectoriales de palabras y Word2Vec), hasta alcanzar su convergencia en el modelo QWord2Vec.
+
+A diferencia del trabajo de referencia \cite{ohno_qword2vec_2025}, cuyo objetivo era entrenar ambos modelos bajo condiciones lo más similares posible para evaluar en qué medida la versión cuántica reproducía las representaciones de la clásica, en este trabajo se adopta una perspectiva distinta. Se entrena cada modelo con las mejores técnicas disponibles en su campo respectivo, con el fin de determinar cuál ofrece resultados más competitivos en las condiciones actuales del estado del arte.
+
+Esta aproximación no cuestiona la dirección de la investigación en \gls{plnc}, sino que la complementa planteando una pregunta diferente ¿cuán madura se encuentra hoy la computación cuántica para competir con una técnica clásica tan consolidada como Word2Vec en el campo de \gls{pln}? Dado que QWord2Vec fue propuesto hace menos de un año, los resultados de este trabajo deben interpretarse como un diagnóstico del estado actual del campo, y no como una valoración definitiva de su potencial futuro.
+
+\section{Objetivos}
+
+Los objetivos concretos de este trabajo son:
+
+\begin{enumerate}
+  \item Estudiar y comprender los fundamentos de la computación cuántica necesarios para diseñar e implementar circuitos cuánticos parametrizados.
+  \item Estudiar el algoritmo Word2Vec clásico y su variante Skip-gram, analizando su arquitectura y proceso de entrenamiento.
+  \item Comprender la propuesta de QWord2Vec \cite{ohno_qword2vec_2025}: su circuito cuántico parametrizado, la función de pérdida empleada y la estrategia de optimización que usó.
+  \item Implementar ambos modelos (Word2Vec y QWord2Vec) en Python, utilizando las librerías Gensim y Qiskit respectivamente, entrenando cada uno con las mejores técnicas disponibles en su paradigma.
+  \item Evaluar la calidad de los \textit{embeddings} generados por QWord2Vec y compararlos con los producidos por Word2Vec mediante el coeficiente de correlación de Pearson.
+  \item Proponer y evaluar modificaciones sobre la función de optimización y la inicialización de parámetros del modelo QWord2Vec, analizando su impacto en el entrenamiento y en la calidad de los \textit{embeddings} obtenidos.
+\end{enumerate}
+
+\section{Estructura del documento}
+
+El resto del documento se organiza de la siguiente manera. En primer lugar, se presentan los fundamentos matemáticos imprescindibles: el \textbf{Capítulo \ref{chap:numeros_complejos}} introduce los números complejos, y el \textbf{Capítulo \ref{chap:notacion_dirac}} describe la notación de Dirac, ambos necesarios para trabajar con estados cuánticos. El \textbf{Capítulo \ref{chap:qubits}} describe qué es un qubit, cómo se representa y qué operaciones pueden realizarse sobre él.
+
+A continuación, los capítulos de \gls{pln}: el \textbf{Capítulo \ref{chap:pln}} introduce el procesamiento del lenguaje natural clásico y sus fases principales; el \textbf{Capítulo \ref{chap:plnc}} presenta el procesamiento del lenguaje natural cuántico y su motivación; el \textbf{Capítulo \ref{chap:word_embeddings}} describe los word embeddings y el espacio latente; y el \textbf{Capítulo \ref{chap:word2vec}} explica en detalle el algoritmo Word2Vec y su variante Skip-gram.
+
+El \textbf{Capítulo \ref{chap:qword2vec}} es el núcleo técnico del trabajo: describe la arquitectura del circuito cuántico de QWord2Vec, la función de pérdida empleada y el optimizador \gls{qn-spsa}. Finalmente, el \textbf{Capítulo \ref{chap:experimentacion}} recoge el proceso experimental, los resultados obtenidos y el análisis comparativo entre los dos modelos.

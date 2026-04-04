@@ -28,10 +28,8 @@ GS_ITERATIONS = 1500
 EDUCATED_GUESS = 6
 C_VAL = 3
 
-# Hiperparámetros SPSA fijos
-SPSA_C = 0.2
+# Exponentes de los schedules (fijos)
 SPSA_GAMMA = 0.101
-SPSA_A = 0.1
 SPSA_ALPHA = 0.602
 
 # ── Carga de datos ────────────────────────────────────────────────────────
@@ -89,7 +87,7 @@ def make_loss_f(qc_data_local, thetas_local):
 
 
 # ── Ejecución de un trial ─────────────────────────────────────────────────
-def run_trial(ath, regularization, hessian_delay):
+def run_trial(ath, regularization, hessian_delay, spsa_a, spsa_c):
     n_layers, qc_data_local, thetas_local, fidelity_local = get_circuit_for_ath(ath)
     spsa_A_val = GS_ITERATIONS * 0.1  # 10% de iteraciones (Spall 1998)
     loss_f = make_loss_f(qc_data_local, thetas_local)
@@ -107,13 +105,13 @@ def run_trial(ath, regularization, hessian_delay):
     def make_lr():
         k = 0
         while True:
-            yield SPSA_A / (k + 1 + spsa_A_val) ** SPSA_ALPHA
+            yield spsa_a / (k + 1 + spsa_A_val) ** SPSA_ALPHA
             k += 1
 
     def make_pert():
         k = 0
         while True:
-            yield SPSA_C / (k + 1) ** SPSA_GAMMA
+            yield spsa_c / (k + 1) ** SPSA_GAMMA
             k += 1
 
     def callback(_nfev, x, fx, _dx, _accept):
@@ -155,15 +153,15 @@ def run_trial(ath, regularization, hessian_delay):
 #    los mejores trials usaban hd ≥ 700.
 #  · regularization=5e-4 dominó el top-5, los extremos 1e-4 y 3e-3 peores.
 #
-# Grid refinado: se estrecha ath a [0.018, 0.021, 0.027], se exploran
-# hessian_delay más altos (hasta 1200) y regularizaciones mayores (hasta
-# 1.75e-3), dado que los mejores resultados de la primera pasada apuntaban
-# a que el hessiano necesita más iteraciones para estabilizarse y que
-# regularizaciones más altas mejoran la convergencia en este problema.
+# Grid refinado: incorpora spsa_a y spsa_c como hiperparámetros, centrado
+# en la región del mejor resultado conocido (trial 5 del Bayesian):
+#   ath=0.021, hd=400, reg=1.57e-2, a=0.1575, c=0.0716 → best_er=0.0769
 param_grid = {
-    "ath": [0.018, 0.021, 0.027],
-    "regularization": [5e-4, 1.75e-3],
-    "hessian_delay": [900, 1200],
+    "ath":           [0.018, 0.021, 0.024],
+    "hessian_delay": [300, 400, 500],
+    "regularization":[8e-3, 1.6e-2, 3e-2],
+    "spsa_a":        [0.10, 0.16, 0.25],
+    "spsa_c":        [0.05, 0.07, 0.12],
 }
 
 keys = list(param_grid.keys())
@@ -176,9 +174,11 @@ results = []
 for i, combo in enumerate(combos, 1):
     params = dict(zip(keys, combo))
     label = (
-        f"ath={params['ath']:.2f}  "
-        f"reg={params['regularization']:.0e}  "
-        f"hd={params['hessian_delay']:>3}"
+        f"ath={params['ath']:.3f}  "
+        f"hd={params['hessian_delay']:>3}  "
+        f"reg={params['regularization']:.1e}  "
+        f"a={params['spsa_a']:.2f}  "
+        f"c={params['spsa_c']:.2f}"
     )
     print(f"[{i:>3}/{total}]  {label}", end="  →  ", flush=True)
     try:
@@ -195,16 +195,17 @@ results.sort(key=lambda x: x["best_er"])
 out_file = "grid_search_results_refined.txt"
 with open(out_file, "w") as f:
     f.write(f"Grid Search QNSPSA (refinado) — {GS_ITERATIONS} iter/combo, {GS_SHOTS} shots\n")
-    f.write("=" * 65 + "\n")
+    f.write("=" * 80 + "\n")
     header = (
-        f"{'Rank':>4}  {'ath':>5}  {'L':>3}  {'reg':>6}  {'hd':>5}  {'best_er':>8}\n"
+        f"{'Rank':>4}  {'ath':>5}  {'L':>3}  {'hd':>5}  {'reg':>7}  {'a':>6}  {'c':>6}  {'best_er':>8}\n"
     )
     f.write(header)
-    f.write("-" * 55 + "\n")
+    f.write("-" * 65 + "\n")
     for rank, r in enumerate(results, 1):
         f.write(
-            f"{rank:>4}  {r['ath']:>5.2f}  {r['L']:>3}  {r['regularization']:>6.0e}  "
-            f"{r['hessian_delay']:>5}  {r['best_er']:>8.4f}\n"
+            f"{rank:>4}  {r['ath']:>5.3f}  {r['L']:>3}  {r['hessian_delay']:>5}  "
+            f"{r['regularization']:>7.1e}  {r['spsa_a']:>6.3f}  {r['spsa_c']:>6.3f}  "
+            f"{r['best_er']:>8.4f}\n"
         )
     f.write("\n=== MEJOR COMBINACIÓN ===\n")
     for k, v in results[0].items():

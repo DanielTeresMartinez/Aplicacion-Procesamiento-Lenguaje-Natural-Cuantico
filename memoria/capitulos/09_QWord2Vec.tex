@@ -1,4 +1,5 @@
 \chapter{Implementación Cuántica: Algoritmo QWord2Vec}
+\label{chap:qword2vec}
 
 En el capítulo anterior se describió en detalle el algoritmo Word2Vec clásico y su variante Skip-gram, que emplea redes neuronales superficiales para aprender representaciones vectoriales de palabras a partir de grandes corpus de texto. En este capítulo se presenta \textit{QWord2Vec}, una adaptación cuántica de dicho modelo propuesta por Ohno \cite{ohno_qword2vec_2025}, cuyo objetivo es explorar si el uso de circuitos cuánticos paramétricos puede ofrecer ventajas en la calidad de las representaciones vectoriales de palabras.
 
@@ -93,6 +94,8 @@ donde $H(p)$ es la función de entropía binaria, representada en la Figura \ref
 
 \section{Definición de la función de evaluación y pérdida usadas}
 
+A continuación se procederá a explicar cuales han sido las funciones de evaluación y de pérdidas que han sido utilizadas para entrenar a este modelo ya que difieren completamente de la aproximación clásica seguida.
+
 \subsection{Evaluación de los datos de embeddings}
 
 Para evaluar la calidad de los \textit{embeddings} generados por QWord2Vec, se emplea el coeficiente de correlación de Pearson, calculado a partir de las distancias entre los vectores producidos por ambos modelos, Word2Vec y QWord2Vec.
@@ -106,10 +109,14 @@ El motivo por el que no se utiliza únicamente la entropía cruzada como métric
 La función de pérdida usada, además de tener el componente de la pérdida de entropía cruzada, se le añade un término junto al coeficiente de correlación de Pearson. Por lo que la función de pérdida queda de la siguiente manera:
 
 \[
-  \text{Loss} := \text{CrossEntropyLoss} - C \cdot \text{CorrelationCoefficient}(\textit{EmbeddingData}, \textit{ReferencesDistances}),
+  \text{Loss} := \text{PérdidaEntropíaCruzada} - C \cdot \text{CoeficienteCorrelación}(\textit{DatosDeEmbeddings}, \textit{EtiquetasEntrenamiento}),
 \]
 
-Donde $C > 0$ es un parámetro de balanceo. El operador que acompaña a dicho parámetro, se refiere al coeficiente de correlación entre el vector distancia de los datos de embeddings (\textit{EmbeddingData}) en QWord2Vec. Este se actualiza en cada iteración mientras que \textit{ReferencesDistances}, se refiere al vector de distancias referencias en este caso el obtenido de Word2Vec.
+Donde $C > 0$ es un parámetro de balanceo. El operador que acompaña a dicho parámetro, se refiere al coeficiente de correlación entre el vector distancia de los datos de embeddings (\textit{DatosDeEmbeddings}) en QWord2Vec. Este se actualiza en cada iteración mientras que \textit{EtiquetasEntrenamiento} se ha obtenido de la siguiente forma:
+
+dado cada palabra objetivo del corpus, se han establecido a $0.5$ las dos palabras inmediatamente adyacente a la palabra de referencia, mientras que el resto de posiciones del vector de etiqueta de tamaño $N = 2^n$ se establecen a cero. De este modo, el vector resultante suma $1$ y puede interpretarse como una distribución de probabilidad uniforme sobre los dos contextos posibles de cada palabra objetivo
+
+Para un vector de tamaño $N$ correspondiente a $\ket{k}$
 
 
 \section{Estrategia de optimización}
