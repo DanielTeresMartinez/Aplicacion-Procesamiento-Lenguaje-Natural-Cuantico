@@ -11,9 +11,9 @@ from my_tools import kmeans_cluster_accuracy
 
 # ── Hiperparámetros ───────────────────────────────────────────────────────────
 FINAL_EPOCHS = 2000
-PRINT_EVERY = 200
-PATIENCE = 5
-MIN_DELTA = 0.01
+PRINT_EVERY = 10  # imprime cada N épocas
+PATIENCE = 15  # checks sin mejora antes de parar
+MIN_DELTA = 0.001  # mejora mínima en loss_delta para contar como mejora
 LOSS_FILE = "loss_history_word2vec.txt"
 
 # Mejores parámetros obtenidos mediante grid search (grid_search_word2vec.py)
@@ -48,20 +48,35 @@ def evaluate(model):
 
 
 class LossCallback(CallbackAny2Vec):
+    """Callback que usa el loss real de cada época como criterio de early stopping.
+
+    Truco necesario con Gensim: `running_training_loss` se acumula desde el
+    inicio del entrenamiento.  Reseteándolo a 0 en `on_epoch_begin`, al leer
+    `get_latest_training_loss()` en `on_epoch_end` obtenemos el loss de esa
+    época concreta.
+
+    Early stopping: guardamos checkpoint cuando el loss de la época es menor
+    que el mejor hasta ahora (MIN_DELTA de margen).  Las épocas que Gensim
+    reporta como 0.0 (corpus pequeño, sin pares válidos) se ignoran para
+    no disparar la parada prematuramente.
+    El K-Means accuracy se calcula solo una vez al final sobre el mejor
+    checkpoint.
+    """
+
     def __init__(self):
         self._epoch = 0
-        self.train_losses = []
-        self.val_scores = []
-        self._best_val_score = float("-inf")
+        self.train_losses = []          # loss por época
+        self._best_loss = float("inf")  # queremos minimizar el loss
         self._no_improve_count = 0
         self.converged_at = None
+        self.best_epoch = None
         self.model = None
         self._best_checkpoint = "_best_checkpoint.model"
         self._loss_file = open(LOSS_FILE, "w")
-        self._loss_file.write("epoch,loss,kmeans_acc\n")
+        self._loss_file.write("epoch,loss\n")
 
     def on_epoch_begin(self, model):
-        # Resetear el acumulador para obtener el loss de esta época concreta
+        # Resetear el acumulador → get_latest_training_loss() dará solo esta época
         model.running_training_loss = 0.0
 
     def on_epoch_end(self, model):
@@ -72,23 +87,31 @@ class LossCallback(CallbackAny2Vec):
         self.train_losses.append(epoch_loss)
 
         if self._epoch % PRINT_EVERY == 0 or self._epoch == 1:
-            val_score = evaluate(model)
-            self.val_scores.append((self._epoch, val_score))
+            # Ignorar épocas con loss=0 (Gensim no procesó pares válidos)
+            if epoch_loss == 0.0:
+                print(
+                    f"  época {self._epoch:>6} | loss = {'0.0000':>10}  [sin pares]"
+                    f"  (sin_mejora={self._no_improve_count}/{PATIENCE})"
+                )
+                self._loss_file.write(f"{self._epoch},0.0\n")
+                self._loss_file.flush()
+                return
 
-            if val_score > self._best_val_score + MIN_DELTA:
-                self._best_val_score = val_score
+            # ¿El loss mejora (baja)?
+            if epoch_loss < self._best_loss - MIN_DELTA:
+                self._best_loss = epoch_loss
                 self._no_improve_count = 0
                 model.save(self._best_checkpoint)
+                self.best_epoch = self._epoch
                 improved_tag = " (new best)"
             else:
                 self._no_improve_count += 1
                 improved_tag = ""
 
-            self._loss_file.write(f"{self._epoch},{epoch_loss},{val_score}\n")
+            self._loss_file.write(f"{self._epoch},{epoch_loss:.6f}\n")
             self._loss_file.flush()
             print(
-                f"  época {self._epoch:>6} | pérdida = {epoch_loss:.4f}"
-                f" | kmeans_acc = {val_score:.4f}{improved_tag}"
+                f"  época {self._epoch:>6} | loss = {epoch_loss:>10.4f}{improved_tag}"
                 f"  (sin_mejora={self._no_improve_count}/{PATIENCE})"
             )
 
@@ -100,13 +123,8 @@ class LossCallback(CallbackAny2Vec):
 
     def on_train_end(self, model):
         self._loss_file.close()
-        if self.val_scores:
-            last_epoch, last_score = self.val_scores[-1]
-            print(
-                f"K-Means accuracy (último checkpoint, época {last_epoch}): {last_score:.4f}"
-            )
         if self.converged_at:
-            print(f"Convergido en época {self.converged_at} (parada temprana).")
+            print(f"\nConvergido en época {self.converged_at} (parada temprana).")
 
 
 def most_similar(model, word, topn=3):
@@ -164,58 +182,83 @@ if __name__ == "__main__":
     print(f"Tiempo de entrenamiento: {elapsed:.1f}s  ({elapsed/60:.1f} min)")
 
     # ── 3. Cargar el mejor checkpoint ─────────────────────────────────────────
-    model = Word2Vec.load(loss_cb._best_checkpoint)
+    import os
 
-    # ── 4. Evaluación final ───────────────────────────────────────────────────
+    if os.path.exists(loss_cb._best_checkpoint):
+        model = Word2Vec.load(loss_cb._best_checkpoint)
+        print(f"\nMejor checkpoint cargado (época {loss_cb.best_epoch})")
+    else:
+        print("\n[AVISO] No se encontró checkpoint; usando modelo actual.")
+
+    # ── 4. Evaluación final (K-Means sobre el mejor checkpoint) ───────────────
     final_score = evaluate(model)
-    print(f"\nK-Means accuracy final: {final_score:.4f}")
+    print(f"K-Means accuracy (mejor época={loss_cb.best_epoch}): {final_score:.4f}")
 
     # ── 5. Gráficas ───────────────────────────────────────────────────────────
     # Figura 1: curvas de entrenamiento
     fig1, ax0 = plt.subplots(figsize=(8, 6))
 
-    if loss_cb.val_scores:
-        ck_epochs = [e for e, _ in loss_cb.val_scores]
-        ck_scores = [s for _, s in loss_cb.val_scores]
+    # Curva de train loss en los checkpoints (cada PRINT_EVERY épocas)
+    # Filtramos épocas con loss=0 para no deformar la gráfica
+    ck_epochs = list(range(PRINT_EVERY, loss_cb._epoch + 1, PRINT_EVERY))
+    if loss_cb._epoch not in ck_epochs and loss_cb._epoch > 0:
+        ck_epochs.append(loss_cb._epoch)
+    ck_losses = [
+        loss_cb.train_losses[e - 1]
+        for e in ck_epochs
+        if e - 1 < len(loss_cb.train_losses)
+    ]
+    ck_epochs = ck_epochs[: len(ck_losses)]
+    # Quitar pares donde loss==0
+    pairs = [(e, l) for e, l in zip(ck_epochs, ck_losses) if l > 0]
+    if pairs:
+        ck_epochs_f, ck_losses_f = zip(*pairs)
+    else:
+        ck_epochs_f, ck_losses_f = [], []
+
+    if ck_losses_f:
         ax0.plot(
-            ck_epochs,
-            ck_scores,
+            ck_epochs_f,
+            ck_losses_f,
             color="darkorange",
             linewidth=1.4,
             marker="o",
             markersize=4,
-            label="K-Means accuracy",
+            label="Train loss (checkpoint epochs)",
         )
-        best_epoch = ck_epochs[int(np.argmax(ck_scores))]
-        ax0.axvline(
-            best_epoch,
-            color="green",
-            linestyle="--",
-            linewidth=1,
-            label=f"best (epoch {best_epoch})",
-        )
+        if loss_cb.best_epoch is not None:
+            ax0.axvline(
+                loss_cb.best_epoch,
+                color="green",
+                linestyle="--",
+                linewidth=1,
+                label=f"best (epoch {loss_cb.best_epoch})",
+            )
         ax0.legend(fontsize=8)
 
-    ax0.set_title(
-        "K-Means accuracy at each checkpoint\n(vs. ground truth, higher = better)"
-    )
+    ax0.set_title("Train loss per checkpoint epoch\n(lower = better)")
     ax0.set_xlabel("Epoch")
-    ax0.set_ylabel("K-Means accuracy")
+    ax0.set_ylabel("Loss")
 
-    stride = max(1, len(loss_cb.train_losses) // 200)
-    train_epochs = list(range(1, len(loss_cb.train_losses) + 1, stride))
-    train_vals = loss_cb.train_losses[::stride]
+    # Curva completa (todas las épocas, en segundo eje) — también sin los 0
+    all_losses_nz = [(i + 1, l) for i, l in enumerate(loss_cb.train_losses) if l > 0]
+    if all_losses_nz:
+        stride = max(1, len(all_losses_nz) // 200)
+        all_losses_nz = all_losses_nz[::stride]
+        train_epochs_all, train_vals_all = zip(*all_losses_nz)
+    else:
+        train_epochs_all, train_vals_all = [], []
 
     ax0b = ax0.twinx()
     ax0b.plot(
-        train_epochs,
-        train_vals,
+        train_epochs_all,
+        train_vals_all,
         color="steelblue",
         linewidth=0.6,
         alpha=0.35,
-        label="train loss",
+        label="train loss (all epochs)",
     )
-    ax0b.set_ylabel("Train loss", color="steelblue", fontsize=8)
+    ax0b.set_ylabel("Loss (all epochs)", color="steelblue", fontsize=8)
     ax0b.tick_params(axis="y", labelcolor="steelblue", labelsize=7)
 
     fig1.tight_layout()
