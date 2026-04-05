@@ -2,6 +2,7 @@
 Grid search para encontrar los mejores hiperparámetros de Word2Vec.
 Los resultados se usan para fijar BEST_PARAMS en word2vec.py.
 """
+
 from itertools import product
 
 from gensim.models import Word2Vec
@@ -17,9 +18,9 @@ SEARCH_EPOCHS = 500
 
 param_grid = {
     "vector_size": [2, 3, 4],
-    "window":      [1, 2, 3],
-    "alpha":       [0.2, 0.25, 0.275, 0.3],
-    "negative":    [2, 3, 5, 6],
+    "window": [1, 2, 3],
+    "alpha": [0.2, 0.25, 0.275, 0.3],
+    "negative": [2, 3, 5, 6],
     "ns_exponent": [0.0, 0.3, 0.75],
 }
 

@@ -5,23 +5,25 @@ import shutil
 from gensim.models import Word2Vec
 from gensim.models.word2vec import LineSentence
 from gensim.models.callbacks import CallbackAny2Vec
-from sklearn.cluster import KMeans
-from sklearn.metrics import confusion_matrix
-from scipy.optimize import linear_sum_assignment
+
+# from sklearn.cluster import KMeans          # usado por evaluate (comentado)
+# from sklearn.metrics import confusion_matrix # usado por evaluate (comentado)
+# from scipy.optimize import linear_sum_assignment  # usado por evaluate (comentado)
 import numpy as np
 import matplotlib.pyplot as plt
+from collections import Counter
 
 # ── Hiperparámetros ───────────────────────────────────────────────────────────
 FINAL_EPOCHS = 2000
-PRINT_EVERY = 200
-PATIENCE = 5
-MIN_DELTA = 0.01
+PRINT_EVERY = 10
+PATIENCE = 10
+MIN_DELTA = 0.005
 
 # Mejores parámetros obtenidos mediante grid search (grid_search_word2vec.py)
 BEST_PARAMS = {
-    "vector_size": 2,
+    "vector_size": 4,
     "window": 1,
-    "alpha": 0.25,
+    "alpha": 0.275,
     "negative": 5,
     "ns_exponent": 0.0,
 }
@@ -44,38 +46,93 @@ class EarlyStopping(Exception):
     pass
 
 
-def evaluate(model):
-    """K-Means accuracy contra el ground truth de _clusters.
-
-    K-Means asigna etiquetas arbitrarias (0-3), así que se usa el algoritmo
-    húngaro para encontrar la mejor correspondencia entre clústeres y categorías
-    antes de calcular el accuracy.
+def most_similar_error_rate(model, sentences, window, debug=False):
     """
-    valid = [(w, gt) for w, gt in zip(_all_gt_words, _all_gt_ints) if w in model.wv]
-    words, gt_ints = zip(*valid)
+    Tasa de error análoga a la de Q-Word2Vec basada en vecinos más cercanos.
+    Para cada palabra w, los 2 vecinos más similares por coseno deben coincidir
+    con los 2 co-ocurrentes principales en el corpus usando la misma ventana
+    con la que se entrenó el modelo.
+    Fórmula: total_mismatches / (2 * |vocabulario con contexto|).
+    """
+    wv = model.wv
+    word_to_id = {w: i for i, w in enumerate(wv.index_to_key)}
 
-    vectors = np.array([model.wv[w] for w in words])
-    n_clusters = len(_cluster_names)
+    cooccur = {w: Counter() for w in word_to_id}
+    for sentence in sentences:
+        words = [w for w in sentence if w in word_to_id]
+        for i, center in enumerate(words):
+            for j in range(max(0, i - window), min(len(words), i + window + 1)):
+                if i != j:
+                    cooccur[center][words[j]] += 1
 
-    km = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-    predicted = km.fit_predict(vectors)
+    total_mismatches = 0
+    count = 0
+    for word, ctx_counter in cooccur.items():
+        if not ctx_counter or word not in wv:
+            continue
+        label_words = [w for w, _ in ctx_counter.most_common(2) if w in word_to_id]
+        label_peaks = {word_to_id[w] for w in label_words}
+        if not label_peaks:
+            continue
+        model_words = []
+        model_peaks = set()
+        for w, _ in wv.most_similar(word, topn=len(wv)):
+            if w in word_to_id:
+                model_peaks.add(word_to_id[w])
+                model_words.append(w)
+            if len(model_peaks) == 2:
+                break
+        mismatches = len(label_peaks - model_peaks)
+        total_mismatches += mismatches
+        count += 1
+        if debug:
+            print(
+                f"  {word:<10} label={label_words}  model={model_words}  mismatches={mismatches}"
+            )
 
-    cm = confusion_matrix(gt_ints, predicted, labels=list(range(n_clusters)))
-    _, col_ind = linear_sum_assignment(-cm)
-    return float(cm[range(n_clusters), col_ind].sum() / len(words))
+    return total_mismatches / (2 * count) if count else 0.0
+
+
+# def evaluate(model):
+#     """K-Means accuracy contra el ground truth de _clusters.
+#
+#     K-Means asigna etiquetas arbitrarias (0-3), así que se usa el algoritmo
+#     húngaro para encontrar la mejor correspondencia entre clústeres y categorías
+#     antes de calcular el accuracy.
+#     """
+#     valid = [(w, gt) for w, gt in zip(_all_gt_words, _all_gt_ints) if w in model.wv]
+#     words, gt_ints = zip(*valid)
+#
+#     vectors = np.array([model.wv[w] for w in words])
+#     n_clusters = len(_cluster_names)
+#
+#     km = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+#     predicted = km.fit_predict(vectors)
+#
+#     cm = confusion_matrix(gt_ints, predicted, labels=list(range(n_clusters)))
+#     _, col_ind = linear_sum_assignment(-cm)
+#     return float(cm[range(n_clusters), col_ind].sum() / len(words))
+
+
+def evaluate_error_rate(model, sentences):
+    """Tasa de error basada en most_similar (análoga a Q-Word2Vec).
+    Minimizar — guía el early stopping igual que en Q-Word2Vec.
+    """
+    return most_similar_error_rate(model, sentences, window=BEST_PARAMS["window"])
 
 
 class LossCallback(CallbackAny2Vec):
-    def __init__(self):
+    def __init__(self, sentences):
         self._epoch = 0
         self.train_losses = []
         self._prev_loss = 0.0
         self.val_scores = []
-        self._best_val_score = float("-inf")
+        self._best_val_score = float("inf")
         self._no_improve_count = 0
         self.converged_at = None
         self.model = None
         self._best_checkpoint = "_best_checkpoint.model"
+        self.sentences = sentences
 
     def on_epoch_end(self, model):
         self.model = model
@@ -87,10 +144,10 @@ class LossCallback(CallbackAny2Vec):
         self._prev_loss = cumulative
 
         if self._epoch % PRINT_EVERY == 0:
-            val_score = evaluate(model)
+            val_score = evaluate_error_rate(model, self.sentences)
             self.val_scores.append((self._epoch, val_score))
 
-            if val_score > self._best_val_score + MIN_DELTA:
+            if val_score < self._best_val_score - MIN_DELTA:
                 self._best_val_score = val_score
                 self._no_improve_count = 0
                 model.save(self._best_checkpoint)
@@ -101,7 +158,7 @@ class LossCallback(CallbackAny2Vec):
 
             print(
                 f"  época {self._epoch:>6} | pérdida_delta = {delta:.4f}"
-                f" | kmeans_acc = {val_score:.4f}{improved_tag}"
+                f" | error_rate = {val_score:.4f}{improved_tag}"
                 f"  (sin_mejora={self._no_improve_count}/{PATIENCE})"
             )
 
@@ -115,7 +172,7 @@ class LossCallback(CallbackAny2Vec):
         if self.val_scores:
             last_epoch, last_score = self.val_scores[-1]
             print(
-                f"K-Means accuracy (último checkpoint, época {last_epoch}): {last_score:.4f}"
+                f"Error rate (último checkpoint, época {last_epoch}): {last_score:.4f}"
             )
         if self.converged_at:
             print(f"Convergido en época {self.converged_at} (parada temprana).")
@@ -150,7 +207,7 @@ if __name__ == "__main__":
     random.shuffle(sentences)
     print(f"Corpus cargado: {len(sentences)} frases")
 
-    loss_cb = LossCallback()
+    loss_cb = LossCallback(sentences)
     print(f"\nEntrenando Skip-Gram (negative sampling) hasta {FINAL_EPOCHS} épocas…")
     print(f"Parámetros: {BEST_PARAMS}\n")
 
@@ -179,13 +236,8 @@ if __name__ == "__main__":
     model = Word2Vec.load(loss_cb._best_checkpoint)
 
     # ── 4. Evaluación final ───────────────────────────────────────────────────
-    final_score = evaluate(model)
-    print(f"\nK-Means accuracy final: {final_score:.4f}")
-    print("\nPalabras más similares:")
-    for word in ["dog", "cat", "book", "fish", "music"]:
-        if word in model.wv:
-            nbrs = [(w, round(s, 3)) for w, s in most_similar(model, word, topn=3)]
-            print(f"  {word:<8} → {nbrs}")
+    ms_error_rate = evaluate_error_rate(model, sentences)
+    print(f"\nMost-similar error rate final:   {ms_error_rate:.4f}")
 
     # ── 5. Gráficas ───────────────────────────────────────────────────────────
     # Figura 1: curvas de entrenamiento
