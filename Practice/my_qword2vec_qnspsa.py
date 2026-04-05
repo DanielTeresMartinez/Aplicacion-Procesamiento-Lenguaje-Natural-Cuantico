@@ -119,9 +119,9 @@ if __name__ == "__main__":
     SHOW_VISUALIZATIONS = True
     # True  → entrena y guarda los pesos en WEIGHTS_FILE
     # False → carga los pesos desde WEIGHTS_FILE y salta el entrenamiento
-    TRAIN = True
-    WEIGHTS_FILE = "theta_values_QNSPSA_v2.pkl"
-    LOSS_FILE = "loss_history_QNSPSA_v2.txt"
+    TRAIN = False
+    WEIGHTS_FILE = "theta_values_QNSPSA.pkl"
+    LOSS_FILE = "loss_history_QNSPSA.txt"
     n_qubits = 4
     n_embedding = 2
     n_layers = None
@@ -328,12 +328,14 @@ if __name__ == "__main__":
                     except ValueError:
                         continue
         print(f"Pérdida en mejor época:     {best_loss_file:+.4f}")
+        best_er_display = best_er_file
 
     final_probs = forward_pass(qc_data, thetas, theta_values, n_shots, sim)
-    error_rate = calculate_error_rate(final_probs, label_vectors)
+    if TRAIN:
+        best_er_display = best_er[0]
     q_dists_final = pdist(final_probs, metric="euclidean")
     correlation_final, _ = pearsonr(q_dists_final, target_distances)
-    print(f"Error rate final:          {error_rate:.4f}")
+    print(f"Error rate (mejor época):  {best_er_display:.4f}")
     print(f"Correlación de Pearson:    {correlation_final:.4f}  (paper: 0.81)")
 
     MEMORIA_IMG = "../memoria/imagenes"
