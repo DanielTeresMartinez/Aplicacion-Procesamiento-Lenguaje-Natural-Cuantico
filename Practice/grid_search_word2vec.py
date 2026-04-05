@@ -7,7 +7,7 @@ from itertools import product
 from gensim.models import Word2Vec
 from gensim.models.word2vec import LineSentence
 
-from word2vec import evaluate
+from word2vec import most_similar_error_rate
 
 # ── Corpus ────────────────────────────────────────────────────────────────────
 sentences = list(LineSentence("smallCorpora.txt"))
@@ -29,7 +29,7 @@ if __name__ == "__main__":
         total *= len(v)
     print(f"Grid search: {total} combinations × {SEARCH_EPOCHS} epochs\n")
 
-    best_score, best_params = float("-inf"), {}
+    best_score, best_params = float("inf"), {}
     for combo in product(*param_grid.values()):
         params = dict(zip(param_grid.keys(), combo))
         m = Word2Vec(
@@ -43,14 +43,14 @@ if __name__ == "__main__":
             epochs=SEARCH_EPOCHS,
             **params,
         )
-        score = evaluate(m)
-        if score > best_score:
+        score = most_similar_error_rate(m, sentences, window=params["window"])
+        if score < best_score:
             best_score, best_params = score, params
-            print(f"  new best  score={score:.4f}  params={params}")
+            print(f"  new best  error_rate={score:.4f}  params={params}")
 
     print(
         f"\nBest params → vector_size={best_params['vector_size']}, "
         f"window={best_params['window']}, alpha={best_params['alpha']}, "
-        f"negative={best_params['negative']} |  score = {best_score:.4f}"
+        f"negative={best_params['negative']} |  error_rate = {best_score:.4f}"
     )
     print("\nCopia estos valores en BEST_PARAMS de word2vec.py")
