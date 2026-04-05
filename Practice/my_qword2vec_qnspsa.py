@@ -338,6 +338,16 @@ if __name__ == "__main__":
     print(f"Error rate (mejor época):  {best_er_display:.4f}")
     print(f"Correlación de Pearson:    {correlation_final:.4f}  (paper: 0.81)")
 
+    # ── Diagnóstico: picos reales vs esperados por label vector ──────────────
+    print("\n  Palabra     top-2 picos reales   top-2 esperados (label)")
+    for w, idx in sorted(word_to_id.items()):
+        real_peaks = list(np.argsort(final_probs[idx])[-2:][::-1])
+        expected_peaks = list(np.argsort(label_vectors[idx])[-2:][::-1]) if idx in label_vectors else []
+        real_words   = [id_to_word.get(p, f"#{p}") for p in real_peaks]
+        exp_words    = [id_to_word.get(p, f"#{p}") for p in expected_peaks]
+        match = "✓" if set(real_peaks) == set(expected_peaks) else "✗"
+        print(f"  {w:<10} {str(real_words):<25} {str(exp_words):<25} {match}")
+
     # ── K-Means accuracy (misma métrica que Word2Vec para comparación directa) ──
     _clusters_gt = {
         "animal":    ["dog", "cat", "animal", "eyes"],
@@ -369,6 +379,16 @@ if __name__ == "__main__":
         save_path=[
             "embeddings_comparison.png",
             f"{MEMORIA_IMG}/embeddings_comparison.png",
+        ],
+    )
+    plot_cosine_similarity_comparison(
+        final_probs,
+        w2v_embeddings,
+        word_to_id,
+        id_to_word,
+        save_path=[
+            "cosine_similarity_comparison.png",
+            f"{MEMORIA_IMG}/cosine_similarity_comparison.png",
         ],
     )
     plot_bloch_sphere(

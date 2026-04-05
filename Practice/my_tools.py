@@ -304,6 +304,57 @@ def kmeans_cluster_accuracy(word_vectors, word_to_cluster, cluster_names):
     return float(cm[range(n), col_ind].sum() / len(vecs))
 
 
+def plot_cosine_similarity_comparison(
+    final_probs,
+    w2v_embeddings,
+    word_to_id,
+    id_to_word,
+    save_path="cosine_similarity_comparison.png",
+):
+    """
+    Heatmaps de similitud coseno (N×N) para Q-Word2Vec y Word2Vec, lado a lado.
+    Opera sobre los embeddings completos sin reducción de dimensionalidad.
+    """
+    words = [id_to_word[i] for i in range(len(word_to_id))]
+    n = len(words)
+
+    q_matrix = np.array([final_probs[i] for i in range(n)])
+
+    w2v_dim = next(iter(w2v_embeddings.values())).shape[0]
+    w_matrix = np.zeros((n, w2v_dim))
+    for word, idx in word_to_id.items():
+        if word in w2v_embeddings:
+            w_matrix[idx] = w2v_embeddings[word]
+
+    def _cosine_matrix(mat):
+        norms = np.linalg.norm(mat, axis=1, keepdims=True)
+        norms[norms == 0] = 1.0
+        normed = mat / norms
+        return normed @ normed.T
+
+    sim_q = _cosine_matrix(q_matrix)
+    sim_w = _cosine_matrix(w_matrix)
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    for ax, sim, title in [
+        (axes[0], sim_w, "Word2Vec — similitud coseno"),
+        (axes[1], sim_q, "Q-Word2Vec — similitud coseno"),
+    ]:
+        im = ax.imshow(sim, vmin=-1, vmax=1, cmap="RdBu_r", aspect="auto")
+        ax.set_xticks(range(n))
+        ax.set_yticks(range(n))
+        ax.set_xticklabels(words, rotation=45, ha="right", fontsize=8)
+        ax.set_yticklabels(words, fontsize=8)
+        fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+        ax.set_title(title, fontsize=10)
+
+    plt.tight_layout()
+    for p in ([save_path] if isinstance(save_path, str) else save_path):
+        plt.savefig(p, dpi=150)
+        print(f"Gráfica guardada en '{p}'")
+    plt.show()
+
+
 def plot_loss_history(filepath, save_path=None, title_info=None):
     """
     Lee un fichero loss_history_*.txt y dibuja pérdida y error rate en ejes duales.
