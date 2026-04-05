@@ -48,12 +48,16 @@ def evaluate(model):
 
 
 class LossCallback(CallbackAny2Vec):
-    """Callback que usa el loss real de cada época como criterio de early stopping.
+    """Callback que calcula el loss por época sin interferir en Gensim.
 
-    Truco necesario con Gensim: `running_training_loss` se acumula desde el
-    inicio del entrenamiento.  Reseteándolo a 0 en `on_epoch_begin`, al leer
-    `get_latest_training_loss()` en `on_epoch_end` obtenemos el loss de esa
-    época concreta.
+    Gensim acumula `running_training_loss` a lo largo de todo el entrenamiento.
+    En lugar de resetearlo (que podría interferir con el estado interno),
+    calculamos el loss de cada época como:
+
+        loss_época = acumulado_ahora - acumulado_época_anterior
+
+    Es aritméticamente equivalente al reset pero sin tocar ningún atributo
+    interno de la librería.
 
     Early stopping: guardamos checkpoint cuando el loss de la época es menor
     que el mejor hasta ahora (MIN_DELTA de margen).  Las épocas que Gensim
@@ -64,9 +68,10 @@ class LossCallback(CallbackAny2Vec):
     """
 
     def __init__(self):
-        self._epoch = 0
-        self.train_losses = []          # loss por época
-        self._best_loss = float("inf")  # queremos minimizar el loss
+        self._epoch = 0               # épocas reales de Gensim
+        self.train_losses = []        # (epoch_gensim, loss) solo para épocas válidas
+        self._cumulative_prev = 0.0   # acumulado al final de la época anterior
+        self._best_loss = float("inf")
         self._no_improve_count = 0
         self.converged_at = None
         self.best_epoch = None
@@ -75,51 +80,52 @@ class LossCallback(CallbackAny2Vec):
         self._loss_file = open(LOSS_FILE, "w")
         self._loss_file.write("epoch,loss\n")
 
-    def on_epoch_begin(self, model):
-        # Resetear el acumulador → get_latest_training_loss() dará solo esta época
-        model.running_training_loss = 0.0
+    # ── Sin on_epoch_begin: no tocamos ningún atributo interno de Gensim ──────
 
     def on_epoch_end(self, model):
         self.model = model
         self._epoch += 1
 
-        epoch_loss = model.get_latest_training_loss()
-        self.train_losses.append(epoch_loss)
+        # Loss de esta época = diferencia de acumulados
+        cumulative_now = model.get_latest_training_loss()
+        epoch_loss = cumulative_now - self._cumulative_prev
+        self._cumulative_prev = cumulative_now
 
-        if self._epoch % PRINT_EVERY == 0 or self._epoch == 1:
-            # Ignorar épocas con loss=0 (Gensim no procesó pares válidos)
-            if epoch_loss == 0.0:
-                print(
-                    f"  época {self._epoch:>6} | loss = {'0.0000':>10}  [sin pares]"
-                    f"  (sin_mejora={self._no_improve_count}/{PATIENCE})"
-                )
-                self._loss_file.write(f"{self._epoch},0.0\n")
-                self._loss_file.flush()
-                return
+        # Guardar solo épocas válidas (para las gráficas)
+        if epoch_loss > 0.0:
+            self.train_losses.append((self._epoch, epoch_loss))
 
-            # ¿El loss mejora (baja)?
-            if epoch_loss < self._best_loss - MIN_DELTA:
-                self._best_loss = epoch_loss
-                self._no_improve_count = 0
-                model.save(self._best_checkpoint)
-                self.best_epoch = self._epoch
-                improved_tag = " (new best)"
-            else:
-                self._no_improve_count += 1
-                improved_tag = ""
+        # Solo actuar en múltiplos exactos de PRINT_EVERY (10, 20, 30...)
+        if self._epoch % PRINT_EVERY != 0:
+            return
 
-            self._loss_file.write(f"{self._epoch},{epoch_loss:.6f}\n")
-            self._loss_file.flush()
-            print(
-                f"  época {self._epoch:>6} | loss = {epoch_loss:>10.4f}{improved_tag}"
-                f"  (sin_mejora={self._no_improve_count}/{PATIENCE})"
+        # Si en esta época Gensim no procesó pares, la saltamos en silencio
+        if epoch_loss == 0.0:
+            return
+
+        # ¿El loss mejora (baja)?
+        if epoch_loss < self._best_loss - MIN_DELTA:
+            self._best_loss = epoch_loss
+            self._no_improve_count = 0
+            model.save(self._best_checkpoint)
+            self.best_epoch = self._epoch
+            improved_tag = " (new best)"
+        else:
+            self._no_improve_count += 1
+            improved_tag = ""
+
+        self._loss_file.write(f"{self._epoch},{epoch_loss:.6f}\n")
+        self._loss_file.flush()
+        print(
+            f"  época {self._epoch:>6} | loss = {epoch_loss:>10.4f}{improved_tag}"
+            f"  (sin_mejora={self._no_improve_count}/{PATIENCE})"
+        )
+
+        if self._no_improve_count >= PATIENCE:
+            self.converged_at = self._epoch
+            raise EarlyStopping(
+                f"Sin mejora en {PATIENCE} comprobaciones — parada en época {self._epoch}"
             )
-
-            if self._no_improve_count >= PATIENCE:
-                self.converged_at = self._epoch
-                raise EarlyStopping(
-                    f"Sin mejora en {PATIENCE} comprobaciones — parada en época {self._epoch}"
-                )
 
     def on_train_end(self, model):
         self._loss_file.close()
@@ -198,23 +204,16 @@ if __name__ == "__main__":
     # Figura 1: curvas de entrenamiento
     fig1, ax0 = plt.subplots(figsize=(8, 6))
 
-    # Curva de train loss en los checkpoints (cada PRINT_EVERY épocas)
-    # Filtramos épocas con loss=0 para no deformar la gráfica
-    ck_epochs = list(range(PRINT_EVERY, loss_cb._epoch + 1, PRINT_EVERY))
-    if loss_cb._epoch not in ck_epochs and loss_cb._epoch > 0:
-        ck_epochs.append(loss_cb._epoch)
-    ck_losses = [
-        loss_cb.train_losses[e - 1]
-        for e in ck_epochs
-        if e - 1 < len(loss_cb.train_losses)
-    ]
-    ck_epochs = ck_epochs[: len(ck_losses)]
-    # Quitar pares donde loss==0
-    pairs = [(e, l) for e, l in zip(ck_epochs, ck_losses) if l > 0]
-    if pairs:
-        ck_epochs_f, ck_losses_f = zip(*pairs)
+    # train_losses contiene solo épocas válidas: [(epoch_gensim, loss), ...]
+    if loss_cb.train_losses:
+        all_epochs, all_vals = zip(*loss_cb.train_losses)
     else:
-        ck_epochs_f, ck_losses_f = [], []
+        all_epochs, all_vals = [], []
+
+    # Puntos de la gráfica: épocas múltiplo de PRINT_EVERY con loss > 0
+    pairs_ck = [(e, l) for e, l in zip(all_epochs, all_vals) if e % PRINT_EVERY == 0]
+    ck_epochs_f = [e for e, _ in pairs_ck]
+    ck_losses_f = [l for _, l in pairs_ck]
 
     if ck_losses_f:
         ax0.plot(
@@ -236,30 +235,9 @@ if __name__ == "__main__":
             )
         ax0.legend(fontsize=8)
 
-    ax0.set_title("Train loss per checkpoint epoch\n(lower = better)")
-    ax0.set_xlabel("Epoch")
+    ax0.set_title("Train loss per valid epoch\n(lower = better)")
+    ax0.set_xlabel("Epoch (Gensim)")
     ax0.set_ylabel("Loss")
-
-    # Curva completa (todas las épocas, en segundo eje) — también sin los 0
-    all_losses_nz = [(i + 1, l) for i, l in enumerate(loss_cb.train_losses) if l > 0]
-    if all_losses_nz:
-        stride = max(1, len(all_losses_nz) // 200)
-        all_losses_nz = all_losses_nz[::stride]
-        train_epochs_all, train_vals_all = zip(*all_losses_nz)
-    else:
-        train_epochs_all, train_vals_all = [], []
-
-    ax0b = ax0.twinx()
-    ax0b.plot(
-        train_epochs_all,
-        train_vals_all,
-        color="steelblue",
-        linewidth=0.6,
-        alpha=0.35,
-        label="train loss (all epochs)",
-    )
-    ax0b.set_ylabel("Loss (all epochs)", color="steelblue", fontsize=8)
-    ax0b.tick_params(axis="y", labelcolor="steelblue", labelsize=7)
 
     fig1.tight_layout()
     fig1.savefig("lossCurvesWord2Vec.png", dpi=150)
