@@ -208,6 +208,10 @@ def plot_embeddings_comparison(
     # Q-word2vec: PCA de prob_distributions (n_words x 2^n_qubits) → 2D
     pca = PCA(n_components=2)
     qw2v_2d = pca.fit_transform(final_probs)
+    print(f"\nQ-Word2Vec — coordenadas 2D tras PCA (varianza explicada: {pca.explained_variance_ratio_.sum()*100:.1f}%)")
+    print(f"  {'palabra':<10}  {'PC1':>8}  {'PC2':>8}")
+    for i, word in enumerate(words):
+        print(f"  {word:<10}  {qw2v_2d[i,0]:>8.4f}  {qw2v_2d[i,1]:>8.4f}")
 
     # Word2vec: ordenar embeddings por índice de vocabulario
     w2v_dim = next(iter(w2v_embeddings.values())).shape[0]
@@ -333,14 +337,14 @@ def plot_cosine_similarity_comparison(
         return normed @ normed.T
 
     sim_q = _cosine_matrix(q_matrix)
-    sim_w = _cosine_matrix(w_matrix)
+    sim_w = np.clip(_cosine_matrix(w_matrix), 0, 1)
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
     for ax, sim, title in [
         (axes[0], sim_w, "Word2Vec — similitud coseno"),
         (axes[1], sim_q, "Q-Word2Vec — similitud coseno"),
     ]:
-        im = ax.imshow(sim, vmin=-1, vmax=1, cmap="RdBu_r", aspect="auto")
+        im = ax.imshow(sim, vmin=0, vmax=1, cmap="RdBu_r", aspect="auto")
         ax.set_xticks(range(n))
         ax.set_yticks(range(n))
         ax.set_xticklabels(words, rotation=45, ha="right", fontsize=8)

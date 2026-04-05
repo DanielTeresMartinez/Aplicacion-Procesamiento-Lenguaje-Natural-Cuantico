@@ -125,7 +125,7 @@ if __name__ == "__main__":
     n_qubits = 4
     n_embedding = 2
     n_layers = None
-    n_shots = 1024
+    n_shots = 2048
 
     print(f"--- Q-Word2Vec (n={n_qubits}, ne={n_embedding}) ---")
 
@@ -342,23 +342,29 @@ if __name__ == "__main__":
     print("\n  Palabra     top-2 picos reales   top-2 esperados (label)")
     for w, idx in sorted(word_to_id.items()):
         real_peaks = list(np.argsort(final_probs[idx])[-2:][::-1])
-        expected_peaks = list(np.argsort(label_vectors[idx])[-2:][::-1]) if idx in label_vectors else []
-        real_words   = [id_to_word.get(p, f"#{p}") for p in real_peaks]
-        exp_words    = [id_to_word.get(p, f"#{p}") for p in expected_peaks]
+        expected_peaks = (
+            list(np.argsort(label_vectors[idx])[-2:][::-1])
+            if idx in label_vectors
+            else []
+        )
+        real_words = [id_to_word.get(p, f"#{p}") for p in real_peaks]
+        exp_words = [id_to_word.get(p, f"#{p}") for p in expected_peaks]
         match = "✓" if set(real_peaks) == set(expected_peaks) else "✗"
         print(f"  {w:<10} {str(real_words):<25} {str(exp_words):<25} {match}")
 
     # ── K-Means accuracy (misma métrica que Word2Vec para comparación directa) ──
     _clusters_gt = {
-        "animal":    ["dog", "cat", "animal", "eyes"],
-        "food":      ["apple", "fish", "milk"],
-        "culture":   ["book", "music", "movie"],
+        "animal": ["dog", "cat", "animal", "eyes"],
+        "food": ["apple", "fish", "milk"],
+        "culture": ["book", "music", "movie"],
         "sentiment": ["i", "like", "hate"],
     }
     _cluster_names_q = list(_clusters_gt.keys())
     _word_to_cluster_q = {w: c for c, ws in _clusters_gt.items() for w in ws}
     word_vectors_q = {w: final_probs[word_to_id[w]] for w in word_to_id}
-    kmeans_acc = kmeans_cluster_accuracy(word_vectors_q, _word_to_cluster_q, _cluster_names_q)
+    kmeans_acc = kmeans_cluster_accuracy(
+        word_vectors_q, _word_to_cluster_q, _cluster_names_q
+    )
     print(f"K-Means accuracy (≈W2V):   {kmeans_acc:.4f}")
 
     MEMORIA_IMG = "../memoria/imagenes"
