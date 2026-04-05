@@ -119,9 +119,9 @@ if __name__ == "__main__":
     SHOW_VISUALIZATIONS = True
     # True  → entrena y guarda los pesos en WEIGHTS_FILE
     # False → carga los pesos desde WEIGHTS_FILE y salta el entrenamiento
-    TRAIN = False
-    WEIGHTS_FILE = "theta_values_QNSPSA.pkl"
-    LOSS_FILE = "loss_history_trial5.txt"
+    TRAIN = True
+    WEIGHTS_FILE = "theta_values_QNSPSA_v2.pkl"
+    LOSS_FILE = "loss_history_QNSPSA_v2.txt"
     n_qubits = 4
     n_embedding = 2
     n_layers = None
@@ -189,7 +189,7 @@ if __name__ == "__main__":
         return f(params1, params2)
 
     iterations = 2500
-    c_val = 3
+    c_val = 2
     spsa_c = 0.07  # mejor valor encontrado en Bayesian fine-tuning (trial 5)
     spsa_gamma = 0.101
     spsa_a = 0.16  # mejor valor encontrado en Bayesian fine-tuning (trial 5)
@@ -238,6 +238,7 @@ if __name__ == "__main__":
         # Estado compartido entre los dos callbacks
         # para que Python lo trate como si fueran variables pasadas por referencia
         best_er = [np.inf]
+        best_loss = [np.inf]
         best_x = [None]
         no_improve_count = [0]
         stop_flag = [False]
@@ -255,6 +256,7 @@ if __name__ == "__main__":
 
                 if er < best_er[0] - MIN_DELTA:
                     best_er[0] = er
+                    best_loss[0] = fx
                     best_x[0] = x.copy()
                     no_improve_count[0] = 0
                     improve_tag = " (new best)"
@@ -287,9 +289,9 @@ if __name__ == "__main__":
             fidelity=rotating_fidelity,
             maxiter=iterations,
             blocking=True,
-            regularization=1.6e-2,  # mejor valor encontrado en Bayesian fine-tuning (trial 5)
-            hessian_delay=400,  # mejor valor encontrado en Bayesian fine-tuning (trial 5)
-            resamplings=5,  # promedia 4 estimaciones del tensor métrico por iteración
+            regularization=1.6e-2,
+            hessian_delay=400,
+            resamplings=5,
             learning_rate=make_learning_rate,
             perturbation=make_perturbation,
             callback=spsa_callback,
@@ -306,6 +308,7 @@ if __name__ == "__main__":
             theta_values = pickle.load(f)
         print(
             f"Mejor error rate encontrado: {best_er[0]:.4f}"
+            f"  |  Pérdida en mejor época: {best_loss[0]:+.4f}"
             f" — pesos cargados desde {WEIGHTS_FILE}"
         )
 
@@ -313,6 +316,18 @@ if __name__ == "__main__":
         print(f"Cargando pesos desde {WEIGHTS_FILE} ...")
         with open(WEIGHTS_FILE, "rb") as f:
             theta_values = pickle.load(f)
+        best_er_file, best_loss_file = np.inf, np.inf
+        with open(LOSS_FILE, "r") as f:
+            for line in f:
+                parts = line.strip().split(",")
+                if len(parts) >= 3:
+                    try:
+                        er, loss = float(parts[2]), float(parts[1])
+                        if er < best_er_file:
+                            best_er_file, best_loss_file = er, loss
+                    except ValueError:
+                        continue
+        print(f"Pérdida en mejor época:     {best_loss_file:+.4f}")
 
     final_probs = forward_pass(qc_data, thetas, theta_values, n_shots, sim)
     error_rate = calculate_error_rate(final_probs, label_vectors)
@@ -326,10 +341,21 @@ if __name__ == "__main__":
         f"ath={ath:.4f}  hd=400  reg=1.60e-02"
         f"  a={spsa_a:.4f}  c={spsa_c:.4f}  L={n_layers}  C={c_val}"
     )
-    plot_loss_history(LOSS_FILE, save_path=["lossCurvesQWord2Vec.png", f"{MEMORIA_IMG}/lossCurvesQWord2Vec.png"],
-                      title_info=title_info)
-    plot_embeddings_comparison(final_probs, w2v_embeddings, word_to_id, id_to_word,
-                               save_path=["embeddings_comparison.png", f"{MEMORIA_IMG}/embeddings_comparison.png"])
+    plot_loss_history(
+        LOSS_FILE,
+        save_path=["lossCurvesQWord2Vec.png", f"{MEMORIA_IMG}/lossCurvesQWord2Vec.png"],
+        title_info=title_info,
+    )
+    plot_embeddings_comparison(
+        final_probs,
+        w2v_embeddings,
+        word_to_id,
+        id_to_word,
+        save_path=[
+            "embeddings_comparison.png",
+            f"{MEMORIA_IMG}/embeddings_comparison.png",
+        ],
+    )
     plot_bloch_sphere(
         qc_data, thetas, theta_values, n_embedding, word_to_id, id_to_word
     )

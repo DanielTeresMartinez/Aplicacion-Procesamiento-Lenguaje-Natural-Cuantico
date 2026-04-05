@@ -26,7 +26,7 @@ N_EMBEDDING = 2
 GS_SHOTS = 256
 GS_ITERATIONS = 1500
 EDUCATED_GUESS = 6
-C_VAL = 3
+C_VAL = 2
 
 # Exponentes de los schedules (fijos)
 SPSA_GAMMA = 0.101
@@ -157,18 +157,21 @@ def run_trial(ath, regularization, hessian_delay, spsa_a, spsa_c):
 # en la región del mejor resultado conocido (trial 5 del Bayesian):
 #   ath=0.021, hd=400, reg=1.57e-2, a=0.1575, c=0.0716 → best_er=0.0769
 param_grid = {
-    "ath":           [0.018, 0.021, 0.024],
+    "ath": [0.018, 0.021, 0.024],
     "hessian_delay": [300, 400, 500],
-    "regularization":[8e-3, 1.6e-2, 3e-2],
-    "spsa_a":        [0.10, 0.16, 0.25],
-    "spsa_c":        [0.05, 0.07, 0.12],
+    "regularization": [8e-3, 1.6e-2, 3e-2],
+    "spsa_a": [0.10, 0.16, 0.25],
+    "spsa_c": [0.05, 0.07, 0.12],
 }
 
 keys = list(param_grid.keys())
 combos = list(itertools.product(*param_grid.values()))
 total = len(combos)
 
-print(f"\nGrid search refinado: {total} combinaciones × {GS_ITERATIONS} iter/combo\n" + "=" * 65)
+print(
+    f"\nGrid search refinado: {total} combinaciones × {GS_ITERATIONS} iter/combo\n"
+    + "=" * 65
+)
 
 results = []
 for i, combo in enumerate(combos, 1):
@@ -194,11 +197,11 @@ results.sort(key=lambda x: x["best_er"])
 # ── Guardar resultados ────────────────────────────────────────────────────
 out_file = "grid_search_results_refined.txt"
 with open(out_file, "w") as f:
-    f.write(f"Grid Search QNSPSA (refinado) — {GS_ITERATIONS} iter/combo, {GS_SHOTS} shots\n")
-    f.write("=" * 80 + "\n")
-    header = (
-        f"{'Rank':>4}  {'ath':>5}  {'L':>3}  {'hd':>5}  {'reg':>7}  {'a':>6}  {'c':>6}  {'best_er':>8}\n"
+    f.write(
+        f"Grid Search QNSPSA (refinado) — {GS_ITERATIONS} iter/combo, {GS_SHOTS} shots\n"
     )
+    f.write("=" * 80 + "\n")
+    header = f"{'Rank':>4}  {'ath':>5}  {'L':>3}  {'hd':>5}  {'reg':>7}  {'a':>6}  {'c':>6}  {'best_er':>8}\n"
     f.write(header)
     f.write("-" * 65 + "\n")
     for rank, r in enumerate(results, 1):
