@@ -4,6 +4,9 @@ import numpy as np
 from scipy.spatial.distance import pdist
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+from sklearn.metrics import confusion_matrix
+from scipy.optimize import linear_sum_assignment
 
 
 def load_corpus(file_path):
@@ -270,6 +273,35 @@ def plot_embeddings_comparison(
         plt.savefig(p, dpi=150)
         print(f"Gráfica guardada en '{p}'")
     plt.show()
+
+
+def kmeans_cluster_accuracy(word_vectors, word_to_cluster, cluster_names):
+    """
+    K-Means accuracy contra un ground truth de clústeres semánticos.
+    Usa el algoritmo húngaro para encontrar la mejor correspondencia entre
+    los clústeres asignados por K-Means y las categorías reales.
+
+    Args:
+        word_vectors : dict {word: np.ndarray}  — embeddings o distribuciones
+        word_to_cluster : dict {word: cluster_name}
+        cluster_names : list[str]               — nombres de las categorías
+    Returns:
+        float en [0, 1], mayor es mejor
+    """
+    cluster_to_int = {c: i for i, c in enumerate(cluster_names)}
+    valid = [
+        (word_vectors[w], cluster_to_int[word_to_cluster[w]])
+        for w in word_to_cluster if w in word_vectors
+    ]
+    if not valid:
+        return 0.0
+    vecs, gt_ints = map(list, zip(*valid))
+    vecs = np.array(vecs)
+    n = len(cluster_names)
+    predicted = KMeans(n_clusters=n, random_state=42, n_init=10).fit_predict(vecs)
+    cm = confusion_matrix(gt_ints, predicted, labels=list(range(n)))
+    _, col_ind = linear_sum_assignment(-cm)
+    return float(cm[range(n), col_ind].sum() / len(vecs))
 
 
 def plot_loss_history(filepath, save_path=None, title_info=None):

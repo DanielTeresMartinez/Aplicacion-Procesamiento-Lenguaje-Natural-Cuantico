@@ -4,9 +4,6 @@ from my_tools import *
 import numpy as np
 from scipy.spatial.distance import pdist
 from scipy.stats import pearsonr
-from sklearn.cluster import KMeans
-from sklearn.metrics import confusion_matrix
-from scipy.optimize import linear_sum_assignment
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.circuit import ParameterVector
 from qiskit_aer import AerSimulator
@@ -343,24 +340,15 @@ if __name__ == "__main__":
 
     # ── K-Means accuracy (misma métrica que Word2Vec para comparación directa) ──
     _clusters_gt = {
-        "animal": ["dog", "cat", "animal", "eyes"],
-        "food":   ["apple", "fish", "milk"],
+        "animal":    ["dog", "cat", "animal", "eyes"],
+        "food":      ["apple", "fish", "milk"],
         "culture":   ["book", "music", "movie"],
         "sentiment": ["i", "like", "hate"],
     }
-    _cluster_names = list(_clusters_gt.keys())
-    _cluster_to_int = {c: i for i, c in enumerate(_cluster_names)}
-    _word_to_cluster = {w: c for c, ws in _clusters_gt.items() for w in ws}
-
-    valid = [(w, _cluster_to_int[_word_to_cluster[w]])
-             for w in _word_to_cluster if w in word_to_id]
-    eval_words, gt_ints = zip(*valid)
-    vectors = np.array([final_probs[word_to_id[w]] for w in eval_words])
-    km = KMeans(n_clusters=len(_cluster_names), random_state=42, n_init=10)
-    predicted = km.fit_predict(vectors)
-    cm = confusion_matrix(gt_ints, predicted, labels=list(range(len(_cluster_names))))
-    _, col_ind = linear_sum_assignment(-cm)
-    kmeans_acc = float(cm[range(len(_cluster_names)), col_ind].sum() / len(eval_words))
+    _cluster_names_q = list(_clusters_gt.keys())
+    _word_to_cluster_q = {w: c for c, ws in _clusters_gt.items() for w in ws}
+    word_vectors_q = {w: final_probs[word_to_id[w]] for w in word_to_id}
+    kmeans_acc = kmeans_cluster_accuracy(word_vectors_q, _word_to_cluster_q, _cluster_names_q)
     print(f"K-Means accuracy (≈W2V):   {kmeans_acc:.4f}")
 
     MEMORIA_IMG = "../memoria/imagenes"

@@ -5,17 +5,16 @@ import shutil
 from gensim.models import Word2Vec
 from gensim.models.word2vec import LineSentence
 from gensim.models.callbacks import CallbackAny2Vec
-from sklearn.cluster import KMeans
-from sklearn.metrics import confusion_matrix
-from scipy.optimize import linear_sum_assignment
 import numpy as np
 import matplotlib.pyplot as plt
+from my_tools import kmeans_cluster_accuracy
 
 # ── Hiperparámetros ───────────────────────────────────────────────────────────
 FINAL_EPOCHS = 2000
 PRINT_EVERY = 200
 PATIENCE = 5
 MIN_DELTA = 0.01
+LOSS_FILE = "loss_history_word2vec.txt"
 
 # Mejores parámetros obtenidos mediante grid search (grid_search_word2vec.py)
 BEST_PARAMS = {
@@ -35,9 +34,7 @@ _clusters = {
 }
 _word_to_cluster = {w: c for c, words in _clusters.items() for w in words}
 _cluster_names = list(_clusters.keys())
-_cluster_to_int = {c: i for i, c in enumerate(_cluster_names)}
 _all_gt_words = list(_word_to_cluster.keys())
-_all_gt_ints = [_cluster_to_int[_word_to_cluster[w]] for w in _all_gt_words]
 
 
 class EarlyStopping(Exception):
@@ -45,48 +42,36 @@ class EarlyStopping(Exception):
 
 
 def evaluate(model):
-    """K-Means accuracy contra el ground truth de _clusters.
-
-    K-Means asigna etiquetas arbitrarias (0-3), así que se usa el algoritmo
-    húngaro para encontrar la mejor correspondencia entre clústeres y categorías
-    antes de calcular el accuracy.
-    """
-    valid = [(w, gt) for w, gt in zip(_all_gt_words, _all_gt_ints) if w in model.wv]
-    words, gt_ints = zip(*valid)
-
-    vectors = np.array([model.wv[w] for w in words])
-    n_clusters = len(_cluster_names)
-
-    km = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-    predicted = km.fit_predict(vectors)
-
-    cm = confusion_matrix(gt_ints, predicted, labels=list(range(n_clusters)))
-    _, col_ind = linear_sum_assignment(-cm)
-    return float(cm[range(n_clusters), col_ind].sum() / len(words))
+    """K-Means accuracy contra el ground truth de _clusters."""
+    word_vectors = {w: model.wv[w] for w in _all_gt_words if w in model.wv}
+    return kmeans_cluster_accuracy(word_vectors, _word_to_cluster, _cluster_names)
 
 
 class LossCallback(CallbackAny2Vec):
     def __init__(self):
         self._epoch = 0
         self.train_losses = []
-        self._prev_loss = 0.0
         self.val_scores = []
         self._best_val_score = float("-inf")
         self._no_improve_count = 0
         self.converged_at = None
         self.model = None
         self._best_checkpoint = "_best_checkpoint.model"
+        self._loss_file = open(LOSS_FILE, "w")
+        self._loss_file.write("epoch,loss,kmeans_acc\n")
+
+    def on_epoch_begin(self, model):
+        # Resetear el acumulador para obtener el loss de esta época concreta
+        model.running_training_loss = 0.0
 
     def on_epoch_end(self, model):
         self.model = model
         self._epoch += 1
 
-        cumulative = model.get_latest_training_loss()
-        delta = cumulative - self._prev_loss
-        self.train_losses.append(delta)
-        self._prev_loss = cumulative
+        epoch_loss = model.get_latest_training_loss()
+        self.train_losses.append(epoch_loss)
 
-        if self._epoch % PRINT_EVERY == 0:
+        if self._epoch % PRINT_EVERY == 0 or self._epoch == 1:
             val_score = evaluate(model)
             self.val_scores.append((self._epoch, val_score))
 
@@ -99,8 +84,10 @@ class LossCallback(CallbackAny2Vec):
                 self._no_improve_count += 1
                 improved_tag = ""
 
+            self._loss_file.write(f"{self._epoch},{epoch_loss},{val_score}\n")
+            self._loss_file.flush()
             print(
-                f"  época {self._epoch:>6} | pérdida_delta = {delta:.4f}"
+                f"  época {self._epoch:>6} | pérdida = {epoch_loss:.4f}"
                 f" | kmeans_acc = {val_score:.4f}{improved_tag}"
                 f"  (sin_mejora={self._no_improve_count}/{PATIENCE})"
             )
@@ -112,6 +99,7 @@ class LossCallback(CallbackAny2Vec):
                 )
 
     def on_train_end(self, model):
+        self._loss_file.close()
         if self.val_scores:
             last_epoch, last_score = self.val_scores[-1]
             print(
@@ -181,11 +169,6 @@ if __name__ == "__main__":
     # ── 4. Evaluación final ───────────────────────────────────────────────────
     final_score = evaluate(model)
     print(f"\nK-Means accuracy final: {final_score:.4f}")
-    print("\nPalabras más similares:")
-    for word in ["dog", "cat", "book", "fish", "music"]:
-        if word in model.wv:
-            nbrs = [(w, round(s, 3)) for w, s in most_similar(model, word, topn=3)]
-            print(f"  {word:<8} → {nbrs}")
 
     # ── 5. Gráficas ───────────────────────────────────────────────────────────
     # Figura 1: curvas de entrenamiento
@@ -230,9 +213,9 @@ if __name__ == "__main__":
         color="steelblue",
         linewidth=0.6,
         alpha=0.35,
-        label="train loss Δ",
+        label="train loss",
     )
-    ax0b.set_ylabel("Train loss delta", color="steelblue", fontsize=8)
+    ax0b.set_ylabel("Train loss", color="steelblue", fontsize=8)
     ax0b.tick_params(axis="y", labelcolor="steelblue", labelsize=7)
 
     fig1.tight_layout()
