@@ -1,0 +1,64 @@
+dog cat animal
+cat dog eyes
+animal cat eyes
+dog animal eyes
+cat animal dog
+eyes dog cat
+dog cat
+cat animal
+animal eyes
+dog eyes
+cat eyes dog
+animal dog cat
+eyes animal cat
+dog cat animal eyes
+cat eyes animal
+eyes dog animal
+dog animal
+cat dog
+animal dog
+eyes cat
+apple fish milk
+fish apple milk
+milk fish apple
+apple fish
+fish milk
+milk apple
+apple milk fish
+fish apple
+milk fish
+apple milk
+fish milk apple
+milk apple fish
+apple fish
+fish apple milk
+book music movie
+music book movie
+movie book music
+book music
+music movie
+movie book
+book movie music
+music book
+movie music
+book movie
+music movie book
+movie music book
+book movie
+music movie
+i like dog
+i like cat
+i like animal
+i like eyes
+i like apple
+i like book
+i like music
+i like movie
+i hate dog
+i hate cat
+i hate apple
+i hate fish
+i hate milk
+i hate book
+i hate music
+i hate movie

@@ -11,10 +11,10 @@ from my_tools import kmeans_cluster_accuracy
 
 # ── Hiperparámetros ───────────────────────────────────────────────────────────
 FINAL_EPOCHS = 2000
-PRINT_EVERY = 10  # imprime cada N épocas
-PATIENCE = 15  # checks sin mejora antes de parar
-MIN_DELTA = 0.001  # mejora mínima en loss_delta para contar como mejora
-LOSS_FILE = "loss_history_word2vec.txt"
+PRINT_EVERY = 200
+PATIENCE = 5
+MIN_DELTA = 0.01
+LOSS_FILE = "loss_history_word2vec_v2.txt"
 
 # Mejores parámetros obtenidos mediante grid search (grid_search_word2vec.py)
 BEST_PARAMS = {
@@ -48,89 +48,65 @@ def evaluate(model):
 
 
 class LossCallback(CallbackAny2Vec):
-    """Callback que calcula el loss por época sin interferir en Gensim.
-
-    Gensim acumula `running_training_loss` a lo largo de todo el entrenamiento.
-    En lugar de resetearlo (que podría interferir con el estado interno),
-    calculamos el loss de cada época como:
-
-        loss_época = acumulado_ahora - acumulado_época_anterior
-
-    Es aritméticamente equivalente al reset pero sin tocar ningún atributo
-    interno de la librería.
-
-    Early stopping: guardamos checkpoint cuando el loss de la época es menor
-    que el mejor hasta ahora (MIN_DELTA de margen).  Las épocas que Gensim
-    reporta como 0.0 (corpus pequeño, sin pares válidos) se ignoran para
-    no disparar la parada prematuramente.
-    El K-Means accuracy se calcula solo una vez al final sobre el mejor
-    checkpoint.
-    """
-
     def __init__(self):
-        self._epoch = 0               # épocas reales de Gensim
-        self.train_losses = []        # (epoch_gensim, loss) solo para épocas válidas
-        self._cumulative_prev = 0.0   # acumulado al final de la época anterior
-        self._best_loss = float("inf")
+        self._epoch = 0
+        self.train_losses = []
+        self.val_scores = []
+        self._best_val_score = float("-inf")
         self._no_improve_count = 0
         self.converged_at = None
-        self.best_epoch = None
         self.model = None
-        self._best_checkpoint = "_best_checkpoint.model"
+        self._best_checkpoint = "_best_checkpoint_v2.model"
         self._loss_file = open(LOSS_FILE, "w")
-        self._loss_file.write("epoch,loss\n")
+        self._loss_file.write("epoch,loss,kmeans_acc\n")
 
-    # ── Sin on_epoch_begin: no tocamos ningún atributo interno de Gensim ──────
+    def on_epoch_begin(self, model):
+        # Resetear el acumulador para obtener el loss de esta época concreta
+        model.running_training_loss = 0.0
 
     def on_epoch_end(self, model):
         self.model = model
         self._epoch += 1
 
-        # Loss de esta época = diferencia de acumulados
-        cumulative_now = model.get_latest_training_loss()
-        epoch_loss = cumulative_now - self._cumulative_prev
-        self._cumulative_prev = cumulative_now
+        epoch_loss = model.get_latest_training_loss()
+        self.train_losses.append(epoch_loss)
 
-        # Guardar solo épocas válidas (para las gráficas)
-        if epoch_loss > 0.0:
-            self.train_losses.append((self._epoch, epoch_loss))
+        if self._epoch % PRINT_EVERY == 0 or self._epoch == 1:
+            val_score = evaluate(model)
+            self.val_scores.append((self._epoch, val_score))
 
-        # Solo actuar en múltiplos exactos de PRINT_EVERY (10, 20, 30...)
-        if self._epoch % PRINT_EVERY != 0:
-            return
+            if val_score > self._best_val_score + MIN_DELTA:
+                self._best_val_score = val_score
+                self._no_improve_count = 0
+                model.save(self._best_checkpoint)
+                improved_tag = " (new best)"
+            else:
+                self._no_improve_count += 1
+                improved_tag = ""
 
-        # Si en esta época Gensim no procesó pares, la saltamos en silencio
-        if epoch_loss == 0.0:
-            return
-
-        # ¿El loss mejora (baja)?
-        if epoch_loss < self._best_loss - MIN_DELTA:
-            self._best_loss = epoch_loss
-            self._no_improve_count = 0
-            model.save(self._best_checkpoint)
-            self.best_epoch = self._epoch
-            improved_tag = " (new best)"
-        else:
-            self._no_improve_count += 1
-            improved_tag = ""
-
-        self._loss_file.write(f"{self._epoch},{epoch_loss:.6f}\n")
-        self._loss_file.flush()
-        print(
-            f"  época {self._epoch:>6} | loss = {epoch_loss:>10.4f}{improved_tag}"
-            f"  (sin_mejora={self._no_improve_count}/{PATIENCE})"
-        )
-
-        if self._no_improve_count >= PATIENCE:
-            self.converged_at = self._epoch
-            raise EarlyStopping(
-                f"Sin mejora en {PATIENCE} comprobaciones — parada en época {self._epoch}"
+            self._loss_file.write(f"{self._epoch},{epoch_loss},{val_score}\n")
+            self._loss_file.flush()
+            print(
+                f"  época {self._epoch:>6} | pérdida = {epoch_loss:.4f}"
+                f" | kmeans_acc = {val_score:.4f}{improved_tag}"
+                f"  (sin_mejora={self._no_improve_count}/{PATIENCE})"
             )
+
+            if self._no_improve_count >= PATIENCE:
+                self.converged_at = self._epoch
+                raise EarlyStopping(
+                    f"Sin mejora en {PATIENCE} comprobaciones — parada en época {self._epoch}"
+                )
 
     def on_train_end(self, model):
         self._loss_file.close()
+        if self.val_scores:
+            last_epoch, last_score = self.val_scores[-1]
+            print(
+                f"K-Means accuracy (último checkpoint, época {last_epoch}): {last_score:.4f}"
+            )
         if self.converged_at:
-            print(f"\nConvergido en época {self.converged_at} (parada temprana).")
+            print(f"Convergido en época {self.converged_at} (parada temprana).")
 
 
 def most_similar(model, word, topn=3):
@@ -157,7 +133,7 @@ def _save_embeddings(filepath, word_vec_dict, header_comment=""):
 
 if __name__ == "__main__":
 
-    sentences = list(LineSentence("smallCorpora.txt"))
+    sentences = list(LineSentence("smallCorporaV2.txt"))
     random.seed(42)
     random.shuffle(sentences)
     print(f"Corpus cargado: {len(sentences)} frases")
@@ -188,60 +164,63 @@ if __name__ == "__main__":
     print(f"Tiempo de entrenamiento: {elapsed:.1f}s  ({elapsed/60:.1f} min)")
 
     # ── 3. Cargar el mejor checkpoint ─────────────────────────────────────────
-    import os
+    model = Word2Vec.load(loss_cb._best_checkpoint)
 
-    if os.path.exists(loss_cb._best_checkpoint):
-        model = Word2Vec.load(loss_cb._best_checkpoint)
-        print(f"\nMejor checkpoint cargado (época {loss_cb.best_epoch})")
-    else:
-        print("\n[AVISO] No se encontró checkpoint; usando modelo actual.")
-
-    # ── 4. Evaluación final (K-Means sobre el mejor checkpoint) ───────────────
+    # ── 4. Evaluación final ───────────────────────────────────────────────────
     final_score = evaluate(model)
-    print(f"K-Means accuracy (mejor época={loss_cb.best_epoch}): {final_score:.4f}")
+    print(f"\nK-Means accuracy final: {final_score:.4f}")
 
     # ── 5. Gráficas ───────────────────────────────────────────────────────────
     # Figura 1: curvas de entrenamiento
     fig1, ax0 = plt.subplots(figsize=(8, 6))
 
-    # train_losses contiene solo épocas válidas: [(epoch_gensim, loss), ...]
-    if loss_cb.train_losses:
-        all_epochs, all_vals = zip(*loss_cb.train_losses)
-    else:
-        all_epochs, all_vals = [], []
-
-    # Puntos de la gráfica: épocas múltiplo de PRINT_EVERY con loss > 0
-    pairs_ck = [(e, l) for e, l in zip(all_epochs, all_vals) if e % PRINT_EVERY == 0]
-    ck_epochs_f = [e for e, _ in pairs_ck]
-    ck_losses_f = [l for _, l in pairs_ck]
-
-    if ck_losses_f:
+    if loss_cb.val_scores:
+        ck_epochs = [e for e, _ in loss_cb.val_scores]
+        ck_scores = [s for _, s in loss_cb.val_scores]
         ax0.plot(
-            ck_epochs_f,
-            ck_losses_f,
+            ck_epochs,
+            ck_scores,
             color="darkorange",
             linewidth=1.4,
             marker="o",
             markersize=4,
-            label="Train loss (checkpoint epochs)",
+            label="K-Means accuracy",
         )
-        if loss_cb.best_epoch is not None:
-            ax0.axvline(
-                loss_cb.best_epoch,
-                color="green",
-                linestyle="--",
-                linewidth=1,
-                label=f"best (epoch {loss_cb.best_epoch})",
-            )
+        best_epoch = ck_epochs[int(np.argmax(ck_scores))]
+        ax0.axvline(
+            best_epoch,
+            color="green",
+            linestyle="--",
+            linewidth=1,
+            label=f"best (epoch {best_epoch})",
+        )
         ax0.legend(fontsize=8)
 
-    ax0.set_title("Train loss per valid epoch\n(lower = better)")
-    ax0.set_xlabel("Epoch (Gensim)")
-    ax0.set_ylabel("Loss")
+    ax0.set_title(
+        "K-Means accuracy at each checkpoint\n(vs. ground truth, higher = better)"
+    )
+    ax0.set_xlabel("Epoch")
+    ax0.set_ylabel("K-Means accuracy")
+
+    stride = max(1, len(loss_cb.train_losses) // 200)
+    train_epochs = list(range(1, len(loss_cb.train_losses) + 1, stride))
+    train_vals = loss_cb.train_losses[::stride]
+
+    ax0b = ax0.twinx()
+    ax0b.plot(
+        train_epochs,
+        train_vals,
+        color="steelblue",
+        linewidth=0.6,
+        alpha=0.35,
+        label="train loss",
+    )
+    ax0b.set_ylabel("Train loss", color="steelblue", fontsize=8)
+    ax0b.tick_params(axis="y", labelcolor="steelblue", labelsize=7)
 
     fig1.tight_layout()
-    fig1.savefig("lossCurvesWord2Vec.png", dpi=150)
-    shutil.copy("lossCurvesWord2Vec.png", "../memoria/imagenes/lossCurvesWord2Vec.png")
+    fig1.savefig("lossCurvesWord2Vec_v2.png", dpi=150)
+    shutil.copy("lossCurvesWord2Vec_v2.png", "../memoria/imagenes/lossCurvesWord2Vec_v2.png")
 
     # Figura 2: embeddings 2D
     fig2, ax1 = plt.subplots(figsize=(8, 6))
@@ -276,7 +255,7 @@ if __name__ == "__main__":
 
     bp = BEST_PARAMS
     ax1.set_title(
-        f"2D Word Embeddings\n"
+        f"2D Word Embeddings (corpus v2)\n"
         f"vsize={bp['vector_size']}  win={bp['window']}  α={bp['alpha']}  "
         f"neg={bp['negative']}  ns_exp={bp.get('ns_exponent', 0.75)}"
     )
@@ -285,13 +264,13 @@ if __name__ == "__main__":
     ax1.grid(True, linestyle="--", alpha=0.4)
 
     fig2.tight_layout()
-    fig2.savefig("embeddingsWord2Vec.png", dpi=150)
-    shutil.copy("embeddingsWord2Vec.png", "../memoria/imagenes/embeddingsWord2Vec.png")
+    fig2.savefig("embeddingsWord2Vec_v2.png", dpi=150)
+    shutil.copy("embeddingsWord2Vec_v2.png", "../memoria/imagenes/embeddingsWord2Vec_v2.png")
 
     # ── 6. Exportar embeddings para Q-word2vec ────────────────────────────────
     orig_embs = {w: model.wv[w] for w in vocab}
     _save_embeddings(
-        "word2vec_embeddings.txt",
+        "word2vec_embeddings_v2.txt",
         orig_embs,
         header_comment=f"vector_size={BEST_PARAMS['vector_size']}",
     )

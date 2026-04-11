@@ -10,8 +10,8 @@ Practice/_best_checkpoint.model
 !memoria/
 !memoria/**
 
-!memoria/.agent/
-!memoria/.agent/**
+!memoria/.claude/
+!memoria/.claude/**
 
 memoria/*.acn
 memoria/*.acr
