@@ -29,8 +29,8 @@ from my_qword2vec_qnspsa_v2 import qword2vec_circuit, forward_pass, calculate_cu
 np.random.seed(42)
 
 # ── Configuración fija ────────────────────────────────────────────────────
-N_QUBITS = 6
-N_EMBEDDING = 4
+N_QUBITS = 4
+N_EMBEDDING = 2
 BF_SHOTS = 512
 BF_ITERATIONS = 800
 EDUCATED_GUESS = 6

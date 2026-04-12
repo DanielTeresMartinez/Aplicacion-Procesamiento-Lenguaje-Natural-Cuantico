@@ -1,6 +1,7 @@
 import random
 import time
 import shutil
+from collections import Counter
 
 from gensim.models import Word2Vec
 from gensim.models.word2vec import LineSentence
@@ -20,8 +21,8 @@ LOSS_FILE = "loss_history_word2vec_v2.txt"
 BEST_PARAMS = {
     "vector_size": 2,
     "window": 1,
-    "alpha": 0.25,
-    "negative": 5,
+    "alpha": 0.2,
+    "negative": 2,
     "ns_exponent": 0.0,
 }
 
@@ -107,6 +108,52 @@ class LossCallback(CallbackAny2Vec):
             )
         if self.converged_at:
             print(f"Convergido en época {self.converged_at} (parada temprana).")
+
+
+def most_similar_error_rate(model, sentences, window, debug=False):
+    """
+    Tasa de error basada en vecinos más cercanos por coseno.
+    Para cada palabra w, los 2 vecinos más similares deben coincidir
+    con los 2 co-ocurrentes principales en el corpus (misma ventana).
+    Fórmula: total_mismatches / (2 * |vocabulario con contexto|).
+    """
+    wv = model.wv
+    word_to_id = {w: i for i, w in enumerate(wv.index_to_key)}
+
+    cooccur = {w: Counter() for w in word_to_id}
+    for sentence in sentences:
+        words = [w for w in sentence if w in word_to_id]
+        for i, center in enumerate(words):
+            for j in range(max(0, i - window), min(len(words), i + window + 1)):
+                if i != j:
+                    cooccur[center][words[j]] += 1
+
+    total_mismatches = 0
+    count = 0
+    for word, ctx_counter in cooccur.items():
+        if not ctx_counter or word not in wv:
+            continue
+        label_words = [w for w, _ in ctx_counter.most_common(2) if w in word_to_id]
+        label_peaks = {word_to_id[w] for w in label_words}
+        if not label_peaks:
+            continue
+        model_peaks = set()
+        model_words = []
+        for w, _ in wv.most_similar(word, topn=len(wv)):
+            if w in word_to_id:
+                model_peaks.add(word_to_id[w])
+                model_words.append(w)
+            if len(model_peaks) == 2:
+                break
+        mismatches = len(label_peaks - model_peaks)
+        total_mismatches += mismatches
+        count += 1
+        if debug:
+            print(
+                f"  {word:<10} label={label_words}  model={model_words}  mismatches={mismatches}"
+            )
+
+    return total_mismatches / (2 * count) if count else 0.0
 
 
 def most_similar(model, word, topn=3):
@@ -220,7 +267,9 @@ if __name__ == "__main__":
 
     fig1.tight_layout()
     fig1.savefig("lossCurvesWord2Vec_v2.png", dpi=150)
-    shutil.copy("lossCurvesWord2Vec_v2.png", "../memoria/imagenes/lossCurvesWord2Vec_v2.png")
+    shutil.copy(
+        "lossCurvesWord2Vec_v2.png", "../memoria/imagenes/lossCurvesWord2Vec_v2.png"
+    )
 
     # Figura 2: embeddings 2D
     fig2, ax1 = plt.subplots(figsize=(8, 6))
@@ -265,7 +314,9 @@ if __name__ == "__main__":
 
     fig2.tight_layout()
     fig2.savefig("embeddingsWord2Vec_v2.png", dpi=150)
-    shutil.copy("embeddingsWord2Vec_v2.png", "../memoria/imagenes/embeddingsWord2Vec_v2.png")
+    shutil.copy(
+        "embeddingsWord2Vec_v2.png", "../memoria/imagenes/embeddingsWord2Vec_v2.png"
+    )
 
     # ── 6. Exportar embeddings para Q-word2vec ────────────────────────────────
     orig_embs = {w: model.wv[w] for w in vocab}

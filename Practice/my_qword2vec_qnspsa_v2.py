@@ -119,11 +119,11 @@ if __name__ == "__main__":
     SHOW_VISUALIZATIONS = True
     # True  → entrena y guarda los pesos en WEIGHTS_FILE
     # False → carga los pesos desde WEIGHTS_FILE y salta el entrenamiento
-    TRAIN = False
-    WEIGHTS_FILE = "theta_values_QNSPSA_v2.pkl"
-    LOSS_FILE = "loss_history_QNSPSA_v2.txt"
-    n_qubits = 6
-    n_embedding = 4
+    TRAIN = True
+    WEIGHTS_FILE = "theta_values_QNSPSA_v3.pkl"
+    LOSS_FILE = "loss_history_QNSPSA_v3.txt"
+    n_qubits = 4
+    n_embedding = 2
     n_layers = None
     n_shots = 2048
 
@@ -374,7 +374,10 @@ if __name__ == "__main__":
     )
     plot_loss_history(
         LOSS_FILE,
-        save_path=["lossCurvesQWord2Vec_v2.png", f"{MEMORIA_IMG}/lossCurvesQWord2Vec_v2.png"],
+        save_path=[
+            "lossCurvesQWord2Vec_v2.png",
+            f"{MEMORIA_IMG}/lossCurvesQWord2Vec_v2.png",
+        ],
         title_info=title_info,
     )
     plot_embeddings_comparison(
