@@ -20,13 +20,13 @@ Un \gls{qubit} es el análogo cuántico al bit clásico \cite{ionos_qubits_2023}
 Gracias al principio de superposición mencionado anteriormente, un qubit $\ket{\Psi}$ no tiene por qué estar exclusivamente en el estado $\ket{0}$ o en el estado $\ket{1}$. En su lugar, su estado puede ser una \textbf{combinación lineal} de ambos vectores base. A este comportamiento se le denomina \textbf{superposición cuántica}, y permite que el qubit exista como una mezcla simultánea de ambos estados clásicos. En notación de Dirac, esto se representa algebraicamente como:
 
 \[
-    \ket{\Psi} = \alpha_0\ket{0} + \alpha_1\ket{1}
+    \ket{\Psi} = \alpha_0\ket{0} + \alpha_1\ket{1};
 \]
 
 Donde $\alpha_0$ y $\alpha_1$ son las \textbf{amplitudes de probabilidad}. De forma general, estas amplitudes se definen como números complejos (lo que, por definición matemática, también incluye a los números reales como un caso particular). Dado que estos coeficientes pueden tomar infinitos valores continuos, un qubit puede adoptar \textbf{infinitos} estados posibles, frente a los únicos dos valores (0 y 1) de un bit clásico. Para que este estado sea válido físicamente, su norma debe ser unitaria, asegurando que la suma de las probabilidades sea 1:
 
 \[
-    |\alpha_0|^2 + |\alpha_1|^2 = 1
+    |\alpha_0|^2 + |\alpha_1|^2 = 1;
 \]
 
 Cabe destacar que no existe una forma directa de determinar los valores exactos de $\alpha_0$ y $\alpha_1$, ya que el estado cuántico interno no es directamente observable. Antes de realizar una medición, el qubit se encuentra en esta superposición inestable de los estados $\ket{0}$ y $\ket{1}$.
@@ -81,7 +81,7 @@ donde $r$ es la longitud y $\theta$ y $\phi$ representan el ángulo del eje Z po
 \textbf{Importante:} la notación $\left(\frac{1}{\sqrt{2}}, \frac{1}{\sqrt{2}}\right)$ se corresponde con el vector estado $\begin{bmatrix} \frac{1}{\sqrt{2}} \\ \frac{1}{\sqrt{2}} \end{bmatrix}$ que a su vez significa:
 
 \[
-    \begin{bmatrix} \frac{1}{\sqrt{2}} \\ \frac{1}{\sqrt{2}} \end{bmatrix} = \frac{1}{\sqrt{2}}|0\rangle + \frac{1}{\sqrt{2}}|1\rangle
+    \begin{bmatrix} \frac{1}{\sqrt{2}} \\ \frac{1}{\sqrt{2}} \end{bmatrix} = \frac{1}{\sqrt{2}}|0\rangle + \frac{1}{\sqrt{2}}|1\rangle;
 \]
 
 Los seis puntos principales de la esfera de Bloch son los que se ve en la Figura \ref{fig:EsferaDeBloch} \cite{castano_qubit_bloch_2025}. A estas coordenadas principales se le pueden asignar etiquetas.
@@ -113,13 +113,13 @@ Al aplicar una puerta cuántica $U$ a un estado cuántico $\ket{\psi}$ se realiz
 Poniendo un ejemplo sencillo, consideremos la puerta Pauli-X (el análogo cuántico de la puerta NOT clásica), cuya matriz unitaria es $X = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix}$. Si aplicamos esta puerta sobre el estado base $\ket{0}$, el estado transiciona a $\ket{1}$:
 
 \[
-    X \ket{0} = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix} \begin{pmatrix} 1 \\ 0 \end{pmatrix} = \begin{pmatrix} 0 \\ 1 \end{pmatrix} = \ket{1}
+    X \ket{0} = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix} \begin{pmatrix} 1 \\ 0 \end{pmatrix} = \begin{pmatrix} 0 \\ 1 \end{pmatrix} = \ket{1};
 \]
 
 Como $X$ es una matriz unitaria (y resulta ser su propia inversa, $X^{\dagger}X = I$), la operación es completamente reversible. Si aplicamos $X$ por segunda vez, recuperamos matemáticamente el estado original $\ket{0}$ sin perder ninguna información en el proceso:
 
 \[
-    X (X \ket{0}) = X \ket{1} = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix} \begin{pmatrix} 0 \\ 1 \end{pmatrix} = \begin{pmatrix} 1 \\ 0 \end{pmatrix} = \ket{0}
+    X (X \ket{0}) = X \ket{1} = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix} \begin{pmatrix} 0 \\ 1 \end{pmatrix} = \begin{pmatrix} 1 \\ 0 \end{pmatrix} = \ket{0};
 \]
 
 Las puertas cuánticas para un único qubit son:
@@ -130,7 +130,7 @@ Las puertas cuánticas para un único qubit son:
               I = \begin{bmatrix}
                   1 & 0 \\
                   0 & 1
-              \end{bmatrix}
+              \end{bmatrix};
           \]
 
     \item \textbf{Pauli X:} Conocida coloquialmente como la puerta NOT cuántica. Algebraicamente se define por la siguiente matriz:
@@ -138,7 +138,7 @@ Las puertas cuánticas para un único qubit son:
               X = \begin{bmatrix}
                   0 & 1 \\
                   1 & 0
-              \end{bmatrix}
+              \end{bmatrix};
           \]
 
           Al aplicar esta puerta, las amplitudes de probabilidad se intercambian, lo que provoca que los estados base $\ket{0}$ y $\ket{1}$ se inviertan.
@@ -148,12 +148,12 @@ Las puertas cuánticas para un único qubit son:
               Y = \begin{bmatrix}
                   0 & -i \\
                   i & 0
-              \end{bmatrix}
+              \end{bmatrix};
           \]
 
           Si un qubit en superposición $\ket{\psi} = \alpha_0\ket{0} + \alpha_1\ket{1}$ atraviesa esta puerta, el efecto resultante es:
           \[
-              Y\ket{\psi} = \begin{bmatrix} 0 & -i \\ i & 0 \end{bmatrix} \begin{bmatrix} \alpha_0 \\ \alpha_1 \end{bmatrix} = \begin{bmatrix} -i\alpha_1 \\ i\alpha_0 \end{bmatrix} = -i\alpha_1\ket{0} + i\alpha_0\ket{1}
+              Y\ket{\psi} = \begin{bmatrix} 0 & -i \\ i & 0 \end{bmatrix} \begin{bmatrix} \alpha_0 \\ \alpha_1 \end{bmatrix} = \begin{bmatrix} -i\alpha_1 \\ i\alpha_0 \end{bmatrix} = -i\alpha_1\ket{0} + i\alpha_0\ket{1};
           \]
 
     \item \textbf{Pauli Z:} Actúa modificando únicamente la fase del estado $\ket{1}$ (añadiendo un desfase de $\pi$). Su operador matricial se expresa como:
@@ -161,12 +161,12 @@ Las puertas cuánticas para un único qubit son:
               Z = \begin{bmatrix}
                   1 & 0  \\
                   0 & -1
-              \end{bmatrix}
+              \end{bmatrix};
           \]
 
           Matemáticamente, al operar sobre un qubit genérico $\ket{\psi} = \alpha_0\ket{0} + \alpha_1\ket{1}$, altera exclusivamente el signo de la segunda amplitud:
           \[
-              Z\ket{\psi} = \begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix} \begin{bmatrix} \alpha_0 \\ \alpha_1 \end{bmatrix} = \begin{bmatrix} \alpha_0 \\ -\alpha_1 \end{bmatrix} = \alpha_0\ket{0} - \alpha_1\ket{1}
+              Z\ket{\psi} = \begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix} \begin{bmatrix} \alpha_0 \\ \alpha_1 \end{bmatrix} = \begin{bmatrix} \alpha_0 \\ -\alpha_1 \end{bmatrix} = \alpha_0\ket{0} - \alpha_1\ket{1};
           \]
 
     \item \textbf{Puerta Hadamard (H):} Es una de las operaciones más fundamentales, ya que al aplicarse sobre un estado base puro genera una superposición equitativa. Se define matricialmente como:
@@ -174,11 +174,11 @@ Las puertas cuánticas para un único qubit son:
               H = \frac{1}{\sqrt{2}}\begin{bmatrix}
                   1 & 1  \\
                   1 & -1
-              \end{bmatrix}
+              \end{bmatrix};
           \]
 
           Si aplicamos esta transformación a un estado en superposición $\ket{\psi} = \alpha_0\ket{0} + \alpha_1\ket{1}$, las amplitudes se mezclan obteniendo la siguiente salida:
           \[
-              H\ket{\psi} = \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix} \begin{bmatrix} \alpha_0 \\ \alpha_1 \end{bmatrix} = \frac{1}{\sqrt{2}}\begin{bmatrix} \alpha_0 + \alpha_1 \\ \alpha_0 - \alpha_1 \end{bmatrix} = \left(\frac{\alpha_0 + \alpha_1}{\sqrt{2}}\right)\ket{0} + \left(\frac{\alpha_0 - \alpha_1}{\sqrt{2}}\right)\ket{1}
+              H\ket{\psi} = \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix} \begin{bmatrix} \alpha_0 \\ \alpha_1 \end{bmatrix} = \frac{1}{\sqrt{2}}\begin{bmatrix} \alpha_0 + \alpha_1 \\ \alpha_0 - \alpha_1 \end{bmatrix} = \left(\frac{\alpha_0 + \alpha_1}{\sqrt{2}}\right)\ket{0} + \left(\frac{\alpha_0 - \alpha_1}{\sqrt{2}}\right)\ket{1};
           \]
 \end{itemize}

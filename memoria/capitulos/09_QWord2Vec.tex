@@ -33,7 +33,7 @@ El modelo $U(\theta_u)$ y $V(\theta_v)$ utilizan las matrices unitarias parametr
   U_{\text{enta}}\,
   R_Z\!\left(\theta_z^{L-l+1}\right)^{\otimes n}
   R_Y\!\left(\theta_y^{L-l+1}\right)^{\otimes n}
-  R_X\!\left(\theta_x^{L-l+1}\right)^{\otimes n}
+  R_X\!\left(\theta_x^{L-l+1}\right)^{\otimes n};
 \]
 
 donde $L$ representa la longitud del circuito cuántico. Por simplicidad, se asumirá que tanto $U(\theta_u)$ como $V(\theta_v)$ poseen la misma profundidad, a menos que se indique explícitamente lo contrario.
@@ -62,7 +62,7 @@ El uso combinado de las tres puertas de rotación ($R_X, R_Y, R_Z$) permite que 
 Con el fin de acotar el espacio de búsqueda durante el ajuste de hiperparámetros, se emplea la fórmula heurística propuesta en \cite{ohno_qword2vec_2025} para estimar la profundidad $L$ del circuito cuántico:
 
 \[
-  L = \left\lceil \frac{\# \mathit{data}}{3(n + n_e)A_{th}} p(n, n_e) \right\rceil
+  L = \left\lceil \frac{\# \mathit{data}}{3(n + n_e)A_{th}} p(n, n_e) \right\rceil;
 \]
 
 donde los términos que intervienen en la expresión son:
@@ -80,7 +80,7 @@ La expresión determina la profundidad mínima necesaria para que la cantidad pr
 La probabilidad de error $p(n, n_e)$ se obtiene a partir de la siguiente inecuación la cual relaciona la probabilidad de error entre $n$ y $n_e$:
 
 \[
-  n_e \geq (1 - H(p)) \cdot 2^n
+  n_e \geq (1 - H(p)) \cdot 2^n;
 \]
 
 donde $H(p)$ es la función de entropía binaria, representada en la Figura \ref{fig:entropia_binaria}.
@@ -132,7 +132,7 @@ Los optimizadores empleados en \glspl{cvc} operan bajo el mismo principio que lo
 El punto de partida es el \gls{gd}, cuya regla de actualización de parámetros es:
 
 \[
-  \mathbf{x}^{(t+1)} = \mathbf{x}^{(t)} - \eta \nabla f(\mathbf{x}^{(t)})
+  \mathbf{x}^{(t+1)} = \mathbf{x}^{(t)} - \eta \nabla f(\mathbf{x}^{(t)});
 \]
 
 donde $f$ es la función de pérdida, $\mathbf{x}$ el vector de parámetros, $\eta$ la tasa de aprendizaje y el superíndice $t$ la iteración actual. El gradiente $\nabla f$ se calcula dimensión a dimensión, lo que implica $\mathcal{O}(d)$ mediciones cuánticas, siendo $d$ el número de parámetros entrenables. Dado el elevado coste de las mediciones en un circuito cuántico, el \gls{gd} resulta inviable para circuitos con un número alto de parámetros así como un gran número de iteraciones para la optimización.

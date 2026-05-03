@@ -1,11 +1,11 @@
 \chapter{Representación Vectorial de Palabras (Word Embeddings)}
 \label{chap:word_embeddings}
 
-Los word embeddings son una de las técnicas más usadas en \gls{nlp}. Gracias a los word embeddings, existen lenguajes de modelo como GPT-3, GPT-4, etc.
+Los word embeddings son una de las técnicas más usadas en \gls{pln}. Gracias a los word embeddings, existen lenguajes de modelo como GPT-3, GPT-4, etc.
 
 Estos algoritmos son rápidos y pueden generar secuencias de lenguaje y realizar otras tareas derivadas con alta precisión, incluyendo la comprensión contextual, propiedades semánticas y sintácticas, así como la relación lineal entre las palabras.
 
-En esencia, estos modelos utilizan los embeddings como un método para extraer patrones de secuencias de texto o voz. Pero, ¿cómo lo hacen?
+En esencia, estos modelos aprenden a extraer y representar patrones complejos a partir de secuencias de texto o voz, capturando tanto el significado como las relaciones entre las palabras. Pero, ¿cómo lo hacen?
 
 En las siguientes secciones se explorará en mayor profundidad los word embeddings así como conceptos más avanzados de estos.
 
@@ -13,7 +13,7 @@ En las siguientes secciones se explorará en mayor profundidad los word embeddin
 
 De manera intuitiva, un \textit{embedding} de texto es una representación matemática que proyecta un fragmento de texto en un espacio latente de alta dimensionalidad. En este espacio, la posición del texto se define mediante un vector, donde cada componente del vector corresponde a una dimensión. Al igual que en un plano cartesiano se tienen dos dimensiones, en un embedding, se suele trabajar con muchas más dimensiones para representar una palabra en el espacio\cite{henner_intuitive_embeddings_2023}. Por ejemplo, el modelo de \textbf{OpenAI} \textit{text-embedding-ada-002} el cual tiene un espacio de dimensión de 1536. Es decir, cada vector está formado por 1536 componentes.
 
-Un ejemplo de cómo se verían los valores que toma cada dimensión es el siguiente:
+Mostramos un ejemplo de cómo se verían los valores que toma cada dimensión es el siguiente:
 
 \begin{quote}
   \textit{``A text embedding is a piece of text projected into a high-dimensional latent space. The position of our text in this space is a vector, a long sequence of numbers. Think of the two-dimensional cartesian coordinates from algebra class, but with more dimensions---often 768 or 1536.''} \cite{henner_intuitive_embeddings_2023}
@@ -23,12 +23,12 @@ Al procesar el párrafo anterior mediante el modelo \textit{text-embedding-ada-0
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=0.8\linewidth]{imagenes/ejemploValoresEmbedding.png}
+  \includegraphics[width=1.2\linewidth]{imagenes/ejemploValoresEmbedding.png}
   \caption{Representación gráfica de los valores en las 1536 dimensiones de un embedding generado por el modelo text-embedding-ada-002. Fuente: \cite{henner_intuitive_embeddings_2023}.}
   \label{fig:ejemploValoresEmbedding}
 \end{figure}
 
-Un \textbf{espacio de embedding} o \textbf{espacio latente} se define matemáticamente como un espacio donde los elementos están posicionados de manera más cercana uno del otro cuando tienen valores parecidos, mientras que si difieren dichos elementos, se posicionan más lejos entre ellos. En el caso del \gls{pln}, frases que son semánticamente más similares a otras, tendrán un vector de embedding similar por lo que estarán más juntas en el espacio.
+Un \textbf{espacio de embedding} o \textbf{espacio latente} se define matemáticamente como un espacio donde los elementos están posicionados de manera más cercana uno del otro cuando tienen valores parecidos, mientras que si difieren dichos elementos, se posicionan más lejos entre ellos. En el caso del \gls{pln}, frases que son semánticamente más similares a otras tendrán un vector de embedding similar, por lo que estarán más juntas en el espacio.
 
 Aunque la comparación entre frases es una de las aplicaciones más conocidas, los \textit{embeddings} también se aplica en modelos de \gls{ml} y en arquitecturas de redes neuronales complejas.
 
@@ -40,36 +40,36 @@ El diseño y creación de estos vectores se clasifica principalmente en dos gran
 
 \subsubsection{Modelos basados en predicciones}
 
-Esta técnica de representación surgió fuertemente ligada al desarrollo de los \glsentryplural{mnl}. A diferencia de los enfoques estadísticos tradicionales de recuento, un modelo predictivo se centra en aprender el significado de un término de forma prospectiva, es decir, "adivinando".
+Esta técnica de representación surgió fuertemente ligada al desarrollo de los \gls{mnl}. A diferencia de los enfoques estadísticos tradicionales de recuento, un modelo predictivo se centra en aprender el significado de un término de forma prospectiva, es decir, ``adivinando''.
 
 Para lograrlo, emplean una red neuronal sencilla dotada de una ventana de contexto de tamaño fijo y móvil (por ejemplo, avanzando de cinco en cinco palabras). A medida que lee el texto, el modelo intenta predecir el significado de una palabra central en base a las palabras vecinas de esta ventana, o a la inversa, predecir el contexto apoyándose únicamente en dicho término central.
 
-El aspecto fundamental en todo esto, es que tras finalizar el entrenamiento, el objetivo de \gls{ml} deja de ser la capacidad del modelo para adivinar con exactitud. En su lugar, de la red neuronal, se extraen los \textbf{pesos y valores} que ha ajustado internamente. Estos valores que fueron ajustados durante el entrenamiento, se convierten directamente en el \textit{word embedding}. En consecuencia, el mecanismo iterativo garantiza que aquellas palabras empleadas en contextos idénticos acaben reteniendo representaciones vectoriales prácticamente iguales.
+El aspecto fundamental en todo esto, es que tras finalizar el entrenamiento, el objetivo de \gls{ml} deja de ser la capacidad del modelo para adivinar con exactitud. En su lugar, de la red neuronal, se extraen los \textbf{pesos y valores} que ha ajustado internamente. Estos valores que fueron ajustados durante el entrenamiento se convierten directamente en el \textit{word embedding}. En consecuencia, el mecanismo iterativo garantiza que aquellas palabras empleadas en contextos idénticos acaben reteniendo representaciones vectoriales prácticamente iguales, tal y como se muestra en la Figura \ref{fig:word_embeddings_model}.
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=0.8\linewidth]{imagenes/Word-embeddings-model.png}
+  \includegraphics[width=1.0\linewidth]{imagenes/Word-embeddings-model.png}
   \caption{Representación visual de un modelo basado en predicciones para generar embeddings de palabras. Fuente: \url{https://neptune.ai/blog/word-embeddings-guide}.}
   \label{fig:word_embeddings_model}
 \end{figure}
 
-Una de las arquitecturas más representativas dentro de la predicción de \textit{embeddings} es la famosa familia algorítmica \textbf{Word2Vec}, la cual se detalla de forma exhaustiva en el próximo capítulo.
+Una de las arquitecturas más representativas dentro de la predicción de \textit{embeddings} es la famosa familia algorítmica \textbf{Word2Vec}, en concreto \textbf{SkipGram} que se detalla de forma exhaustiva en el próximo capítulo.
 
 \subsubsection{Modelos basados en conteos}
 
 Por su parte, la segunda categoría de modelos hace uso de la estadística global a lo largo de un documento completo (\textit{corpus}). Estos modelos se aprovechan de los recuentos de coocurrencia (palabra y contexto) estructurando toda la información como grandes \textit{matrices de palabra-contexto}.
 
-El funcionamiento radica en la creación de una matriz gigantesca donde se contabiliza el número de apariciones conjuntas en las que una palabra acompaña a todo un posible contexto del propio texto. No obstante, si el conjunto de datos cuenta con $n$ palabras distintas, las dimensiones de la matriz ascenderán a un total de $n \times n$. Esto acarrea severamente un cuello de botella de almacenamiento. Adicionalmente, la inmensa mayoría de cruces de dicha matriz representarán palabras que jamás han coexistido en el texto (por ejemplo, "oveja" y "pantalla"), llenando de ceros el modelo de datos. Esta estructura tan ineficiente es conocida como \textbf{matriz dispersa}.
+El funcionamiento radica en la creación de una matriz gigantesca donde se contabiliza el número de apariciones conjuntas en las que una palabra acompaña a todo un posible contexto del propio texto. No obstante, si el conjunto de datos cuenta con $n$ palabras distintas, las dimensiones de la matriz ascenderán a un total de $n \times n$. Esto acarrea severamente un cuello de botella de almacenamiento. Adicionalmente, la inmensa mayoría de cruces de dicha matriz representarán palabras que jamás han coexistido en el texto (por ejemplo, ``oveja'' y ``pantalla''), llenando de ceros el modelo de datos. Esta estructura tan ineficiente es conocida como \textbf{matriz dispersa}.
 
 Para solventar esta carencia y la falta de memoria, se reduce la dimensionalidad a través de complejas operaciones de álgebra lineal, como puede ser la \gls{dvs}. Con esto logran sintetizar enormes matrices de ceros, transformándolos en \textbf{vectores cortos y densos}. De tal modo, que los conceptos globalmente equivalentes retengan valores numéricamente similares sin desperdiciar memoria.
 
 La \textbf{mayor ventaja} de esta táctica estadística contable, frente al sistema predictivo, reside precisamente en que es capaz de aprovechar la información global de todo el \textit{corpus}, un aspecto estadístico que se le escapa a las ventanas de lectura en las redes neuronales por definición.
 
-El modelo híbrido con más popularidad en este ámbito es el de \textbf{GloVe (\textit{Global Vectors})}. Desarrollado por un equipo de investigadores de la Universidad de Stanford, logra exitosamente agrupar los beneficios numéricos de las matrices grandes de conteo global, con las altas capacidades de optimización paramétrica propias de los modelos del \gls{ml}.
+El modelo híbrido con más popularidad en este ámbito es el de \textbf{GloVe (\textit{Global Vectors})} \cite{pennington_glove_stanford}. Desarrollado por un equipo de investigadores de la Universidad de Stanford, logra exitosamente agrupar los beneficios numéricos de las matrices grandes de conteo global, con las altas capacidades de optimización paramétrica propias de los modelos del \gls{ml}, como se ilustra en la Figura \ref{fig:word_embedding_counting_model}.
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=0.8\linewidth]{imagenes/word-embedding-counting-model.png}
+  \includegraphics[width=0.9\linewidth]{imagenes/word-embedding-counting-model.png}
   \caption{Representación visual de un modelo basado en conteos para generar embeddings de palabras. Fuente: \url{https://www.scaler.com/topics/tensorflow/tensorflow-word-embeddings/}.}
   \label{fig:word_embedding_counting_model}
 \end{figure}
@@ -86,12 +86,12 @@ Como se explicó con anterioridad, una de las características principales de un
 
 Un ejemplo básico es el siguiente: imagina un plano de planta bidimensional de una biblioteca de una sola planta. Los usuarios de la biblioteca son amantes de los gatos, de los perros, o se sitúan en algún punto intermedio. El objetivo es colocar los libros sobre gatos cerca de otros libros de gatos, y los libros sobre perros cerca de otros libros de perros.
 
-El enfoque más sencillo se conoce como el modelo de bolsa de palabras. Consiste en establecer un eje de perros a lo largo de una pared y un eje de gatos perpendicular a él. A continuación, se cuentan las ocurrencias de las palabras "gato" y "perro" en cada libro y se ubica dicho libro en su punto correspondiente dentro del sistema de coordenadas $(\text{perro}_x, \text{gato}_y)$.
+El enfoque más sencillo se conoce como el modelo de bolsa de palabras. Consiste en establecer un eje de perros a lo largo de una pared y un eje de gatos perpendicular a él. A continuación, se cuentan las ocurrencias de las palabras ``gato'' y ``perro'' en cada libro y se ubica dicho libro en su punto correspondiente dentro del sistema de coordenadas $(\text{perro}_x, \text{gato}_y)$.
 
 Pensemos ahora en un sistema de recomendación sencillo. A partir de la selección anterior de un libro, ¿qué se podría sugerir a continuación? Bajo la suposición (muy simplificada) de que estas dos dimensiones capturan adecuadamente las preferencias del lector, basta con buscar el libro que se encuentre más cerca. En este caso, el sentido intuitivo de cercanía es la distancia euclídea —el camino más corto entre dos libros—:
 
 \[
-  d(\mathbf{p}, \mathbf{q}) = \sqrt{\sum_{i=1}^{n} (q_i - p_i)^2}
+  d(\mathbf{p}, \mathbf{q}) = \sqrt{\sum_{i=1}^{n} (q_i - p_i)^2};
 \]
 
 Siguiendo el razonamiento lógico, si se analiza a través de la distancia euclídea, se pondrá el libro $(\text{perro}_5, \text{gato}_1)$ más cerca del libro $(\text{perro}_1, \text{gato}_5)$ que de un libro mucho más extenso o enciclopédico como $(\text{perro}_{100}, \text{gato}_1)$. Esto plantea un grave problema semántico: un lector de libros cortos de perros con proporción $(5, 1)$ seguramente prefiera a continuación una enciclopedia gigante sobre perros de $(100, 1)$ antes que un libro corto sobre gatos de $(1, 5)$. La métrica euclídea penaliza severamente la longitud en palabras del libro (magnitud) omitiendo por completo el reparto del tema de este (la proporción).
@@ -101,42 +101,42 @@ Cuando resulta más relevante concentrarse en los pesos relativos temáticos que
 Matemáticamente, esta métrica se define mediante el cociente del producto escalar de dos determinados vectores entre el producto de sus magnitudes:
 
 \[
-  \text{similitud}(\mathbf{p}, \mathbf{q}) = \cos(\theta) = \frac{\mathbf{p} \cdot \mathbf{q}}{\|\mathbf{p}\| \|\mathbf{q}\|} = \frac{\sum_{i=1}^{n} p_i q_i}{\sqrt{\sum_{i=1}^{n} p_i^2} \sqrt{\sum_{i=1}^{n} q_i^2}}
+  \text{similitud}(\mathbf{p}, \mathbf{q}) = \cos(\theta) = \frac{\mathbf{p} \cdot \mathbf{q}}{\|\mathbf{p}\| \|\mathbf{q}\|} = \frac{\sum_{i=1}^{n} p_i q_i}{\sqrt{\sum_{i=1}^{n} p_i^2} \sqrt{\sum_{i=1}^{n} q_i^2}};
 \]
 
 Un pensamiento intuitivo para entender la fórmula de similitud coseno, es que si dos vectores apuntan en la misma dirección, el ángulo entre ellos es 0 por lo que le coseno es 1. Si son ortogonales, significa que no comparten una 'direccionalidad', el coseno es 0.
 
-En el contexto que nos encontramos de embeddings de palabras, hay que pensar que cada vector actúa como una flecha que apunta desde el origen hasta la posición de la palabra en nuestra librería imaginada. Palabas que son similar semánticamente, tendrán vectores que apuntan en direcciones similares, es decir, la similitud de coseno será mayor.
+En el contexto que nos encontramos de embeddings de palabras, hay que pensar que cada vector actúa como una flecha que apunta desde el origen hasta la posición de la palabra en nuestra librería imaginada. Palabras que son similares semánticamente tendrán vectores que apuntan en direcciones similares, es decir, la similitud coseno será mayor, tal y como se puede apreciar gráficamente en la Figura \ref{fig:ejemploSimilitudCoseno}.
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=0.6\linewidth]{imagenes/ejemploSimilitudCoseno.png}
+  \includegraphics[width=0.7\linewidth]{imagenes/ejemploSimilitudCoseno.png}
   \caption{Ejemplo visual de la representación de vectores y su cercanía empleando la similitud coseno. Fuente: \url{https://x.com/levikul09}.}
   \label{fig:ejemploSimilitudCoseno}
 \end{figure}
 
 \subsection{Información Latente}
 
-Cualquier texto suele emplear sinónimos o términos relacionados para referirse a un mismo concepto; por ejemplo, volviendo al mismo ejemplo de antes, un libro sobre perros utilizará frecuentemente palabras como "canino". En un modelo básico de bolsa de palabras, incorpusr este nuevo vocablo requiere añadir una dimensión perpendicular adicional a las ya existentes, transformando nuestro anterior sistema de coordenadas en $(\text{perro}_x, \text{gato}_y, \text{canino}_z)$.
+Cualquier texto suele emplear sinónimos o términos relacionados para referirse a un mismo concepto; por ejemplo, volviendo al mismo ejemplo de antes, un libro sobre perros utilizará frecuentemente palabras como ``canino''. En un modelo básico de bolsa de palabras, incorpusr este nuevo vocablo requiere añadir una dimensión perpendicular adicional a las ya existentes, transformando nuestro anterior sistema de coordenadas en $(\text{perro}_x, \text{gato}_y, \text{canino}_z)$.
 
 Bajo este mismo principio, resulta muy sencillo continuar agregando nuevas dimensiones para representar más palabras, consiguiendo un espacio multidimensional $(\text{perro}_x, \text{gato}_y, \text{canino}_z, \text{felino}_w)$. Sin embargo, este enfoque tan básico conlleva dos grandes problemas que imposibilitan su aplicación a gran escala: rompe de inmediato la interpretabilidad espacial (como lo era la sencilla idea inicial de una biblioteca bidimensional) y provoca una explosión en los requisitos necesarios para el cómputo.
 
 Resulta evidente que, a nivel computacional, esta aproximación es extremadamente ineficiente a medida que aumenta el tamaño del vocabulario. El español, por ejemplo, cuenta con más de 93.000 palabras según el Diccionario de la Real Academia Española \cite{espanol_palabras_2022}. Manejar vectores con decenas de miles de dimensiones implica calcular una ingente cantidad de combinatorias. Además, se agrava el problema de la dispersión de datos: en un documento dado, la gran mayoría del vocabulario total no aparecerá, rellenando los vectores con innumerables ceros que penalizan drásticamente el rendimiento de los modelos estadísticos y de aprendizaje automático.
 
-La solución a la alta dimensionalidad radica en abstraer el conteo literal hacia ejes que representen verdaderos atributos semánticos. Si el modelo es capaz de identificar la relación semántica entre "gato" y "felino", podría agrupar la contribución de ambas en una única variable latente compartida. Esto no solo comprime el tamaño de los vectores, haciendo a los algoritmos mucho más eficientes y veloces, sino que también genera una representación geométrica mucho más afín a la intuición humana.
+La solución a la alta dimensionalidad radica en abstraer el conteo literal hacia ejes que representen verdaderos atributos semánticos. Si el modelo es capaz de identificar la relación semántica entre ``gato'' y ``felino'', podría agrupar la contribución de ambas en una única variable latente compartida. Esto no solo comprime el tamaño de los vectores, haciendo a los algoritmos mucho más eficientes y veloces, sino que también genera una representación geométrica mucho más afín a la intuición humana.
 
-De la misma forma, términos más amplios como "mascota" o "mamífero" representan características semánticas compartidas simultáneamente por "perro" y "gato". En un espacio latente bien optimizado, estas palabras genéricas actúan como atributos comunes que vinculan y aproximan ambos animales en ciertas dimensiones del espacio. Por otro lado, si la elevada reducción dimensional provocara una superposición excesiva donde términos que debieran ser distintos terminen colapsando —por ejemplo, confundiéndose ambos en el mismo punto exacto—, esta carencia de precisión podría mitigarse introduciendo nuevos ejes latentes. Estos nuevos atributos ocultos de diferenciación (por ejemplo, proyectando qué palabras se relacionan estrechamente con "mesa" frente a los animales vivos mencionados anteriormente) permiten desenredar los agrupamientos de datos semánticos complejos.
+De la misma forma, términos más amplios como ``mascota'' o ``mamífero'' representan características semánticas compartidas simultáneamente por ``perro'' y ``gato''. En un espacio latente bien optimizado, estas palabras genéricas actúan como atributos comunes que vinculan y aproximan ambos animales en ciertas dimensiones del espacio. Por otro lado, si la elevada reducción dimensional provocara una superposición excesiva donde términos que debieran ser distintos terminen colapsando —por ejemplo, confundiéndose ambos en el mismo punto exacto—, esta carencia de precisión podría mitigarse introduciendo nuevos ejes latentes. Estos nuevos atributos ocultos de diferenciación (por ejemplo, proyectando qué palabras se relacionan estrechamente con ``mesa'' frente a los animales vivos mencionados anteriormente) permiten desenredar los agrupamientos de datos semánticos complejos.
 
 
 \section{Paralelismo entre Espacio Semántico y Espacio de Hilbert}
 
-Como se vio en capítulos anteriores, los estados en computación cuántica están representados por vectores definidos en un espacio complejo, el cual se conoce formalmente como \textbf{espacio de Hilbert} ($\mathcal{H}$). Por su parte, en el \gls{pln} clásico se modela el significado de las palabras mapeándolas a vectores en un espacio vectorial puramente real ($\mathbb{R}^n$).
+Como se vio en capítulos anteriores, los estados en computación cuántica están representados por vectores definidos en un espacio complejo, el cual se conoce formalmente como \textbf{espacio de Hilbert} ($\mathcal{H}$) \cite{quandela_hilbert_space}. Por su parte, en el \gls{pln} clásico se modela el significado de las palabras mapeándolas a vectores en un espacio vectorial puramente real ($\mathbb{R}^n$).
 
 A partir de esta analogía natural, surge la posibilidad de modelar las palabras y sus significados como estados dentro del propio espacio de Hilbert \cite{wittek_combining_semantics}.
 
 \subsection{Codificación multidimensional: Forma y Contenido}
 
-En un espacio semántico tradicional, el significado de una palabra adquiere "sustancia" al ubicarse en unas coordenadas determinadas que definen su forma. Sin embargo, al restringirse al uso exclusivo de los números reales, el \gls{pln} clásico queda comúnmente limitado a capturar únicamente su \textit{semántica distribucional} (las estadísticas y frecuencias con las que coocurre junto a otras palabras).
+En un espacio semántico tradicional, el significado de una palabra adquiere ``sustancia'' al ubicarse en unas coordenadas determinadas que definen su forma. Sin embargo, al restringirse al uso exclusivo de los números reales, el \gls{pln} clásico queda comúnmente limitado a capturar únicamente su \textit{semántica distribucional} (las estadísticas y frecuencias con las que coocurre junto a otras palabras).
 
 Al trasladar el procesamiento de lenguaje al dominio cuántico de Hilbert, las propiedades exclusivas de los números complejos permiten unificar distintos niveles de información semántica en un único vector de estado. Esto logra vincular el uso externo del lenguaje (su \textit{forma}) directamente con su fundamento conceptual intrínseco (su \textit{contenido}). Para ello, se propone una división explícita de las dimensiones de almacenamiento:
 
@@ -144,6 +144,8 @@ Al trasladar el procesamiento de lenguaje al dominio cuántico de Hilbert, las p
   \item \textbf{Componente Real:} Se utiliza de la misma forma para codificar la \textit{semántica distribucional}. Captura el uso estadístico clásico, determinando el comportamiento de la palabra estrictamente en base a su contexto y al número de interacciones o apariciones que realiza con respecto a las palabras que le rodean en los distintos documentos analizados.
   \item \textbf{Componente Imaginaria:} Se reserva de forma ortogonal para alojar la \textit{semántica referencial u ontológica}. Representa los fundamentos preexistentes, los conceptos formales o el núcleo estricto que designa la propia palabra (el significado que podría extraerse de ontologías taxonómicas u organizaciones como base de conocimientos, por ejemplo \textit{WordNet} o diagramas \textit{SNOMED-CT}).
 \end{itemize}
+
+Esta división entre semántica distribucional y referencial, y cómo ambas conviven en el mismo espacio vectorial complejo, queda representada esquemáticamente en la Figura \ref{fig:componentesEmbeddingsCuanticos}.
 
 \begin{figure}[h]
   \centering

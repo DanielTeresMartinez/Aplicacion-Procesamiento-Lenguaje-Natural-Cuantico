@@ -1,13 +1,13 @@
 \chapter{Procesamiento del Lenguaje Natural Cuántico}
 \label{chap:plnc}
 
-El procesamiento de datos clásicos utilizando algoritmos de aprendizaje automático a través de sistemas cuánticos, ha generado una línea de investigación de especial foto de interés estos últimos años. El \gls{qml} se ha utilizado con distintos propósitos: profundizar en el uso de los fenómenos cuánticos para sistemas de aprendizaje, explorar la capacidad de los computadores cuánticos en aprender sobre datos cuánticos, y la posibilidad de reformular e implementar algoritmos de \gls{ml} en hardware cuántico.
+El procesamiento de datos clásicos utilizando algoritmos de aprendizaje automático a través de sistemas cuánticos, ha generado una línea de investigación de especial foco de interés estos últimos años. El \gls{qml} se ha utilizado con distintos propósitos: profundizar en el uso de los fenómenos cuánticos para sistemas de aprendizaje, explorar la capacidad de los computadores cuánticos en aprender sobre datos cuánticos, y la posibilidad de reformular e implementar algoritmos de \gls{ml} en hardware cuántico.
 
 Como ocurrió anteriormente en el caso del \gls{ml} clásico, el rápido crecimiento de los algoritmos de \gls{qml}, tanto desde el lado del hardware como del software (en términos de dispositivos y algoritmos), ha involucrado al campo de \gls{pln}. Esto ha dado lugar al llamado \gls{plnc}, definido como la implementación del procesamiento del lenguaje natural en hardware cuántico.
 
-\section{Motivación para el uso de \glsentryshort{plnc}}
+\section{Motivación para el uso de PLNC}
 
-La investigación del \gls{plnc} está motivada fundamentalmente por las limitaciones físicas y computacionales de los modelos clásicos ante la creciente complejidad del lenguaje, especialmente tras la aparición de los \glsentryplural{llm}. Los sistemas tradicionales requieren recursos masivos de tiempo y memoria para procesar grandes conjuntos de datos (corpus, como por ejemplo la Wikipedia). Además, los modelos \gls{pln} clásicos sufren degradación en precisión y fiabilidad al enfrentarse por ejemplo a la polisemia, es decir, cuando una palabra tiene distintos significados según el contexto, debido a las restricciones de las arquitecturas clásicas (frecuentemente basadas en estructuras de árbol) \cite{guarasci_qnlp_2022}.
+La investigación del \gls{plnc} está motivada fundamentalmente por las limitaciones físicas y computacionales de los modelos clásicos ante la creciente complejidad del lenguaje, especialmente tras la aparición de los \gls{llm}. Los sistemas tradicionales requieren recursos masivos de tiempo y memoria para procesar grandes conjuntos de datos (corpus, como por ejemplo la Wikipedia). Además, los modelos \gls{pln} clásicos sufren degradación en precisión y fiabilidad al enfrentarse por ejemplo a la polisemia, es decir, cuando una palabra tiene distintos significados según el contexto, debido a las restricciones de las arquitecturas clásicas (frecuentemente basadas en estructuras de árbol) \cite{guarasci_qnlp_2022}.
 
 Para afrontar estos retos, el \gls{plnc} aprovecha fenómenos de la mecánica cuántica como la \textbf{superposición} y el \textbf{entrelazamiento}. Al operar en el espacio de \textit{Hilbert}, esta arquitectura permite almacenar múltiples significados y contextos simultáneamente en un solo registro y ejecutar operaciones en paralelo. Esto no solo ofrece una ventaja exponencial acelerando la computación \cite{qnlp_comp_survey}, sino que también proporciona una 'expresividad' superior, capturando las dependencias semánticas del lenguaje humano de una manera que los espacios numéricos clásicos replican con menor eficiencia.
 
@@ -28,25 +28,30 @@ La relevancia de DisCoCat para el \gls{plnc} radica en que modela el lenguaje ut
 \begin{figure}[h]
   \centering
   \includegraphics[width=0.4\linewidth]{imagenes/dani_come_pizza_discocat.png}
-  \caption{Diagrama de la oración "Dani come pizza" en el formalismo DisCoCat.}
+  \caption{Diagrama de la oración ``Dani come pizza'' en el formalismo DisCoCat.}
   \label{fig:DisCoCat_Dani}
 \end{figure}
 
-En la imagen, las cajas representan el significado de las palabras que se transmiten mediante los "cables", esto es similar a la técnica de \gls{dpt} muy popular en la literatura lingüística. En la frase, el sujeto es "Dani", mientras que "pizza" es el objeto, ambas palabras se relacionan mediante el verbo "come" y la combinación de estas palabras, crean el significado conjunto de la frase. Con DisCoCat, el significado de la oración se construye utilizando una gramática preagrupada mediante composición de productos tensoriales. Es decir, quedaría representado de la siguiente manera:
+En la Figura \ref{fig:DisCoCat_Dani}, las cajas representan el significado de las palabras que se transmiten mediante los ``cables'', esto es similar a la técnica de \gls{dpt} muy popular en la literatura lingüística. En la frase, el sujeto es ``Dani'', mientras que ``pizza'' es el objeto, ambas palabras se relacionan mediante el verbo ``come'' y la combinación de estas palabras, crean el significado conjunto de la frase. Con DisCoCat, el significado de la oración se construye utilizando una gramática preagrupada mediante composición de productos tensoriales. Es decir, quedaría representado de la siguiente manera:
 
 \[
-  (\overrightarrow{\text{Dani}} \otimes \overrightarrow{\text{suj}}) \otimes \overrightarrow{\text{come}} \otimes (\overrightarrow{\text{pizza}} \otimes \overrightarrow{\text{obj}})
+  (\overrightarrow{\text{Dani}} \otimes \overrightarrow{\text{suj}}) \otimes \overrightarrow{\text{come}} \otimes (\overrightarrow{\text{pizza}} \otimes \overrightarrow{\text{obj}});
 \]
 
-Este vector generado en el espacio de productos tensoriales, se puede considerar como el significado de la oración "Dani come pizza". Por ende, se dice que este framework lo ha expresado en términos de computación cuántica.
+En esta expresión matemática:
+\begin{itemize}
+  \item $\overrightarrow{\text{Dani}}$, $\overrightarrow{\text{come}}$ y $\overrightarrow{\text{pizza}}$ representan los vectores semánticos correspondientes a cada palabra individual.
+  \item $\overrightarrow{\text{suj}}$ y $\overrightarrow{\text{obj}}$ son los vectores que codifican los roles sintácticos de sujeto y objeto, dictados por las reglas de la gramática.
+  \item El operador $\otimes$ denota el producto tensorial, que es el mecanismo matemático que permite componer o entrelazar los significados léxicos con su función gramatical.
+\end{itemize}
 
-Cabe destacar que, aunque el modelo DisCoCat original funciona perfectamente sin referencias explícitas a la teoría cuántica (a pesar de originarse en el formalismo de la \gls{cqm}). La novedad yace en el argumento de que el \gls{plnc} puede considerarse "nativo cuántico".
+Todo este vector resultante generado en el espacio de productos tensoriales se puede considerar como el significado matemático de la oración completa ``Dani come pizza''. Por ende, se dice que este framework lo ha expresado en términos afines a la computación cuántica.
 
-Esto se debe a que la teoría cuántica y el lenguaje natural comparten una misma estructura de interacción y el uso fundamental de espacios vectoriales para describir sus estados. Esta estructura de interacción determina por completo la estructura los procesos, incluyendo la especificación de los espacios donde "viven" los estados. Esta coincidencia estructural implica que el lenguaje natural podría encajar de manera más natural y eficiente en hardware cuántico que en hardware clásico.
+Cabe destacar que, aunque el modelo DisCoCat original funciona perfectamente sin referencias explícitas a la teoría cuántica (a pesar de originarse en el formalismo de la \gls{cqm}). La novedad yace en el argumento de que el \gls{plnc} puede considerarse ``nativo cuántico''. Esto se debe a que la teoría cuántica y el lenguaje natural comparten una misma estructura de interacción y el uso fundamental de espacios vectoriales para describir sus estados. Esta estructura de interacción determina por completo la estructura los procesos, incluyendo la especificación de los espacios donde ``viven'' los estados. Esta coincidencia estructural implica que el lenguaje natural podría encajar de manera más natural y eficiente en hardware cuántico que en hardware clásico.
 
 \subsection{Técnicas de codificación de datos clásicos a estados cuánticos}
 
-Al igual que en computación clásica la información necesita ser codificada de manera que los modelos pueda entender los datos que se le proporciona y así trabajar con ellos, la computación cuántica necesita poder codificar los datos de la computación clásica (texto en este caso, ya que estamos dentro del ámbito de \gls{pln} y \gls{plnc}), a estados cuánticos. Para ello existe diversas técnicas que son:
+Al igual que en computación clásica la información necesita ser codificada de manera que los modelos pueda entender los datos que se le proporcionan y así trabajar con ellos, la computación cuántica necesita poder codificar los datos de la computación clásica (texto en este caso, ya que estamos dentro del ámbito de \gls{pln} y \gls{plnc}), a estados cuánticos. Para ello existe diversas técnicas las cuales explicaremos a continuación:
 
 \begin{itemize}
   \item \textbf{Basis Encoding:} Utiliza $n$ qubits. Complejidad $O(1)$. Simple, entradas cortas y simbólicas.
@@ -57,9 +62,9 @@ Al igual que en computación clásica la información necesita ser codificada de
 
 De todas estas técnicas, se ha optado por implementar la técnica de \textit{Basis Encoding} \cite{quantumzeitgeist_encoding_overview}. Este tipo de codificación se utiliza principalmente cuando un número real debe ser matemáticamente manipulado en un algoritmo cuántico. Su funcionamiento consiste en representar un número real como un número binario y luego transformarlo en un estado cuántico en la base computacional.
 
-El estado cuántico embebido es la traducción bit a bit de una cadena binaria a los estados correspondientes de los subsistemas cuánticos. Por lo tanto, un bit de información clásica está representado por un subsistema cuántico. Actuar sobre características binarias codificadas como qubits otorga mayor flexibilidad computacional para diseñar algoritmos cuánticos.
+El estado cuántico embebido es la traducción bit a bit de una cadena binaria a los estados correspondientes de los subsistemas cuánticos. Por lo tanto, un bit de información clásica está representado por el estado de un subsistema cuántico. Actuar sobre características binarias codificadas como qubits otorga mayor flexibilidad computacional para diseñar algoritmos cuánticos.
 
-Supongamos que queremos codificar la frase "María estudia medicina" utilizando \textit{Basis Encoding}. Primero, definimos un vocabulario simplificado donde asignamos un índice entero único a cada palabra y fijamos una longitud de $\tau = 5$ bits por palabra (lo que permitiría un vocabulario de hasta $2^5 = 32$ palabras).
+Supongamos que queremos codificar la frase ``María estudia medicina'' utilizando \textit{Basis Encoding}. Primero, definimos un vocabulario simplificado donde asignamos un índice entero único a cada palabra y fijamos una longitud de $\tau = 5$ bits por palabra (lo que permitiría un vocabulario de hasta $2^5 = 32$ palabras).
 
 \begin{itemize}
   \item \textit{María} $\rightarrow$ Índice 3 $\rightarrow$ \texttt{00011}
@@ -72,29 +77,34 @@ El vector de características de la frase corresponde entonces a la concatenaci�
 Finalmente, esta secuencia se representa mediante el estado cuántico conjunto en la base computacional:
 
 \[
-  \ket{\psi}_{\text{frase}} = \ket{00011} \otimes \ket{01100} \otimes \ket{10101} = \ket{00011\;01100\;10101}
+  \ket{\psi}_{\text{frase}} = \ket{00011} \otimes \ket{01100} \otimes \ket{10101} = \ket{00011\;01100\;10101};
 \]
 
 De esta forma, hemos codificado una frase de lengua clásica directamente en un estado cuántico en la base computacional.
 
-\section{Circuitos Variacionales Cuánticos (\glsentryshort{cvc}) como modelos de aprendizaje}
+\section{Circuitos Variacionales Cuánticos como modelos de aprendizaje}
 
-En 2016, se tuvo acceso al primer ordenador cuántico en la nube aunque el ruido y las limitaciones
-de quibits de las que se disponía, hacía que fuera difícil implementar algoritmos cuánticos.
+En 2016, se tuvo acceso al primer ordenador cuántico en la nube, aunque el ruido y las limitaciones
+de quibits de las que se disponía hacía que fuera difícil implementar algoritmos cuánticos.
 
-A pesar de ello, hubo una emoción muy grande con lo que se podría hacer con estos nuevos ordenadores llamados \gls{nisq}. Estos nuevos ordenadores tenían entre 50 y 100 \glsentryplural{qubit}, lo que les permitía sobrepasar en rendimiento a los mejores superordenadores clásicos en algunas áreas matemáticas \cite{arute2019quantum,zhong2020quantum}.
+A pesar de estas limitaciones, se generó una gran expectación en la comunidad investigadora respecto al potencial que ofrecía esta nueva generación de dispositivos denominados \gls{nisq}. Estos ordenadores contaban con entre 50 y 100 \glsentryplural{qubit}, lo que les permitía superar en rendimiento a los mejores superordenadores clásicos en determinadas áreas matemáticas \cite{arute2019quantum,zhong2020quantum}.
 
-Los \gls{cvc} nacieron como la mejor estrategia para hacer frente a los ordenadores \gls{nisq}. Debido a las limitaciones de estos dipsositivos, se utilizó la estrategia de optimización basado en el aprendizaje. No son más que una analogía cuántica a los técnicas existentes del campo de \gls{ml} como pueden ser las redes neuronales.
-
-En definitiva, son algoritmos cuánticos que tienen parámetros libres \cite{pennylane_variational_circuit}. Al igual que cualquier otro circuito cuántico estándar, se necesita hacer uso de estos tres conceptos básicos:
+Los \gls{cvc} nacieron como la mejor estrategia para hacer frente a los ordenadores \gls{nisq}. Debido a las limitaciones de estos dipsositivos, se utilizó la estrategia de optimización basado en el aprendizaje. No son más que una analogía cuántica a los técnicas existentes del campo de \gls{ml} como pueden ser las redes neuronales. En definitiva, son algoritmos cuánticos que tienen parámetros libres \cite{pennylane_variational_circuit}. Al igual que cualquier otro circuito cuántico estándar, se necesita hacer uso de estos tres conceptos básicos:
 
 \begin{enumerate}
   \item Preparación con un \textbf{estado inicial} fijo.
   \item Un \textbf{circuito cuántico} $U(\theta)$ parametrizado con un conjunto de parámetros libres $\theta$.
-  \item \textbf{Medición} de un observable $\hat{B}$ en la salida. Este observable puede estar compuesto por varios observables cada uno de manera local a un cable del circuito, o bien, a un conjunto de cables del circuito.
+  \item \textbf{Medición} de un observable $\hat{B}$ en la salida. Este observable puede estar compuesto por varios observables, cada uno de manera local a un cable del circuito, o bien, a un conjunto de cables del circuito.
 \end{enumerate}
 
-Normalmente, los valores esperados $f(\theta) = \langle 0 | U^\dagger(\theta) \hat{B} U(\theta) | 0 \rangle$ de uno o varios circuitos, definen un coste escalar para la tarea específica. Los parámetros libres $\theta = (\theta_1, \theta_2, \dots)$ son ajustados para optimizar esta función de coste.
+Para ilustrar estos tres conceptos de forma más intuitiva, imaginemos un sistema cuántico muy básico diseñado para clasificar el sentimiento de una frase (positivo o negativo):
+\begin{itemize}
+  \item \textbf{1. Preparación:} Se recibe la información de entrada (por ejemplo, la frase ``Me encanta'') y se codifica en el ordenador cuántico, alterando los qubits desde su estado base $\ket{0}$ hacia un estado que represente matemáticamente dicha frase.
+  \item \textbf{2. Circuito parametrizado:} Actúa de forma análoga a las neuronas de una red neuronal clásica. Se aplican puertas lógicas cuánticas que dependen de unos ángulos $\theta$. Durante el entrenamiento, el algoritmo irá ajustando estos parámetros $\theta$ para aprender a separar las frases positivas de las negativas.
+  \item \textbf{3. Medición:} Tras el circuito, se miden los qubits resultantes. Podemos definir por ejemplo que si el sistema colapsa mayoritariamente en el estado $\ket{0}$, el sentimiento predicho es ``positivo'', mientras que si colapsa en $\ket{1}$ es ``negativo''.
+\end{itemize}
+
+Normalmente, los valores esperados $f(\theta) = \langle 0 | U^\dagger(\theta) \hat{B} U(\theta) | 0 \rangle$ de uno o varios circuitos, definen un coste escalar para la tarea específica. Los parámetros libres $\theta = (\theta_1, \theta_2, \dots)$ son ajustados para optimizar esta función de coste, tal como se representa esquemáticamente en la Figura \ref{fig:costeVQC}: el circuito recibe los parámetros, aplica las transformaciones unitarias, obtiene un coste $f(\theta)$ mediante la medición del observable, y retroalimenta ese valor al optimizador clásico para actualizar $\theta$ en la siguiente iteración.
 
 \begin{figure}[ht]
   \centering
@@ -107,10 +117,11 @@ Los circuitos cuánticos variacionales son entrenados mediante un algoritmo de o
 
 Los parámetros variacionales $\theta$, posiblemente junto con un conjunto adicional de parámetros no adaptables $x = (x_1, x_2, \dots)$, entran en el circuito cuántico como argumentos para las puertas del circuito. Esto nos permite convertir \textit{información clásica} (los valores $\theta$ y $x$) en \textit{información cuántica} (el estado cuántico $U(x; \theta)|0\rangle$). Como veremos en el ejemplo a continuación, los parámetros de puerta no adaptables suelen desempeñar el papel de \textit{entradas de datos} en el aprendizaje automático cuántico.
 
-La información cuántica se convierte de nuevo en información clásica evaluando el valor esperado del observable $\hat{B}$,
+Finalmente, la información cuántica se convierte de nuevo en información clásica evaluando el valor esperado del observable $\hat{B}$, tal y como se esquematiza en la Figura \ref{fig:circuitoVQCArgumentos}:
 \[
-  f(x; \theta) = \langle \hat{B} \rangle = \langle 0| U^\dagger(x; \theta) \hat{B} U(x; \theta) |0\rangle.
+  f(x; \theta) = \langle \hat{B} \rangle = \bra{0} U^\dagger(x; \theta) \hat{B} U(x; \theta) \ket{0}.
 \]
+En esta expresión, $U(x; \theta)$ representa el circuito cuántico parametrizado que transforma el estado base $\ket{0}$: los parámetros $\theta$ son los pesos entrenables del modelo, mientras que $x$ son los datos de entrada no modificables (por ejemplo, la codificación cuántica de un texto). El operador $\hat{B}$ es el observable que se mide a la salida del circuito, y su valor esperado $\langle \hat{B} \rangle$ produce un escalar real que actúa como predicción del modelo para una tarea concreta (como la clasificación de sentimientos del ejemplo anterior).
 
 \begin{figure}[htbp]
   \centering
