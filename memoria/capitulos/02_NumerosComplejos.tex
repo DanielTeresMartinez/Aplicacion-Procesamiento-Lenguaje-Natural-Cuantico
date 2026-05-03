@@ -3,7 +3,7 @@
 
 \section{¿Qué es un número complejo?}
 
-EL conjunto de los números complejos represetnado por el símbolo $\mathbb{C}$, es la combinación de números reales e imaginarios. La parte real se puede expresar por un número entero o sus decimales, la parte imaginaria es aquella cuyo cuadrado es negativo.
+El conjunto de los números complejos, representado por el símbolo $\mathbb{C}$, es la combinación de números reales e imaginarios \cite{ferrovial_numeros_complejos}. La parte real se puede expresar por un número entero o sus decimales, la parte imaginaria es aquella cuyo cuadrado es negativo.
 
 
 Los números complejos sirven para dar sentido a la raíz cuadrada de números negativos. Esto permite que ecuaciones de segundo grado con discriminante negativo, puedan ser resueltas. Con esto se abre la puerta a un gran mundo en el que todas las operaciones (excepto dividir entre 0), son posibles.
@@ -46,7 +46,7 @@ Al estar expresados en forma binómica, las operaciones aritméticas básicas en
 
 \section{Representación geométrica en $\mathbb{R}^2$}
 
-Debido a que la forma binómica de un número complejo $z = a + bi$ está unívocamente definida por dos valores reales ($a$ y $b$), existe una correspondencia natural con el espacio bidimensional $\mathbb{R}^2$. Por ello, para representar gráficamente un número complejo, se utiliza un sistema de coordenadas cartesiano denominado \textbf{plano complejo} (o plano de Argand).
+Debido a que la forma binómica de un número complejo $z = a + bi$ está unívocamente definida por dos valores reales ($a$ y $b$), existe una correspondencia natural con el espacio bidimensional $\mathbb{R}^2$. Por ello, para representar gráficamente un número complejo, se utiliza un sistema de coordenadas cartesiano denominado \textbf{plano complejo} o plano de Argand \cite{sangaku_representacion_complejos}.
 
 Este plano está formado por dos ejes perpendiculares: un \textbf{eje real} (horizontal) donde se ubica la parte real $a$, y un \textbf{eje imaginario} (vertical) donde se posiciona la parte imaginaria $b$. De este modo, el número complejo puede representarse como el punto $(a,b)$ en dicho plano. A este punto geométrico se le conoce formalmente como el \textbf{afijo} del número complejo.
 
@@ -70,7 +70,14 @@ Basándonos en la definición del apartado anterior sobre el inverso y conjugado
 
 \section{Representación forma polar}
 
-Esta representación sirve para destacar los atributos gráficos que tienen los números complejos.\\
+Esta representación sirve para destacar los atributos gráficos que tienen los números complejos. Se basa en 2 conceptos fundamentales:
+
+\begin{itemize}
+    \item \textbf{Módulo ($r$):} Distancia Euclidiana del afijo al origen de coordenadas, calculada como $r = |z| = \sqrt{a^2 + b^2}$.
+    \item \textbf{Argumento ($\alpha$ o $\arg(z)$):} Ángulo que forma el segmento $\overline{OZ}$ con el semieje real positivo, se obtiene mediante $\alpha = \arctan\left(\frac{b}{a}\right)$.
+\end{itemize}
+
+En la figura \ref{fig:formaPolar} se puede apreciar visualmente esta representación en el plano.
 
 \begin{figure}[h]
     \centering
@@ -79,34 +86,37 @@ Esta representación sirve para destacar los atributos gráficos que tienen los 
     \label{fig:formaPolar}
 \end{figure}
 
+Utilizando estos dos parámetros, el número complejo $z$ se puede expresar de una forma más compacta, conocida como \textbf{forma polar}, la cual se denota matemáticamente como:
+
+\[
+    z = r_{\alpha}
+\]
+
+En base a la forma polar, se puede expresar $z$ en \textbf{forma trigonométrica} de la siguiente manera:
+
+\[
+    z = r (\cos \alpha + i \, \sen \alpha)
+\]
+
+Esta expresión permite la conversión de un número de su forma polar a su forma binómica ($z = a + bi$). Al distribuir el producto, se extrae explícitamente la correspondencia para cada una de las componentes cartesianas:
+
 \begin{itemize}
-    \item \textbf{Módulo (r):} Distancia del afijo al origen de coordenadas.
-    \item \textbf{Argumento (arg(z)):} Ángulo que forma el segmento $\overline{OZ}$ con el semieje positivo medido en el sentido contrario de las agujas del reloj entre 0° y 360°.
+    \item \textbf{Parte real:} $a = r \cos \alpha$
+    \item \textbf{Parte imaginaria:} $b = r \sen \alpha$
 \end{itemize}
-
-Con el módulo y el argumento se puede expresar el número complejo \textbf{z} en \textbf{forma polar} de la siguiente forma:
-\[
-    r_{\alpha} \quad \text{con } r = |z| \text{ y } \alpha = \arg(z)
-\]
-
-En base a la forma polar, se puede expresar \textbf{z} en \textbf{forma trigonométrica} de la siguiente manera:
-
-\[
-    z = r (\cos \alpha + i \, \sen \alpha), \quad
-\]
-
-Esto nos puede servir para pasar de forma polar a forma binómica.\\
 
 \subsection{Operaciones}
 
-Con esta representación, se permite realizar la multiplicación y división de una manera sencilla. Para ello hay que \textbf{expresar los números complejos en forma trigonométrica}.
+La forma polar (y su equivalente trigonométrica) simplifica enormemente las operaciones de multiplicación y división. Para demostrarlo, consideremos dos números complejos cualesquiera explícitamente definidos en su \textbf{forma trigonométrica}: $z_1 = r (\cos \alpha + i \sen \alpha)$ y $z_2 = r' (\cos \beta + i \sen \beta)$.
+
+Al operar con ellos matemáticamente, se obtienen los siguientes resultados:
 
 \begin{itemize}
-    \item \textbf{Producto:} $r \cdot r' \, (\cos(\alpha + \beta) + i \, \sen(\alpha + \beta))$\\
-          Se observa que el módulo del número complejo es el resultante del producto de los módulos y que el argumento es la suma de los argumentos.
+    \item \textbf{Producto:} $z_1 \cdot z_2 = r \cdot r' \, (\cos(\alpha + \beta) + i \, \sen(\alpha + \beta))$\\
+          Se observa que el módulo del número complejo resultante es el producto de los módulos iniciales ($r \cdot r'$), y su argumento es la suma de los argumentos ($\alpha + \beta$).
 
-    \item \textbf{Cociente:} $\frac{r}{r'} \, (\cos(\alpha - \beta) + i \, \sen(\alpha - \beta))$
-          El resultado del cociente es el cociente de los módulos y la diferencia de los argumentos
+    \item \textbf{Cociente:} $\frac{z_1}{z_2} = \frac{r}{r'} \, (\cos(\alpha - \beta) + i \, \sen(\alpha - \beta))$\\
+          El resultado del cociente es un número cuyo módulo es el cociente de los módulos ($\frac{r}{r'}$) y su argumento es la diferencia de los argumentos ($\alpha - \beta$).
 \end{itemize}
 
 Por lo que en \textbf{forma polar} quedaría de la siguiente manera:
@@ -128,12 +138,12 @@ La \textbf{raíz n-esima} de un número complejo en forma polar, es otro número
     \left( m_\beta \right)^n = r_\alpha
 \]
 \[
-    m = \sqrt[n]{r} \quad \text{ y } \quad \beta = \frac{\alpha}{n} + \frac{\ang{360} * k}{n}
+    m = \sqrt[n]{r} \quad \text{ y } \quad \beta = \frac{\alpha + \ang{360} \cdot k}{n} \quad \text{donde } k = 0, 1, 2, \dots, n-1
 \]
 
 Todo número complejo tiene n raíces n-ésimas. Todos los afíjos están situados sobre una circunferencia y son los vértices de un polígono regular de n lados. \\
 
-Un ejemplo de forma gráfica calculando la raíz n-esima con lo explicado anterioremnte, es el siguiente:
+Un ejemplo de forma gráfica calculando la raíz n-esima con lo explicado anteriormente, es el que se ve en la figura \ref{fig:Raiz3esimaComplejo}
 
 \newpage
 \begin{figure}[h]
@@ -143,32 +153,52 @@ Un ejemplo de forma gráfica calculando la raíz n-esima con lo explicado anteri
     \label{fig:Raiz3esimaComplejo}
 \end{figure}
 
-\section{Representación en forma exponencial (Euler)}
+\section{Representación en forma exponencial}
 
-El número de Euler ($e$) es un número constante e irracional. Se puede definir a través de la Serie de Taylor.
-Este número es la base para resolver ecuaciones relacionadas con el crecimiento exponencial, así como en logaritmos neperianos los cuales sirven para manejar números grandes de una manera simplificada para poder realizar cálculos.\\
-
-La representación del número complejo con el número de Euler, viene dado porque Leonhard Euler aplicó la Serie de Taylor poniéndole la \textbf{$i$} del número imaginario, luego simplificó teniendo en cuenta que \textbf{$i^2 = -1$}. Al aplicar lo comentado, le quedó lo siguiente:
+Además de las representaciones binómica y polar, existe una tercera forma de expresar un número complejo que resulta de vital importancia en campos como la física y la computación cuántica. Gracias a la célebre \textbf{fórmula de Euler} \cite{pierce_formula_euler_2024}, se establece una equivalencia matemática directa entre las funciones trigonométricas y la función exponencial compleja:
 
 \[
-    e^{ix} = \left(1 - \frac{x^2}{2!} + \frac{x^4}{4!} - \dots \right)
-    + i \left(x - \frac{x^3}{3!} + \frac{x^5}{5!} - \dots \right)
-\] \\
-
-Se dio cuenta que los dos paréntesis de la expresión anterior, es la Serie de Taylor aplicada al \textbf{cos} y \textbf{sen}.
-
-\[
-    \cos x = 1 - \frac{x^2}{2!} + \frac{x^4}{4!} - \dots
+    e^{i\alpha} = \cos \alpha + i \, \sen \alpha
 \]
 
-\[
-    \sen x = x - \frac{x^3}{3!} + \frac{x^5}{5!} - \dots
-\]\\
-
-Con el seno y coseno, se simplifica en:
+Si sustituimos esta identidad en la forma trigonométrica que vimos anteriormente ($z = r (\cos \alpha + i \, \sen \alpha)$), obtenemos la \textbf{forma exponencial} del número complejo:
 
 \[
-    e^{ix} = \cos x + i \, \sen x
-\]\\
+    z = r e^{i\alpha}
+\]
 
-Este resultado es la representación del número complejo mediante el número de Euler. Además, se le conoce como la \textbf{fórmula de Euler}.
+Esta notación es extremadamente útil y será empleada junto con la notación de Dirac en la formulación de estados y operaciones cuánticas a lo largo de este trabajo, ya que simplifica de manera notable la representación algebraica de las rotaciones de fase y las operaciones matemáticas complejas.
+
+\section{Notación Dirac (Bra-Ket)}
+\label{sec:notacion_dirac}
+
+La notación de Dirac nos da una manera de expresar estados en un espacio vectorial sin atarnos a un sistema de coordenadas específico, pero que hace muy sencillo elegir una base concreta y cambiar de una base a otra.
+
+En esta notación \cite{pierce_braket_2025}, un \textbf{ket} representa los valores como un vector columna, mientras que un \textbf{bra} los representa como un vector fila.
+
+\begin{itemize}
+    \item \textbf{ket ($\ket{a}$):} Representa un vector columna cuyas componentes son números complejos. Si se tiene un vector $\vec{a} \in \mathbb{C}^n$, su representación en Dirac es el ket $\ket{a}$.
+    \item \textbf{bra ($\bra{a}$):} Representa el vector fila resultante de aplicar el conjugado transpuesto al ket correspondiente. Matemáticamente, se denota como $\bra{a} = \ket{a}^{\dagger}$.
+\end{itemize}
+
+Por ejemplo, si consideramos un vector en el espacio bidimensional $\mathbb{C}^2$ con dos componentes complejas genéricas $\alpha$ y $\beta$, su representación en ket y su correspondiente bra serían:
+
+\begin{itemize}
+    \item \textbf{ket:} $\ket{\psi} = \begin{pmatrix} \alpha \\ \beta \end{pmatrix}$
+    \item \textbf{bra:} $\bra{\psi} = \ket{\psi}^{\dagger} = \begin{pmatrix} \alpha^* & \beta^* \end{pmatrix}$
+\end{itemize}
+
+donde $\alpha^*$ y $\beta^*$ son los complejos conjugados de $\alpha$ y $\beta$. Otro ejemplo fundamental en computación cuántica es la base canónica en $\mathbb{C}^2$, la cual se representa con los kets $\ket{0}$ y $\ket{1}$:
+
+\[
+    \ket{0} = \begin{pmatrix} 1 \\ 0 \end{pmatrix}, \quad \ket{1} = \begin{pmatrix} 0 \\ 1 \end{pmatrix}
+\]
+
+Utilizando esta notación, se puede definir las siguientes operaciones:
+
+\begin{itemize}
+    \item \textbf{Producto interno:} Es un número obtenido al multiplicar un bra por un ket.
+          \[ \braket{a|b} = \begin{pmatrix} a_1^{*} & a_2^{*} \end{pmatrix} \begin{pmatrix} b_1\\ b_2 \end{pmatrix} = a_1^{*} b_1 + a_2^{*} b_2 \]
+    \item \textbf{Producto externo:} Resulta en una matriz, obtenida al multiplicar un ket por un bra. Si consideramos que los kets $\ket{e_i}$ forman una base ortonormal del espacio de Hilbert, el término $\ket{e_i}\bra{e_j}$ representa una matriz con un $1$ en la fila $i$ y la columna $j$ (y ceros en el resto). De este modo, cualquier matriz $\mathbf{A}$ se puede construir ponderando estas matrices base por sus respectivos coeficientes $A_{ij}$:
+          \[ \mathbf{A} = \sum_{i,j=1}^{N} A_{ij}\,\ket{e_i}\bra{e_j} \]
+\end{itemize}
