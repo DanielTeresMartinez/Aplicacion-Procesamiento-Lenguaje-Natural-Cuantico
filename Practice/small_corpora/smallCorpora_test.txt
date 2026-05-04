@@ -1,8 +1,0 @@
-cat fish milk
-like music book
-hate apple dog
-movie milk animal
-i cat like
-book hate fish
-eyes music i
-apple dog movie
