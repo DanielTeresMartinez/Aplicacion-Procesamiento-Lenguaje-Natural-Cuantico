@@ -3,6 +3,7 @@ import time
 import shutil
 import sys
 import os
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from gensim.models import Word2Vec
@@ -10,37 +11,22 @@ from gensim.models.word2vec import LineSentence
 from gensim.models.callbacks import CallbackAny2Vec
 import numpy as np
 import matplotlib.pyplot as plt
-from my_tools import evaluate_cosine_delta
+from my_tools import evaluate_cosine_delta, SIMILAR_PAIRS
 
-
-# ── Hiperparámetros ───────────────────────────────────────────────────────────
-FINAL_EPOCHS = 2000
-PRINT_EVERY = 200
-PATIENCE = 5
-MIN_DELTA = 0.01
+FINAL_EPOCHS = 500
+PRINT_EVERY = 50
 LOSS_FILE = "loss_history_word2vec.txt"
 
-# Mejores parámetros obtenidos mediante grid search (grid_search_word2vec.py)
-# cosine_delta = 0.5588
 BEST_PARAMS = {
     "vector_size": 2,
     "window": 2,
-    "alpha": 0.3,
+    "alpha": 0.59,
     "negative": 2,
     "ns_exponent": 0.0,
 }
 
-class EarlyStopping(Exception):
-    pass
-
 
 def evaluate(model):
-    """Cosine delta del modelo: delega en my_tools.evaluate_cosine_delta.
-
-    score = mean_cosine(SIMILAR_PAIRS) − mean_cosine(DISSIMILAR_PAIRS)
-
-    Los pares están definidos en my_tools.py junto a la lógica de cálculo.
-    """
     word_vectors = {w: model.wv[w] for w in model.wv.index_to_key}
     return evaluate_cosine_delta(word_vectors)
 
@@ -50,61 +36,42 @@ class LossCallback(CallbackAny2Vec):
         self._epoch = 0
         self.train_losses = []
         self.val_scores = []
-        self._best_val_score = float("-inf")
-        self._no_improve_count = 0
-        self.converged_at = None
-        self.model = None
-        self._best_checkpoint = "_best_checkpoint.model"
+        self._best_val_score = -1
         self._loss_file = open(LOSS_FILE, "w")
         self._loss_file.write("epoch,loss,cosine_delta\n")
 
     def on_epoch_begin(self, model):
-        # Resetear el acumulador para obtener el loss de esta época concreta
         model.running_training_loss = 0.0
 
     def on_epoch_end(self, model):
-        self.model = model
         self._epoch += 1
-
         epoch_loss = model.get_latest_training_loss()
         self.train_losses.append(epoch_loss)
 
-        if self._epoch % PRINT_EVERY == 0 or self._epoch == 1:
-            val_score = evaluate(model)
-            self.val_scores.append((self._epoch, val_score))
+        val_score = evaluate(model)
+        self.val_scores.append((self._epoch, val_score))
 
-            if val_score > self._best_val_score + MIN_DELTA:
-                self._best_val_score = val_score
-                self._no_improve_count = 0
-                model.save(self._best_checkpoint)
-                improved_tag = " (new best)"
-            else:
-                self._no_improve_count += 1
-                improved_tag = ""
+        self._loss_file.write(f"{self._epoch},{epoch_loss:.6f},{val_score:.6f}\n")
+        self._loss_file.flush()
 
-            self._loss_file.write(f"{self._epoch},{epoch_loss:.6f},{val_score:.6f}\n")
-            self._loss_file.flush()
+        # Revisar toda esta mierda de guardar el mejor modelo encontrado en 500 iteraciones.
+        if val_score > self._best_val_score:
+            self._best_val_score = val_score
+            self._no_improve_count = 0
+            model.save(self._best_checkpoint)
+            improved_tag = " (new best)"
+
+        if (
+            self._epoch % PRINT_EVERY == 0
+            or self._epoch == 1
+            or self._epoch == FINAL_EPOCHS
+        ):
             print(
-                f"  época {self._epoch:>6} | pérdida = {epoch_loss:.4f}"
-                f" | cosine_delta = {val_score:.4f}{improved_tag}"
-                f"  (sin_mejora={self._no_improve_count}/{PATIENCE})"
+                f"  época {self._epoch:>6} | pérdida = {epoch_loss:.4f} | cosine_delta = {val_score:.4f}"
             )
-
-            if self._no_improve_count >= PATIENCE:
-                self.converged_at = self._epoch
-                raise EarlyStopping(
-                    f"Sin mejora en {PATIENCE} comprobaciones — parada en época {self._epoch}"
-                )
 
     def on_train_end(self, model):
         self._loss_file.close()
-        if self.val_scores:
-            last_epoch, last_score = self.val_scores[-1]
-            print(
-                f"Cosine delta (último checkpoint, época {last_epoch}): {last_score:.4f}"
-            )
-        if self.converged_at:
-            print(f"Convergido en época {self.converged_at} (parada temprana).")
 
 
 def most_similar(model, word, topn=3):
@@ -114,7 +81,6 @@ def most_similar(model, word, topn=3):
 
 
 def _save_embeddings(filepath, word_vec_dict, header_comment=""):
-    """Guarda un dict {word: np.ndarray} en un fichero de texto plano."""
     words = list(word_vec_dict.keys())
     dim = len(word_vec_dict[words[0]])
     col_header = "  ".join(f"d{i}" for i in range(dim))
@@ -130,54 +96,45 @@ def _save_embeddings(filepath, word_vec_dict, header_comment=""):
 
 
 if __name__ == "__main__":
-
-    # ── 1. Cargar corpus ──────────────────────────────────────────────────────
     sentences = list(LineSentence("smallCorpora.txt"))
-    random.seed(42)
-    random.shuffle(sentences)
+    # random.seed(42)
+    # random.shuffle(sentences)
     print(f"Corpus cargado: {len(sentences)} frases")
 
-    # ── 2. Entrenamiento ──────────────────────────────────────────────────────
     loss_cb = LossCallback()
     print(f"\nEntrenando Skip-Gram (negative sampling) hasta {FINAL_EPOCHS} épocas…")
     print(f"Parámetros: {BEST_PARAMS}\n")
 
     t_start = time.time()
-    try:
-        model = Word2Vec(
-            sentences=sentences,
-            sg=1,
-            hs=0,
-            min_count=1,
-            workers=1,
-            seed=42,
-            compute_loss=True,
-            epochs=FINAL_EPOCHS,
-            callbacks=[loss_cb],
-            **BEST_PARAMS,
-        )
-    except EarlyStopping as e:
-        print(f"\n[Early stopping] {e}")
-        model = loss_cb.model
+
+    model = Word2Vec(
+        sentences=sentences,
+        sg=1,
+        hs=0,
+        min_count=1,
+        workers=1,
+        seed=42,
+        compute_loss=True,
+        epochs=FINAL_EPOCHS,
+        callbacks=[loss_cb],
+        **BEST_PARAMS,
+    )
 
     elapsed = time.time() - t_start
     print(f"Tiempo de entrenamiento: {elapsed:.1f}s  ({elapsed/60:.1f} min)")
 
-    # ── 3. Cargar el mejor checkpoint ─────────────────────────────────────────
+    rint("\nCargando el mejor modelo guardado durante el entrenamiento...")
     model = Word2Vec.load(loss_cb._best_checkpoint)
 
-    # ── 4. Evaluación final ───────────────────────────────────────────────────
     final_corr = evaluate(model)
-    print(f"\nSpearman correlation final: {final_corr:.4f}")
+    print(f"\nCosine delta final: {final_corr:.4f}")
 
-    print("\nPares más similares por clúster (modelo final):")
-    for w1, w2, human in _COSINE_PAIRS[:14]:  # Solo intra-clúster
+    print("\nPares intra-clúster (modelo final):")
+    for w1, w2 in SIMILAR_PAIRS:
         if w1 in model.wv and w2 in model.wv:
             sim = model.wv.similarity(w1, w2)
-            print(f"  {w1:8s} ↔ {w2:8s}  modelo={sim:.3f}  anotado={human:.2f}")
+            print(f"  {w1:8s} ↔ {w2:8s}  coseno={sim:.3f}")
 
-    # ── 5. Gráficas ───────────────────────────────────────────────────────────
-    # Figura 1: curvas de entrenamiento
     fig1, ax0 = plt.subplots(figsize=(8, 6))
 
     if loss_cb.val_scores:
@@ -188,23 +145,24 @@ if __name__ == "__main__":
             ck_scores,
             color="darkorange",
             linewidth=1.4,
-            marker="o",
-            markersize=4,
-            label="Spearman corr (cosine sim)",
+            label="cosine_delta",
         )
-        best_epoch = ck_epochs[int(np.argmax(ck_scores))]
+        best_idx = int(np.argmax(ck_scores))
+        best_epoch = ck_epochs[best_idx]
+        best_score = ck_scores[best_idx]
+
         ax0.axvline(
             best_epoch,
             color="green",
             linestyle="--",
             linewidth=1,
-            label=f"best (epoch {best_epoch})",
+            label=f"best (epoch {best_epoch}: {best_score:.4f})",
         )
         ax0.axhline(0, color="gray", linestyle=":", linewidth=0.8)
         ax0.legend(fontsize=8)
 
     ax0.set_title(
-        "Spearman correlation at each checkpoint\n"
+        "Spearman correlation at each epoch\n"
         "(cosine similarity vs. hand-annotated pairs, higher = better)"
     )
     ax0.set_xlabel("Epoch")
@@ -228,9 +186,10 @@ if __name__ == "__main__":
 
     fig1.tight_layout()
     fig1.savefig("lossCurvesWord2Vec.png", dpi=150)
-    shutil.copy("lossCurvesWord2Vec.png", "../memoria/imagenes/lossCurvesWord2Vec.png")
+    shutil.copy(
+        "lossCurvesWord2Vec.png", "../../memoria/imagenes/lossCurvesWord2Vec.png"
+    )
 
-    # Figura 2: embeddings 2D
     fig2, ax1 = plt.subplots(figsize=(8, 6))
 
     vocab = model.wv.index_to_key
@@ -273,9 +232,10 @@ if __name__ == "__main__":
 
     fig2.tight_layout()
     fig2.savefig("embeddingsWord2Vec.png", dpi=150)
-    shutil.copy("embeddingsWord2Vec.png", "../memoria/imagenes/embeddingsWord2Vec.png")
+    shutil.copy(
+        "embeddingsWord2Vec.png", "../../memoria/imagenes/embeddingsWord2Vec.png"
+    )
 
-    # ── 6. Exportar embeddings para Q-word2vec ────────────────────────────────
     orig_embs = {w: model.wv[w] for w in vocab}
     _save_embeddings(
         "word2vec_embeddings.txt",

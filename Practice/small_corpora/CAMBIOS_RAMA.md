@@ -4,6 +4,56 @@
 
 ---
 
+## 0. Segunda fase de Grid Search: schedule de aprendizaje (alpha × epochs)
+
+### Problema detectado
+
+Durante la búsqueda de hiperparámetros original se encontró `cosine_delta = 0.5588` con `alpha=0.3` y `SEARCH_EPOCHS=500`. Sin embargo, al intentar reproducir ese resultado en el script de entrenamiento con `FINAL_EPOCHS=2000` y early stopping, el modelo solo alcanzaba cosine_delta ≈ 0.30–0.40.
+
+La causa es un comportamiento de Gensim documentado: la tasa de aprendizaje (`alpha`) decae **linealmente** de su valor inicial hasta `min_alpha` (≈ 0.0001) a lo largo de exactamente `epochs` pasos **planificados**, no de los pasos realmente ejecutados. Esto significa que:
+
+- Grid search con `epochs=500, alpha=0.3` → alpha ≈ 0.0001 al final (convergencia estable)
+- Entrenamiento con `epochs=2000, alpha=0.3`, early stop a época 400 → alpha ≈ 0.24 (aún alta, modelo oscilante)
+
+En consecuencia, `alpha` y `epochs` están **acoplados** y deben explorarse conjuntamente.
+
+### Solución implementada
+
+Se ha creado el script `grid_search_schedule_word2vec.py` que:
+
+1. **Fija** los hiperparámetros del primer grid search: `vector_size=2, window=2, negative=2, ns_exponent=0.0`
+2. **Busca** la combinación óptima de `(alpha, epochs)` sobre escala logarítmica
+3. **Evalúa** cosine_delta al final de cada entrenamiento completo (sin early stopping), garantizando que el schedule de alpha está completamente ejecutado
+
+### Justificación de la escala logarítmica
+
+Se usa `np.logspace()` para muestrear los valores de forma equitativa en escala log:
+
+```
+alpha_values = np.logspace(log10(0.05), log10(1.0), 7)
+# → [0.05, 0.10, 0.20, 0.39, 0.75, 1.00, ...]
+epoch_values = np.logspace(log10(100), log10(2000), 7).astype(int)
+# → [100, 185, 343, 634, 1172, 2000, ...]
+```
+
+La escala logarítmica garantiza que la distancia relativa entre valores consecutivos es constante (ratio ≈ 2×), por lo que se exploran por igual valores pequeños y grandes sin sesgar la búsqueda hacia ningún extremo del rango.
+
+### Impacto en word2vec.py
+
+Una vez ejecutado el grid search, los valores óptimos de `alpha` y `epochs` se actualizan en:
+- `BEST_PARAMS["alpha"]` en `word2vec.py`
+- `FINAL_EPOCHS` en `word2vec.py`
+
+Con estos valores, el script de entrenamiento puede ejecutarse **sin early stopping** (o con paciencia muy alta como margen de seguridad) ya que el número exacto de épocas está calibrado.
+
+### Resultados del grid search de schedule
+
+```
+[PENDIENTE — pegar aquí la salida de: python3 grid_search_schedule_word2vec.py]
+```
+
+---
+
 ## 1. Reorganización del directorio
 
 El directorio `Practice/` se ha dividido en dos subdirectorios:

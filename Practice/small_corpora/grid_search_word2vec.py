@@ -10,28 +10,32 @@ from itertools import product
 
 from gensim.models import Word2Vec
 from gensim.models.word2vec import LineSentence
+import numpy as np
 
 from word2vec import evaluate
 
 # ── Corpus ────────────────────────────────────────────────────────────────────
 sentences = list(LineSentence("smallCorpora.txt"))
 
-# ── Grid ──────────────────────────────────────────────────────────────────────
-SEARCH_EPOCHS = 500
-
+# ===================================================================================
+# Se ha ajustado esto y se va a quitar el EarlyStopping del código principal.
+# Comentarlo en el pdf de correcciones todo esto. Falta imprimir el mejor número de
+# épocas encontrado también.
+# ===================================================================================
 param_grid = {
-    "vector_size": [2, 3, 4],
-    "window": [1, 2, 3],
-    "alpha": [0.2, 0.25, 0.275, 0.3],
-    "negative": [2, 3, 5, 6],
-    "ns_exponent": [0.0, 0.3, 0.75],
+    "vector_size": [2, 4],
+    "window": [1, 2],
+    "alpha": np.linspace(0.35, 0.75, 6),
+    "epochs": np.arange(300, 600, 100),
+    "negative": [2, 3],
+    "ns_exponent": [0.0, 0.2],
 }
 
 if __name__ == "__main__":
     total = 1
     for v in param_grid.values():
         total *= len(v)
-    print(f"Grid search: {total} combinaciones × {SEARCH_EPOCHS} épocas\n")
+    print(f"Grid search: {total} combinaciones\n")
 
     best_score, best_params = float("-inf"), {}
     for combo in product(*param_grid.values()):
@@ -44,7 +48,6 @@ if __name__ == "__main__":
             min_count=1,
             seed=42,
             compute_loss=False,
-            epochs=SEARCH_EPOCHS,
             **params,
         )
         score = evaluate(m)

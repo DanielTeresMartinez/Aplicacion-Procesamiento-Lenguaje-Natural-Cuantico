@@ -352,27 +352,14 @@ if __name__ == "__main__":
         match = "✓" if set(real_peaks) == set(expected_peaks) else "✗"
         print(f"  {w:<10} {str(real_words):<25} {str(exp_words):<25} {match}")
 
-    # ── K-Means accuracy (misma métrica que Word2Vec para comparación directa) ──
-    _clusters_gt = {
-        "animal": ["dog", "cat", "animal", "eyes"],
-        "food": ["apple", "fish", "milk"],
-        "culture": ["book", "music", "movie"],
-        "sentiment": ["i", "like", "hate"],
-    }
-    _cluster_names_q = list(_clusters_gt.keys())
-    _word_to_cluster_q = {w: c for c, ws in _clusters_gt.items() for w in ws}
-    word_vectors_q = {w: final_probs[word_to_id[w]] for w in word_to_id}
-    kmeans_acc = kmeans_cluster_accuracy(
-        word_vectors_q, _word_to_cluster_q, _cluster_names_q
-    )
-    print(f"K-Means accuracy (≈W2V):   {kmeans_acc:.4f}")
-
     # ── Cosine delta (misma métrica que Word2Vec para comparación directa) ────
-    word_vectors_q_delta = {id_to_word[i]: final_probs[i] for i in range(len(word_to_id))}
+    word_vectors_q_delta = {
+        id_to_word[i]: final_probs[i] for i in range(len(word_to_id))
+    }
     cosine_delta = evaluate_cosine_delta(word_vectors_q_delta)
     print(f"Cosine delta (≈W2V):       {cosine_delta:.4f}")
 
-    MEMORIA_IMG = "../memoria/imagenes"
+    MEMORIA_IMG = "../../memoria/imagenes"
     title_info = (
         f"ath={ath:.4f}  hd=400  reg=1.60e-02"
         f"  a={spsa_a:.4f}  c={spsa_c:.4f}  L={n_layers}  C={c_val}"
