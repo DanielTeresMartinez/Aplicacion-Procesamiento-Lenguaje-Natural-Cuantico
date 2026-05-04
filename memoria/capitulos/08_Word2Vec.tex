@@ -169,9 +169,9 @@ donde $\sigma$ es la función sigmoide y $P_n(w)$ es la distribución de ruido a
   P_n(w) = \frac{U(w)^{\frac{3}{4}}}{Z};
 \]
 
-Donde $U(w)$ es la frecuencia de aparición de la palabra $w$ en el corpus y $Z$ es la constante de normalización que garantiza que la distribución sume 1.
+donde $U(w)$ es la frecuencia de aparición de la palabra $w$ en el corpus y $Z$ es la constante de normalización que garantiza que la distribución sume 1.
 
-Maximizar esta expresión conlleva maximizar el producto escalar en su primer término y minimizarlo en el segundo. En otras palabras, las palabras que aparecen en el mismo contexto se ven forzadas a adquirir representaciones vectoriales más similares entre sí, mientras que las que pertenecen a contextos distintos se ven forzadas a tener vectores menos similares \cite{karimi_negative_sampling_baeldung_2025}.
+Maximizar esta expresión conlleva maximizar el producto escalar en su primer término y minimizarlo en el segundo. Dicho de otra manera, las palabras que aparecen en el mismo contexto se ven forzadas a adquirir representaciones vectoriales más similares entre sí, mientras que las que pertenecen a contextos distintos se ven forzadas a tener vectores menos similares \cite{karimi_negative_sampling_baeldung_2025}.
 
 En cuanto a la elección del hiperparámetro $k$, el segundo artículo de Google sobre Word2Vec \cite{mikolov_skipgram_phrases_2013} indica que un valor en el rango de 5 a 20 es adecuado para corpus de entrenamiento de tamaño reducido, mientras que para corpus de gran escala se recomienda utilizar valores de entre 2 y 5.
 
