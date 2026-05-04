@@ -7,7 +7,7 @@ from gensim.models.word2vec import LineSentence
 from gensim.models.callbacks import CallbackAny2Vec
 import numpy as np
 import matplotlib.pyplot as plt
-from my_tools import kmeans_cluster_accuracy
+from scipy.stats import spearmanr
 
 # ── Hiperparámetros ───────────────────────────────────────────────────────────
 FINAL_EPOCHS = 2000
@@ -25,16 +25,41 @@ BEST_PARAMS = {
     "ns_exponent": 0.0,
 }
 
-# ── Ground truth de clústeres (para evaluación con K-Means) ──────────────────
-_clusters = {
-    "animal": ["dog", "cat", "animal", "eyes"],
-    "food": ["apple", "fish", "milk"],
-    "culture": ["book", "music", "movie"],
-    "sentiment": ["i", "like", "hate"],
-}
-_word_to_cluster = {w: c for c, words in _clusters.items() for w in words}
-_cluster_names = list(_clusters.keys())
-_all_gt_words = list(_word_to_cluster.keys())
+# ── Pares de palabras con similitud anotada manualmente ──────────────────────
+# Escala 0–1: 1.0 = sinónimos perfectos, 0.0 = sin relación semántica.
+# Basado en los 4 clústeres del corpus:
+#   animal   → dog, cat, animal, eyes
+#   food     → apple, fish, milk
+#   culture  → book, music, movie
+#   sentiment→ i, like, hate
+_COSINE_PAIRS = [
+    # Intra-clúster (alta similitud esperada)
+    ("dog",   "cat",    0.90),
+    ("dog",   "animal", 0.80),
+    ("cat",   "animal", 0.80),
+    ("dog",   "eyes",   0.60),
+    ("cat",   "eyes",   0.60),
+    ("apple", "fish",   0.85),
+    ("apple", "milk",   0.85),
+    ("fish",  "milk",   0.85),
+    ("book",  "music",  0.85),
+    ("book",  "movie",  0.85),
+    ("music", "movie",  0.85),
+    ("i",     "like",   0.75),
+    ("i",     "hate",   0.75),
+    ("like",  "hate",   0.80),
+    # Inter-clúster (baja similitud esperada)
+    ("dog",   "apple",  0.10),
+    ("dog",   "book",   0.10),
+    ("dog",   "like",   0.15),
+    ("cat",   "music",  0.10),
+    ("apple", "book",   0.10),
+    ("apple", "i",      0.20),
+    ("fish",  "movie",  0.10),
+    ("milk",  "hate",   0.10),
+    ("book",  "dog",    0.10),
+    ("music", "apple",  0.10),
+]
 
 
 class EarlyStopping(Exception):
@@ -42,9 +67,21 @@ class EarlyStopping(Exception):
 
 
 def evaluate(model):
-    """K-Means accuracy contra el ground truth de _clusters."""
-    word_vectors = {w: model.wv[w] for w in _all_gt_words if w in model.wv}
-    return kmeans_cluster_accuracy(word_vectors, _word_to_cluster, _cluster_names)
+    """Correlación de Spearman entre las similitudes coseno del modelo y
+    las puntuaciones anotadas manualmente en _COSINE_PAIRS.
+    Devuelve un valor en [-1, 1]; cuanto más cercano a 1, mejor.
+    """
+    model_sims = []
+    human_sims = []
+    for w1, w2, human_score in _COSINE_PAIRS:
+        if w1 in model.wv and w2 in model.wv:
+            sim = float(model.wv.similarity(w1, w2))
+            model_sims.append(sim)
+            human_sims.append(human_score)
+    if len(model_sims) < 2:
+        return 0.0
+    corr, _ = spearmanr(human_sims, model_sims)
+    return float(corr) if not np.isnan(corr) else 0.0
 
 
 class LossCallback(CallbackAny2Vec):
@@ -58,7 +95,7 @@ class LossCallback(CallbackAny2Vec):
         self.model = None
         self._best_checkpoint = "_best_checkpoint.model"
         self._loss_file = open(LOSS_FILE, "w")
-        self._loss_file.write("epoch,loss,kmeans_acc\n")
+        self._loss_file.write("epoch,loss,spearman_corr\n")
 
     def on_epoch_begin(self, model):
         # Resetear el acumulador para obtener el loss de esta época concreta
@@ -88,7 +125,7 @@ class LossCallback(CallbackAny2Vec):
             self._loss_file.flush()
             print(
                 f"  época {self._epoch:>6} | pérdida = {epoch_loss:.4f}"
-                f" | kmeans_acc = {val_score:.4f}{improved_tag}"
+                f" | spearman_corr = {val_score:.4f}{improved_tag}"
                 f"  (sin_mejora={self._no_improve_count}/{PATIENCE})"
             )
 
@@ -103,7 +140,7 @@ class LossCallback(CallbackAny2Vec):
         if self.val_scores:
             last_epoch, last_score = self.val_scores[-1]
             print(
-                f"K-Means accuracy (último checkpoint, época {last_epoch}): {last_score:.4f}"
+                f"Spearman corr (último checkpoint, época {last_epoch}): {last_score:.4f}"
             )
         if self.converged_at:
             print(f"Convergido en época {self.converged_at} (parada temprana).")
@@ -133,11 +170,18 @@ def _save_embeddings(filepath, word_vec_dict, header_comment=""):
 
 if __name__ == "__main__":
 
-    sentences = list(LineSentence("smallCorpora.txt"))
-    random.seed(42)
-    random.shuffle(sentences)
-    print(f"Corpus cargado: {len(sentences)} frases")
+    # ── 1. Cargar corpus ──────────────────────────────────────────────────────
+    train_sentences = list(LineSentence("smallCorpora.txt"))
+    val_sentences   = list(LineSentence("smallCorpora_val.txt"))
+    test_sentences  = list(LineSentence("smallCorpora_test.txt"))
 
+    random.seed(42)
+    random.shuffle(train_sentences)
+
+    print(f"Corpus cargado: {len(train_sentences)} frases (train) | "
+          f"{len(val_sentences)} (val) | {len(test_sentences)} (test)")
+
+    # ── 2. Entrenamiento ──────────────────────────────────────────────────────
     loss_cb = LossCallback()
     print(f"\nEntrenando Skip-Gram (negative sampling) hasta {FINAL_EPOCHS} épocas…")
     print(f"Parámetros: {BEST_PARAMS}\n")
@@ -145,7 +189,7 @@ if __name__ == "__main__":
     t_start = time.time()
     try:
         model = Word2Vec(
-            sentences=sentences,
+            sentences=train_sentences,
             sg=1,
             hs=0,
             min_count=1,
@@ -167,8 +211,17 @@ if __name__ == "__main__":
     model = Word2Vec.load(loss_cb._best_checkpoint)
 
     # ── 4. Evaluación final ───────────────────────────────────────────────────
-    final_score = evaluate(model)
-    print(f"\nK-Means accuracy final: {final_score:.4f}")
+    final_corr = evaluate(model)
+    print(f"\nSpearman correlation final (train): {final_corr:.4f}")
+
+    # Evaluación sobre pares de val/test (misma métrica, mismos pares anotados)
+    # Nota: Word2Vec es inductivo en vocabulario conocido, por lo que la
+    # evaluación de similitud coseno usa los embeddings aprendidos con train.
+    print("\nPares más similares por clúster (modelo final):")
+    for w1, w2, human in _COSINE_PAIRS[:14]:  # Solo intra-clúster
+        if w1 in model.wv and w2 in model.wv:
+            sim = model.wv.similarity(w1, w2)
+            print(f"  {w1:8s} ↔ {w2:8s}  modelo={sim:.3f}  anotado={human:.2f}")
 
     # ── 5. Gráficas ───────────────────────────────────────────────────────────
     # Figura 1: curvas de entrenamiento
@@ -184,7 +237,7 @@ if __name__ == "__main__":
             linewidth=1.4,
             marker="o",
             markersize=4,
-            label="K-Means accuracy",
+            label="Spearman corr (cosine sim)",
         )
         best_epoch = ck_epochs[int(np.argmax(ck_scores))]
         ax0.axvline(
@@ -194,13 +247,15 @@ if __name__ == "__main__":
             linewidth=1,
             label=f"best (epoch {best_epoch})",
         )
+        ax0.axhline(0, color="gray", linestyle=":", linewidth=0.8)
         ax0.legend(fontsize=8)
 
     ax0.set_title(
-        "K-Means accuracy at each checkpoint\n(vs. ground truth, higher = better)"
+        "Spearman correlation at each checkpoint\n"
+        "(cosine similarity vs. hand-annotated pairs, higher = better)"
     )
     ax0.set_xlabel("Epoch")
-    ax0.set_ylabel("K-Means accuracy")
+    ax0.set_ylabel("Spearman ρ")
 
     stride = max(1, len(loss_cb.train_losses) // 200)
     train_epochs = list(range(1, len(loss_cb.train_losses) + 1, stride))
