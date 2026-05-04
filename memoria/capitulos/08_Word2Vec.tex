@@ -59,7 +59,7 @@ El modelo \gls{cbow} toma como entrada las palabras del contexto que rodean a un
   \label{fig:cbow_example}
 \end{figure}
 
-Este enfoque resulta eficiente cuando el corpus es grande y las palabras frecuentes tienen representaciones ricas. Sin embargo, tiende a promediar la información del contexto, lo que puede penalizar los valores semánticos de palabras menos frecuentes.
+Este enfoque resulta eficiente cuando el corpus es grande y las palabras frecuentes tienen representaciones ricas. Sin embargo, tiende a promediar la información del contexto, lo que puede penalizar los valores semánticos de palabras menos frecuentes generando así una pérdida de información.
 
 \subsubsection{Skip-gram}
 
@@ -152,9 +152,9 @@ La probabilidad condicional $p(w_{t+j} \mid w_t)$ del modelo básico de Skip-gra
   p(w_O \mid w_I) = \frac{\exp\!\left({v'_{w_O}}^{\top} v_{w_I}\right)}{\displaystyle\sum_{w=1}^{W} \exp\!\left({v'_{w}}^{\top} v_{w_I}\right)};
 \]
 
-Donde $v_w$ y $v'_w$ son, respectivamente, los vectores de representación de \textit{entrada} y de \textit{salida} de la palabra $w$, y $W$ es el número total de palabras del vocabulario.
+donde $v_w$ y $v'_w$ son, respectivamente, los vectores de representación de \textit{entrada} y de \textit{salida} de la palabra $w$, y $W$ es el número total de palabras del vocabulario.
 
-Esta formulación presenta un problema de escalabilidad: el coste de calcular $\nabla \log p(w_O \mid w_I)$ es proporcional a $W$, cuyo valor suele ser muy elevado (entre $10^5$ y $10^7$ términos). Ello implica que, en el denominador del \textit{softmax}, es necesario acumular los valores exponenciales de todas las palabras del vocabulario en cada paso de entrenamiento, lo que hace que el proceso resulte prohibitivamente lento cuando el vocabulario es de gran escala. Es precisamente este coste el que motiva la introducción del \textit{Negative Sampling} como función de optimización alternativa.
+Esta formulación presenta un problema de escalabilidad: el coste de calcular $p(w_O \mid w_I)$ es proporcional a $W$, cuyo valor suele ser muy elevado (entre $10^5$ y $10^7$ términos). Ello implica que, en el denominador del \textit{softmax}, es necesario acumular los valores exponenciales de todas las palabras del vocabulario en cada paso de entrenamiento, lo que hace que el proceso resulte prohibitivamente lento cuando el vocabulario es de gran escala. Es precisamente este coste el que motiva la introducción del \textit{Negative Sampling} como función de optimización alternativa.
 
 Esta nueva función de optimización persigue maximizar la similitud entre las palabras que aparecen en el mismo contexto y minimizarla cuando proceden de contextos distintos. Sin embargo, en lugar de aplicar esa minimización sobre todas las palabras del corpus, selecciona aleatoriamente $k$ palabras, denominadas \textit{muestras negativas}, y las emplea para optimizar la función objetivo \cite{karimi_negative_sampling_baeldung_2025}. La expresión de dicha función es la siguiente:
 
@@ -163,7 +163,7 @@ Esta nueva función de optimización persigue maximizar la similitud entre las p
   + \sum_{i=1}^{k} \mathbb{E}_{w_i \sim P_n(w)}\!\left[\log \sigma\!\left(-{v'_{w_i}}^{\!\top} v_{w_I}\right)\right];
 \]
 
-Donde $\sigma$ es la función sigmoide y $P_n(w)$ es la distribución de ruido a partir de la cual se extraen las muestras negativas. Esta distribución se calcula como la distribución unigrama de las palabras elevada a la potencia $\frac{3}{4}$, exponente elegido empíricamente en el trabajo original donde se introduce este algoritmo \cite{mikolov_skipgram_phrases_2013}:
+donde $\sigma$ es la función sigmoide y $P_n(w)$ es la distribución de ruido a partir de la cual se extraen las muestras negativas. Esta distribución se calcula como la distribución unigrama de las palabras elevada a la potencia $\frac{3}{4}$, exponente elegido empíricamente en el trabajo original donde se introduce este algoritmo \cite{mikolov_skipgram_phrases_2013}:
 
 \[
   P_n(w) = \frac{U(w)^{\frac{3}{4}}}{Z};
