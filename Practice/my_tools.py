@@ -1,7 +1,7 @@
 from collections import Counter
 import os
 import numpy as np
-from scipy.spatial.distance import pdist
+from scipy.spatial.distance import pdist, cosine as cosine_distance
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
@@ -306,6 +306,91 @@ def kmeans_cluster_accuracy(word_vectors, word_to_cluster, cluster_names):
     cm = confusion_matrix(gt_ints, predicted, labels=list(range(n)))
     _, col_ind = linear_sum_assignment(-cm)
     return float(cm[range(n), col_ind].sum() / len(vecs))
+
+
+# =============================================================================
+# Pares semánticos anotados manualmente para cosine_delta
+# Basados en los 4 clústeres del corpus (13 palabras):
+#   animal    → dog, cat, animal, eyes
+#   food      → apple, fish, milk
+#   culture   → book, music, movie
+#   sentiment → i, like, hate
+#
+# Métrica: cosine_delta = mean_cosine(similares) − mean_cosine(disimilares)
+# Cuanto más alto, mejor: las palabras del mismo clúster están más cerca
+# en el espacio de embeddings que las de clústeres distintos.
+# Válida tanto para Word2Vec (R^2) como para QWord2Vec (distribuciones R^16).
+# =============================================================================
+
+SIMILAR_PAIRS = [
+    # Intra-clúster animal
+    ("dog",   "cat"),
+    ("dog",   "animal"),
+    ("cat",   "animal"),
+    ("dog",   "eyes"),
+    ("cat",   "eyes"),
+    # Intra-clúster food
+    ("apple", "fish"),
+    ("apple", "milk"),
+    ("fish",  "milk"),
+    # Intra-clúster culture
+    ("book",  "music"),
+    ("book",  "movie"),
+    ("music", "movie"),
+    # Intra-clúster sentiment
+    ("i",     "like"),
+    ("i",     "hate"),
+    ("like",  "hate"),
+]
+
+DISSIMILAR_PAIRS = [
+    # Inter-clúster (pares de clústeres distintos)
+    ("dog",   "apple"),
+    ("dog",   "book"),
+    ("dog",   "like"),
+    ("cat",   "music"),
+    ("apple", "book"),
+    ("apple", "i"),
+    ("fish",  "movie"),
+    ("milk",  "hate"),
+    ("book",  "dog"),
+    ("music", "apple"),
+]
+
+
+def evaluate_cosine_delta(word_vectors: dict) -> float:
+    """Cosine delta: calidad semántica de un espacio de embeddings.
+
+    score = mean_cosine(SIMILAR_PAIRS) − mean_cosine(DISSIMILAR_PAIRS)
+
+    Rango teórico: [−2, 2]. Cuanto más alto, mejor: el modelo agrupa
+    correctamente las palabras del mismo clúster semántico y aleja las de
+    clústeres distintos.
+
+    Args:
+        word_vectors: dict {word: np.ndarray} — embeddings o distribuciones
+                      de probabilidad. Cualquier dimensión es válida.
+
+    Returns:
+        float — cosine_delta, o 0.0 si no hay suficientes pares válidos.
+    """
+    # scipy cosine() devuelve distancia = 1 − similitud
+    def _sim(w1, w2):
+        return 1.0 - cosine_distance(word_vectors[w1], word_vectors[w2])
+
+    sim_scores = [
+        _sim(w1, w2)
+        for w1, w2 in SIMILAR_PAIRS
+        if w1 in word_vectors and w2 in word_vectors
+    ]
+    dis_scores = [
+        _sim(w1, w2)
+        for w1, w2 in DISSIMILAR_PAIRS
+        if w1 in word_vectors and w2 in word_vectors
+    ]
+    if not sim_scores or not dis_scores:
+        return 0.0
+    return float(np.mean(sim_scores) - np.mean(dis_scores))
 
 
 def plot_cosine_similarity_comparison(

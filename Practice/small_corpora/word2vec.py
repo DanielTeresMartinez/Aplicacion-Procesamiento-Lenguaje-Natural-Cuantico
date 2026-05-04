@@ -1,13 +1,17 @@
 import random
 import time
 import shutil
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from gensim.models import Word2Vec
 from gensim.models.word2vec import LineSentence
 from gensim.models.callbacks import CallbackAny2Vec
 import numpy as np
 import matplotlib.pyplot as plt
-from my_tools import kmeans_cluster_accuracy
+from my_tools import evaluate_cosine_delta
+
 
 # ── Hiperparámetros ───────────────────────────────────────────────────────────
 FINAL_EPOCHS = 2000
@@ -17,34 +21,28 @@ MIN_DELTA = 0.01
 LOSS_FILE = "loss_history_word2vec.txt"
 
 # Mejores parámetros obtenidos mediante grid search (grid_search_word2vec.py)
+# cosine_delta = 0.5588
 BEST_PARAMS = {
     "vector_size": 2,
-    "window": 1,
-    "alpha": 0.25,
-    "negative": 5,
+    "window": 2,
+    "alpha": 0.3,
+    "negative": 2,
     "ns_exponent": 0.0,
 }
-
-# ── Ground truth de clústeres (para evaluación con K-Means) ──────────────────
-_clusters = {
-    "animal": ["dog", "cat", "animal", "eyes"],
-    "food": ["apple", "fish", "milk"],
-    "culture": ["book", "music", "movie"],
-    "sentiment": ["i", "like", "hate"],
-}
-_word_to_cluster = {w: c for c, words in _clusters.items() for w in words}
-_cluster_names = list(_clusters.keys())
-_all_gt_words = list(_word_to_cluster.keys())
-
 
 class EarlyStopping(Exception):
     pass
 
 
 def evaluate(model):
-    """K-Means accuracy contra el ground truth de _clusters."""
-    word_vectors = {w: model.wv[w] for w in _all_gt_words if w in model.wv}
-    return kmeans_cluster_accuracy(word_vectors, _word_to_cluster, _cluster_names)
+    """Cosine delta del modelo: delega en my_tools.evaluate_cosine_delta.
+
+    score = mean_cosine(SIMILAR_PAIRS) − mean_cosine(DISSIMILAR_PAIRS)
+
+    Los pares están definidos en my_tools.py junto a la lógica de cálculo.
+    """
+    word_vectors = {w: model.wv[w] for w in model.wv.index_to_key}
+    return evaluate_cosine_delta(word_vectors)
 
 
 class LossCallback(CallbackAny2Vec):
@@ -58,7 +56,7 @@ class LossCallback(CallbackAny2Vec):
         self.model = None
         self._best_checkpoint = "_best_checkpoint.model"
         self._loss_file = open(LOSS_FILE, "w")
-        self._loss_file.write("epoch,loss,kmeans_acc\n")
+        self._loss_file.write("epoch,loss,cosine_delta\n")
 
     def on_epoch_begin(self, model):
         # Resetear el acumulador para obtener el loss de esta época concreta
@@ -84,11 +82,11 @@ class LossCallback(CallbackAny2Vec):
                 self._no_improve_count += 1
                 improved_tag = ""
 
-            self._loss_file.write(f"{self._epoch},{epoch_loss},{val_score}\n")
+            self._loss_file.write(f"{self._epoch},{epoch_loss:.6f},{val_score:.6f}\n")
             self._loss_file.flush()
             print(
                 f"  época {self._epoch:>6} | pérdida = {epoch_loss:.4f}"
-                f" | kmeans_acc = {val_score:.4f}{improved_tag}"
+                f" | cosine_delta = {val_score:.4f}{improved_tag}"
                 f"  (sin_mejora={self._no_improve_count}/{PATIENCE})"
             )
 
@@ -103,7 +101,7 @@ class LossCallback(CallbackAny2Vec):
         if self.val_scores:
             last_epoch, last_score = self.val_scores[-1]
             print(
-                f"K-Means accuracy (último checkpoint, época {last_epoch}): {last_score:.4f}"
+                f"Cosine delta (último checkpoint, época {last_epoch}): {last_score:.4f}"
             )
         if self.converged_at:
             print(f"Convergido en época {self.converged_at} (parada temprana).")
@@ -133,11 +131,13 @@ def _save_embeddings(filepath, word_vec_dict, header_comment=""):
 
 if __name__ == "__main__":
 
+    # ── 1. Cargar corpus ──────────────────────────────────────────────────────
     sentences = list(LineSentence("smallCorpora.txt"))
     random.seed(42)
     random.shuffle(sentences)
     print(f"Corpus cargado: {len(sentences)} frases")
 
+    # ── 2. Entrenamiento ──────────────────────────────────────────────────────
     loss_cb = LossCallback()
     print(f"\nEntrenando Skip-Gram (negative sampling) hasta {FINAL_EPOCHS} épocas…")
     print(f"Parámetros: {BEST_PARAMS}\n")
@@ -167,8 +167,14 @@ if __name__ == "__main__":
     model = Word2Vec.load(loss_cb._best_checkpoint)
 
     # ── 4. Evaluación final ───────────────────────────────────────────────────
-    final_score = evaluate(model)
-    print(f"\nK-Means accuracy final: {final_score:.4f}")
+    final_corr = evaluate(model)
+    print(f"\nSpearman correlation final: {final_corr:.4f}")
+
+    print("\nPares más similares por clúster (modelo final):")
+    for w1, w2, human in _COSINE_PAIRS[:14]:  # Solo intra-clúster
+        if w1 in model.wv and w2 in model.wv:
+            sim = model.wv.similarity(w1, w2)
+            print(f"  {w1:8s} ↔ {w2:8s}  modelo={sim:.3f}  anotado={human:.2f}")
 
     # ── 5. Gráficas ───────────────────────────────────────────────────────────
     # Figura 1: curvas de entrenamiento
@@ -184,7 +190,7 @@ if __name__ == "__main__":
             linewidth=1.4,
             marker="o",
             markersize=4,
-            label="K-Means accuracy",
+            label="Spearman corr (cosine sim)",
         )
         best_epoch = ck_epochs[int(np.argmax(ck_scores))]
         ax0.axvline(
@@ -194,13 +200,15 @@ if __name__ == "__main__":
             linewidth=1,
             label=f"best (epoch {best_epoch})",
         )
+        ax0.axhline(0, color="gray", linestyle=":", linewidth=0.8)
         ax0.legend(fontsize=8)
 
     ax0.set_title(
-        "K-Means accuracy at each checkpoint\n(vs. ground truth, higher = better)"
+        "Spearman correlation at each checkpoint\n"
+        "(cosine similarity vs. hand-annotated pairs, higher = better)"
     )
     ax0.set_xlabel("Epoch")
-    ax0.set_ylabel("K-Means accuracy")
+    ax0.set_ylabel("Spearman ρ")
 
     stride = max(1, len(loss_cb.train_losses) // 200)
     train_epochs = list(range(1, len(loss_cb.train_losses) + 1, stride))

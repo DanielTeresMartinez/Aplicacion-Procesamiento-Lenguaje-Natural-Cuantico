@@ -367,6 +367,11 @@ if __name__ == "__main__":
     )
     print(f"K-Means accuracy (≈W2V):   {kmeans_acc:.4f}")
 
+    # ── Cosine delta (misma métrica que Word2Vec para comparación directa) ────
+    word_vectors_q_delta = {id_to_word[i]: final_probs[i] for i in range(len(word_to_id))}
+    cosine_delta = evaluate_cosine_delta(word_vectors_q_delta)
+    print(f"Cosine delta (≈W2V):       {cosine_delta:.4f}")
+
     MEMORIA_IMG = "../memoria/imagenes"
     title_info = (
         f"ath={ath:.4f}  hd=400  reg=1.60e-02"
