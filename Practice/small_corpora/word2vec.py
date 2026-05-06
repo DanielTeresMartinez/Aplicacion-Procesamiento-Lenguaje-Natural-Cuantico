@@ -37,6 +37,8 @@ class LossCallback(CallbackAny2Vec):
         self.train_losses = []
         self.val_scores = []
         self._best_val_score = -1
+        self._best_checkpoint = "_best_checkpoint.model"
+        self._no_improve_count = 0
         self._loss_file = open(LOSS_FILE, "w")
         self._loss_file.write("epoch,loss,cosine_delta\n")
 
@@ -54,7 +56,7 @@ class LossCallback(CallbackAny2Vec):
         self._loss_file.write(f"{self._epoch},{epoch_loss:.6f},{val_score:.6f}\n")
         self._loss_file.flush()
 
-        # Revisar toda esta mierda de guardar el mejor modelo encontrado en 500 iteraciones.
+        improved_tag = ""
         if val_score > self._best_val_score:
             self._best_val_score = val_score
             self._no_improve_count = 0
@@ -67,7 +69,7 @@ class LossCallback(CallbackAny2Vec):
             or self._epoch == FINAL_EPOCHS
         ):
             print(
-                f"  época {self._epoch:>6} | pérdida = {epoch_loss:.4f} | cosine_delta = {val_score:.4f}"
+                f"  época {self._epoch:>6} | pérdida = {epoch_loss:.4f} | cosine_delta = {val_score:.4f}{improved_tag}"
             )
 
     def on_train_end(self, model):
@@ -123,7 +125,7 @@ if __name__ == "__main__":
     elapsed = time.time() - t_start
     print(f"Tiempo de entrenamiento: {elapsed:.1f}s  ({elapsed/60:.1f} min)")
 
-    rint("\nCargando el mejor modelo guardado durante el entrenamiento...")
+    print("\nCargando el mejor modelo guardado durante el entrenamiento...")
     model = Word2Vec.load(loss_cb._best_checkpoint)
 
     final_corr = evaluate(model)
@@ -195,7 +197,7 @@ if __name__ == "__main__":
     vocab = model.wv.index_to_key
     xs = [model.wv[w][0] for w in vocab]
     ys = [model.wv[w][1] for w in vocab]
-    colors = plt.cm.hsv(np.linspace(0, 0.9, len(vocab)))
+    colors = plt.cm.hsv(np.linspace(0, 0.9, len(vocab)))  # type: ignore
 
     _offsets = [
         (10, 6),
@@ -212,7 +214,7 @@ if __name__ == "__main__":
     for i, (word, xi, yi) in enumerate(zip(vocab, xs, ys)):
         ox, oy = _offsets[i % len(_offsets)]
         ax1.annotate(
-            word,
+            word,  # type: ignore
             (xi, yi),
             textcoords="offset points",
             xytext=(ox, oy),

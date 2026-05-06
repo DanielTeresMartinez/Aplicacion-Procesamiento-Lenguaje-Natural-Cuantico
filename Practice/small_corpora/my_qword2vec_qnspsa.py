@@ -1,5 +1,7 @@
 import os
+import sys
 import pickle
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from my_tools import *
 import numpy as np
 from scipy.spatial.distance import pdist
@@ -352,12 +354,9 @@ if __name__ == "__main__":
         match = "✓" if set(real_peaks) == set(expected_peaks) else "✗"
         print(f"  {w:<10} {str(real_words):<25} {str(exp_words):<25} {match}")
 
-    # ── Cosine delta (misma métrica que Word2Vec para comparación directa) ────
-    word_vectors_q_delta = {
-        id_to_word[i]: final_probs[i] for i in range(len(word_to_id))
-    }
-    cosine_delta = evaluate_cosine_delta(word_vectors_q_delta)
-    print(f"Cosine delta (≈W2V):       {cosine_delta:.4f}")
+    # ── Top-2 accuracy (métrica principal de evaluación de QWord2Vec) ─────────
+    top2_accuracy = 1.0 - calculate_error_rate(final_probs, label_vectors)
+    print(f"Top-2 accuracy (picos):    {top2_accuracy:.4f}")
 
     MEMORIA_IMG = "../../memoria/imagenes"
     title_info = (
