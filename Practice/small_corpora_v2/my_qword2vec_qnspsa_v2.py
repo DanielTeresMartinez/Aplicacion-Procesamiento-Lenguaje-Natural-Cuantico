@@ -1,5 +1,9 @@
 import os
+import sys
 import pickle
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
 from my_tools import *
 import numpy as np
 from scipy.spatial.distance import pdist
@@ -119,9 +123,9 @@ if __name__ == "__main__":
     SHOW_VISUALIZATIONS = True
     # True  → entrena y guarda los pesos en WEIGHTS_FILE
     # False → carga los pesos desde WEIGHTS_FILE y salta el entrenamiento
-    TRAIN = True
-    WEIGHTS_FILE = "theta_values_QNSPSA_v3.pkl"
-    LOSS_FILE = "loss_history_QNSPSA_v3.txt"
+    TRAIN = False
+    WEIGHTS_FILE = "theta_values_QNSPSA_v2.pkl"
+    LOSS_FILE = "loss_history_QNSPSA_v2.txt"
     n_qubits = 4
     n_embedding = 2
     n_layers = None
@@ -154,7 +158,7 @@ if __name__ == "__main__":
 
     # ── §3.4 · Estimación de la profundidad L ────────────────────────────────
     num_data = len(word_to_id)
-    ath = 0.02  # mejor valor encontrado en Bayesian fine-tuning (trial 5)
+    ath = 0.02
     if n_layers is None:
         n_layers = estimate_num_layers(n_qubits, n_embedding, num_data, ath)
         print(f"L heurístico = {n_layers}  (pares={num_data}, Ath={ath})")
@@ -189,10 +193,10 @@ if __name__ == "__main__":
         return f(params1, params2)
 
     iterations = 2500
-    c_val = 2
-    spsa_c = 0.07  # mejor valor encontrado en Bayesian fine-tuning (trial 5)
+    c_val = 3
+    spsa_c = 0.07
     spsa_gamma = 0.101
-    spsa_a = 0.16  # mejor valor encontrado en Bayesian fine-tuning (trial 5)
+    spsa_a = 0.16
     spsa_A = iterations * 0.1
     spsa_alpha = 0.602
     loss_history = []
@@ -352,22 +356,11 @@ if __name__ == "__main__":
         match = "✓" if set(real_peaks) == set(expected_peaks) else "✗"
         print(f"  {w:<10} {str(real_words):<25} {str(exp_words):<25} {match}")
 
-    # ── K-Means accuracy (misma métrica que Word2Vec para comparación directa) ──
-    _clusters_gt = {
-        "animal": ["dog", "cat", "animal", "eyes"],
-        "food": ["apple", "fish", "milk"],
-        "culture": ["book", "music", "movie"],
-        "sentiment": ["i", "like", "hate"],
-    }
-    _cluster_names_q = list(_clusters_gt.keys())
-    _word_to_cluster_q = {w: c for c, ws in _clusters_gt.items() for w in ws}
-    word_vectors_q = {w: final_probs[word_to_id[w]] for w in word_to_id}
-    kmeans_acc = kmeans_cluster_accuracy(
-        word_vectors_q, _word_to_cluster_q, _cluster_names_q
-    )
-    print(f"K-Means accuracy (≈W2V):   {kmeans_acc:.4f}")
+    # ── Top-2 accuracy (métrica principal de evaluación de QWord2Vec) ─────────
+    top2_accuracy = 1.0 - calculate_error_rate(final_probs, label_vectors)
+    print(f"Top-2 accuracy (picos):    {top2_accuracy:.4f}")
 
-    MEMORIA_IMG = "../memoria/imagenes"
+    MEMORIA_IMG = "../../memoria/imagenes"
     title_info = (
         f"ath={ath:.4f}  hd=400  reg=1.60e-02"
         f"  a={spsa_a:.4f}  c={spsa_c:.4f}  L={n_layers}  C={c_val}"

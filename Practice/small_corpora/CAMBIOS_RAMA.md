@@ -203,6 +203,20 @@ Un `top2_accuracy = 1.0` significa que para cada palabra del vocabulario el circ
 
 `cosine_delta` (Word2Vec) y `top2_accuracy` (Q-Word2Vec) no son la misma métrica y no son directamente comparables numéricamente. Sin embargo ambas responden a la misma pregunta semántica desde la perspectiva de cada modelo: ¿aprende el modelo la estructura de similitud del corpus? Se reportan por separado y se discute cualitativamente la comparación.
 
+### Nota para la memoria — mapa de calor de similitud y distancia de Hellinger
+
+El código genera un mapa de calor de similitud coseno para ambos modelos (`plot_cosine_similarity_comparison`). Para Word2Vec esto es completamente apropiado: el modelo aprende embeddings densos en ℝ² y la similitud coseno es exactamente la métrica que captura su geometría semántica.
+
+Para Q-Word2Vec la situación es más delicada. Las representaciones del modelo son **distribuciones de probabilidad** (vectores en el símplex de dimensión 2ⁿ), no embeddings en un espacio euclídeo. La métrica teóricamente correcta para comparar distribuciones de probabilidad es la **distancia de Hellinger**:
+
+$$H(p,q) = \frac{1}{\sqrt{2}} \sqrt{\sum_i \left(\sqrt{p_i} - \sqrt{q_i}\right)^2}$$
+
+que produce valores en [0, 1] (0 = distribuciones idénticas, 1 = soportes disjuntos). La similitud correspondiente sería 1 − H(p,q). A diferencia del coseno, la distancia de Hellinger respeta la estructura geométrica del símplex y es invariante a reescalados.
+
+**En la implementación se ha mantenido la similitud coseno para ambos modelos** por coherencia visual entre los dos mapas de calor. Esto es una aproximación válida — el coseno sobre vectores no negativos es bien definido y mide proximidad angular entre perfiles de probabilidad — pero debe mencionarse en la memoria que no es la métrica nativa del espacio de Q-Word2Vec. La alternativa canónica habría sido la distancia de Hellinger [referencia: https://oecd.ai/en/catalogue/metrics/hellinger-distance], que se deja como posible mejora futura.
+
+> **Instrucción para el agente redactor:** en la sección que describa el mapa de calor de Q-Word2Vec (o en la discusión de resultados), añadir un párrafo breve indicando que la similitud coseno se usa como aproximación práctica, que la métrica teóricamente adecuada para distribuciones de probabilidad es la distancia de Hellinger, y citar la referencia anterior. No hace falta entrar en detalle matemático — con una frase de justificación y la cita es suficiente.
+
 ---
 
 ## 5. Código final de evaluación — resumen
