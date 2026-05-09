@@ -354,8 +354,7 @@ if __name__ == "__main__":
         match = "✓" if set(real_peaks) == set(expected_peaks) else "✗"
         print(f"  {w:<10} {str(real_words):<25} {str(exp_words):<25} {match}")
 
-    # ── Top-2 accuracy (métrica principal de evaluación de QWord2Vec) ─────────
-    top2_accuracy = 1.0 - calculate_error_rate(final_probs, label_vectors)
+    top2_accuracy = 1.0 - best_er_display
     print(f"Top-2 accuracy (picos):    {top2_accuracy:.4f}")
 
     MEMORIA_IMG = "../../memoria/imagenes"
