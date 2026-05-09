@@ -161,8 +161,10 @@ variedad de contextos que "music" y "movie" entre sí. No obstante music↔movie
 ### Nota sobre la visualización 2D
 
 Los embeddings son de dimensión 4. Para la gráfica `embeddingsWord2Vec_v2.png`
-se representan directamente las dos primeras dimensiones (d0 y d1). El archivo
-`word2vec_embeddings_v2.txt` contiene los vectores completos en dim=4:
+se aplica **PCA 4D→2D** antes de representar, proyectando los vectores sobre
+los dos ejes de máxima varianza. El título de la gráfica indica el porcentaje
+de varianza explicado. El archivo `word2vec_embeddings_v2.txt` contiene los
+vectores completos en dim=4 (sin reducción):
 
 ```
 # word  d0  d1  d2  d3

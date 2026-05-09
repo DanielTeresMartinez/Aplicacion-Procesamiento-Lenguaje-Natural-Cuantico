@@ -11,6 +11,7 @@ from gensim.models.word2vec import LineSentence
 from gensim.models.callbacks import CallbackAny2Vec
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
 from my_tools import evaluate_cosine_delta, SIMILAR_PAIRS
 
 # ── Hiperparámetros ───────────────────────────────────────────────────────────
@@ -184,8 +185,18 @@ if __name__ == "__main__":
     fig2, ax1 = plt.subplots(figsize=(8, 6))
 
     vocab = model.wv.index_to_key
-    xs = [model.wv[w][0] for w in vocab]
-    ys = [model.wv[w][1] for w in vocab]
+    emb_matrix = np.array([model.wv[w] for w in vocab])
+
+    if emb_matrix.shape[1] > 2:
+        pca = PCA(n_components=2)
+        coords_2d = pca.fit_transform(emb_matrix)
+        var_explained = pca.explained_variance_ratio_.sum() * 100
+        pca_note = f"  (PCA {emb_matrix.shape[1]}D→2D, var={var_explained:.1f}%)"
+    else:
+        coords_2d = emb_matrix
+        pca_note = ""
+
+    xs, ys = coords_2d[:, 0], coords_2d[:, 1]
     colors = plt.cm.hsv(np.linspace(0, 0.9, len(vocab)))  # type: ignore
 
     _offsets = [
@@ -213,12 +224,12 @@ if __name__ == "__main__":
 
     bp = BEST_PARAMS
     ax1.set_title(
-        f"2D Word Embeddings (corpus v2)\n"
+        f"2D Word Embeddings (corpus v2){pca_note}\n"
         f"vsize={bp['vector_size']}  win={bp['window']}  α={bp['alpha']}  "
         f"neg={bp['negative']}  ns_exp={bp.get('ns_exponent', 0.75)}"
     )
-    ax1.set_xlabel("Dimension 1")
-    ax1.set_ylabel("Dimension 2")
+    ax1.set_xlabel("PC1" if emb_matrix.shape[1] > 2 else "Dimension 1")
+    ax1.set_ylabel("PC2" if emb_matrix.shape[1] > 2 else "Dimension 2")
     ax1.grid(True, linestyle="--", alpha=0.4)
 
     fig2.tight_layout()
