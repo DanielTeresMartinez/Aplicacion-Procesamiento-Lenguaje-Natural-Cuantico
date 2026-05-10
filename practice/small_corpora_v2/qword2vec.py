@@ -151,7 +151,9 @@ if __name__ == "__main__":
     if os.path.isfile("data/smallWordList.txt"):
         corpus = corpus + load_word_list("data/smallWordList.txt")
     else:
-        print("[INFO] data/smallWordList.txt no encontrado — entrenando solo con frases.")
+        print(
+            "[INFO] data/smallWordList.txt no encontrado — entrenando solo con frases."
+        )
 
     w2v_embeddings = load_word2vec_embeddings("data/word2vec_embeddings_v2.txt")
 
@@ -319,7 +321,7 @@ if __name__ == "__main__":
             theta_values = pickle.load(f)
         print(
             f"Mejor error rate encontrado: {best_er[0]:.4f}"
-            f"  |  Pérdida en mejor época: {best_loss[0]:+.4f}"
+            f"  |  Pérdida en mejor época: {best_loss[0]:.4f}"
             f" — pesos cargados desde {WEIGHTS_FILE}"
         )
 
@@ -338,7 +340,7 @@ if __name__ == "__main__":
                             best_er_file, best_loss_file = er, loss
                     except ValueError:
                         continue
-        print(f"Pérdida en mejor época:     {best_loss_file:+.4f}")
+        print(f"Pérdida en mejor época:     {best_loss_file:.4f}")
         best_er_display = best_er_file
 
     final_probs = forward_pass(qc_data, thetas, theta_values, n_shots, sim)
@@ -347,7 +349,7 @@ if __name__ == "__main__":
     q_dists_final = pdist(final_probs, metric="euclidean")
     correlation_final, _ = pearsonr(q_dists_final, target_distances)
     print(f"Error rate (mejor época):  {best_er_display:.4f}")
-    print(f"Correlación de Pearson:    {correlation_final:.4f}  (paper: 0.81)")
+    print(f"Correlación de Pearson:    {correlation_final:.4f}")
 
     if VERBOSE:
         print_peak_diagnostics(final_probs, label_vectors, word_to_id, id_to_word)
