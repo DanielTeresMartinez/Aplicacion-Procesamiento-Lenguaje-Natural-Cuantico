@@ -153,9 +153,6 @@ def run_trial(ath, regularization, hessian_delay, spsa_a, spsa_c):
 #    los mejores trials usaban hd ≥ 700.
 #  · regularization=5e-4 dominó el top-5, los extremos 1e-4 y 3e-3 peores.
 #
-# Grid refinado: incorpora spsa_a y spsa_c como hiperparámetros, centrado
-# en la región del mejor resultado conocido (trial 5 del Bayesian):
-#   ath=0.021, hd=400, reg=1.57e-2, a=0.1575, c=0.0716 → best_er=0.0769
 param_grid = {
     "ath": [0.018, 0.021, 0.024],
     "hessian_delay": [300, 400, 500],

@@ -16,7 +16,11 @@ from my_tools import (
     build_target_distances,
     calculate_error_rate,
 )
-from my_qword2vec_qnspsa import qword2vec_circuit, forward_pass, calculate_custom_loss
+from my_qword2vec_qnspsa_v2 import (
+    qword2vec_circuit,
+    forward_pass,
+    calculate_custom_loss,
+)
 
 np.random.seed(42)
 
@@ -24,9 +28,9 @@ np.random.seed(42)
 N_QUBITS = 4
 N_EMBEDDING = 2
 GS_SHOTS = 256
-GS_ITERATIONS = 1500
+GS_ITERATIONS = 600
 EDUCATED_GUESS = 6
-C_VAL = 2
+C_VAL = 3  # actualizado de 2 -> 3 respecto a la primera exploración
 
 # Exponentes de los schedules (fijos)
 SPSA_GAMMA = 0.101
@@ -140,22 +144,25 @@ def run_trial(ath, regularization, hessian_delay, spsa_a, spsa_c):
 
 
 # ── Grid ──────────────────────────────────────────────────────────────────
-# Primera exploración (grid_search_results.txt) con el espacio amplio:
-#   ath          ∈ {0.02, 0.03, 0.04, 0.05}
-#   regularization ∈ {1e-4, 5e-4, 3e-3}
-#   hessian_delay  ∈ {200, 500, 700, 1000}
+# Primera exploración con el espacio amplio:
+#   ath          en {0.015, 0.020, 0.025, 0.030}
+#   regularization en {1e-3, 1e-2, 5e-2, 1e-1}
+#   hessian_delay  en {100, 200, 300, 500}
+#   spsa_a         en {0.05, 0.15, 0.30, 0.60}
+#   spsa_c         en {0.03, 0.07, 0.15, 0.30}
 #
 # Observaciones tras esa primera pasada:
-#  · Los valores de ath más altos (0.04-0.05) producen L muy pequeño (≤6)
-#    y el circuito tiene poca capacidad expresiva → error rate > 0.40.
-#  · ath ∈ {0.02, 0.03} con L∈{8,11} concentra los mejores resultados.
-#  · hessian_delay bajo (200-500) converge más lento o a peores mínimos;
-#    los mejores trials usaban hd ≥ 700.
-#  · regularization=5e-4 dominó el top-5, los extremos 1e-4 y 3e-3 peores.
+#  - ath en {0.020, 0.025} concentra los mejores resultados (L en {9-11});
+#    valores extremos (0.015 o 0.030) dan circuitos sobredimensionados
+#    o con poca capacidad expresiva -> error rate > 0.40.
+#  - hessian_delay <= 200 converge a peores minimos; el rango 200-400
+#    mostro la mejor convergencia global.
+#  - regularization en {1e-2, 5e-2} domino el top-5; los extremos peores.
+#  - spsa_a en {0.10-0.25} mejor comportamiento; valores altos (> 0.30)
+#    producen actualizaciones inestables y bajos (< 0.10) convergencia lenta.
+#  - spsa_c en {0.05-0.10} optimo; valores mayores sobreperturbaban el
+#    espacio de parametros y dificultaban la convergencia del Hessiano.
 #
-# Grid refinado: incorpora spsa_a y spsa_c como hiperparámetros, centrado
-# en la región del mejor resultado conocido (trial 5 del Bayesian):
-#   ath=0.021, hd=400, reg=1.57e-2, a=0.1575, c=0.0716 → best_er=0.0769
 param_grid = {
     "ath": [0.018, 0.021, 0.024],
     "hessian_delay": [300, 400, 500],
@@ -169,7 +176,7 @@ combos = list(itertools.product(*param_grid.values()))
 total = len(combos)
 
 print(
-    f"\nGrid search refinado: {total} combinaciones × {GS_ITERATIONS} iter/combo\n"
+    f"\nGrid search (segunda exploración): {total} combinaciones × {GS_ITERATIONS} iter/combo\n"
     + "=" * 65
 )
 
@@ -198,7 +205,7 @@ results.sort(key=lambda x: x["best_er"])
 out_file = "grid_search_results_refined.txt"
 with open(out_file, "w") as f:
     f.write(
-        f"Grid Search QNSPSA (refinado) — {GS_ITERATIONS} iter/combo, {GS_SHOTS} shots\n"
+        f"Grid Search QNSPSA (segunda exploración) — {GS_ITERATIONS} iter/combo, {GS_SHOTS} shots\n"
     )
     f.write("=" * 80 + "\n")
     header = f"{'Rank':>4}  {'ath':>5}  {'L':>3}  {'hd':>5}  {'reg':>7}  {'a':>6}  {'c':>6}  {'best_er':>8}\n"
