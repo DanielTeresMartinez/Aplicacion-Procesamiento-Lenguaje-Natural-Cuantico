@@ -16,7 +16,7 @@ from my_tools import (
     build_target_distances,
     calculate_error_rate,
 )
-from my_qword2vec_qnspsa_v2 import (
+from qword2vec import (
     qword2vec_circuit,
     forward_pass,
     calculate_custom_loss,

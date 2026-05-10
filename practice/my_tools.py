@@ -4,9 +4,6 @@ import numpy as np
 from scipy.spatial.distance import pdist, cosine as cosine_distance
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
-from sklearn.cluster import KMeans
-from sklearn.metrics import confusion_matrix
-from scipy.optimize import linear_sum_assignment
 
 
 def load_corpus(file_path):
@@ -94,7 +91,7 @@ def generate_training_data_from_text(corpus, word_to_id, window_size=1):
 
 
 # =============================================================================
-# SECCIÓN 4 · Experimentos — Vectores de etiquetas
+# SECCION 4 - Experimentos - Vectores de etiquetas
 # "Two elements [...] were set to 0.5, while all other elements were set to zero."
 # =============================================================================
 
@@ -117,14 +114,14 @@ def generate_label_vectors(training_data, n_qubits):
 
 
 # =============================================================================
-# SECCIÓN 3.4 · Estimación de la profundidad del circuito
-# Fórmulas (ec. 6–7): L = ⌈num_data / (3·(n+ne)·Ath)⌉ · p(n,ne)
-# donde p se obtiene invirtiendo H(p) = 1 − ne/2^n.
+# SECCION 3.4 - Estimacion de la profundidad del circuito
+# Formulas (ec. 6-7): L = ceil(num_data / (3*(n+ne)*Ath)) * p(n,ne)
+# donde p se obtiene invirtiendo H(p) = 1 - ne/2^n.
 # =============================================================================
 
 
 def binary_entropy(p):
-    """Entropía binaria H(p) = -p·log₂(p) - (1-p)·log₂(1-p)."""
+    """Entropia binaria H(p) = -p*log2(p) - (1-p)*log2(1-p)."""
     if p == 0 or p == 1:
         return 0
     return -p * np.log2(p) - (1 - p) * np.log2(1 - p)
@@ -205,10 +202,12 @@ def plot_embeddings_comparison(
     """
     words = [id_to_word[i] for i in range(len(word_to_id))]
 
-    # Q-word2vec: PCA de prob_distributions (n_words x 2^n_qubits) → 2D
+    # Q-word2vec: PCA de prob_distributions (n_words x 2^n_qubits) -> 2D
     pca = PCA(n_components=2)
     qw2v_2d = pca.fit_transform(final_probs)
-    print(f"\nQ-Word2Vec — coordenadas 2D tras PCA (varianza explicada: {pca.explained_variance_ratio_.sum()*100:.1f}%)")
+    print(
+        f"\nQ-Word2Vec - coordenadas 2D tras PCA (varianza explicada: {pca.explained_variance_ratio_.sum()*100:.1f}%)"
+    )
     print(f"  {'palabra':<10}  {'PC1':>8}  {'PC2':>8}")
     for i, word in enumerate(words):
         print(f"  {word:<10}  {qw2v_2d[i,0]:>8.4f}  {qw2v_2d[i,1]:>8.4f}")
@@ -279,44 +278,15 @@ def plot_embeddings_comparison(
     plt.show()
 
 
-def kmeans_cluster_accuracy(word_vectors, word_to_cluster, cluster_names):
-    """
-    K-Means accuracy contra un ground truth de clústeres semánticos.
-    Usa el algoritmo húngaro para encontrar la mejor correspondencia entre
-    los clústeres asignados por K-Means y las categorías reales.
-
-    Args:
-        word_vectors : dict {word: np.ndarray}  — embeddings o distribuciones
-        word_to_cluster : dict {word: cluster_name}
-        cluster_names : list[str]               — nombres de las categorías
-    Returns:
-        float en [0, 1], mayor es mejor
-    """
-    cluster_to_int = {c: i for i, c in enumerate(cluster_names)}
-    valid = [
-        (word_vectors[w], cluster_to_int[word_to_cluster[w]])
-        for w in word_to_cluster if w in word_vectors
-    ]
-    if not valid:
-        return 0.0
-    vecs, gt_ints = map(list, zip(*valid))
-    vecs = np.array(vecs)
-    n = len(cluster_names)
-    predicted = KMeans(n_clusters=n, random_state=42, n_init=10).fit_predict(vecs)
-    cm = confusion_matrix(gt_ints, predicted, labels=list(range(n)))
-    _, col_ind = linear_sum_assignment(-cm)
-    return float(cm[range(n), col_ind].sum() / len(vecs))
-
-
 # =============================================================================
 # Pares semánticos anotados manualmente para cosine_delta
 # Basados en los 4 clústeres del corpus (13 palabras):
-#   animal    → dog, cat, animal, eyes
-#   food      → apple, fish, milk
-#   culture   → book, music, movie
-#   sentiment → i, like, hate
+#   animal    -> dog, cat, animal, eyes
+#   food      -> apple, fish, milk
+#   culture   -> book, music, movie
+#   sentiment -> i, like, hate
 #
-# Métrica: cosine_delta = mean_cosine(similares) − mean_cosine(disimilares)
+# Metrica: cosine_delta = mean_cosine(similares) - mean_cosine(disimilares)
 # Cuanto más alto, mejor: las palabras del mismo clúster están más cerca
 # en el espacio de embeddings que las de clústeres distintos.
 # Válida tanto para Word2Vec (R^2) como para QWord2Vec (distribuciones R^16).
@@ -324,36 +294,36 @@ def kmeans_cluster_accuracy(word_vectors, word_to_cluster, cluster_names):
 
 SIMILAR_PAIRS = [
     # Intra-clúster animal
-    ("dog",   "cat"),
-    ("dog",   "animal"),
-    ("cat",   "animal"),
-    ("dog",   "eyes"),
-    ("cat",   "eyes"),
+    ("dog", "cat"),
+    ("dog", "animal"),
+    ("cat", "animal"),
+    ("dog", "eyes"),
+    ("cat", "eyes"),
     # Intra-clúster food
     ("apple", "fish"),
     ("apple", "milk"),
-    ("fish",  "milk"),
+    ("fish", "milk"),
     # Intra-clúster culture
-    ("book",  "music"),
-    ("book",  "movie"),
+    ("book", "music"),
+    ("book", "movie"),
     ("music", "movie"),
     # Intra-clúster sentiment
-    ("i",     "like"),
-    ("i",     "hate"),
-    ("like",  "hate"),
+    ("i", "like"),
+    ("i", "hate"),
+    ("like", "hate"),
 ]
 
 DISSIMILAR_PAIRS = [
     # Inter-clúster (pares de clústeres distintos)
-    ("dog",   "apple"),
-    ("dog",   "book"),
-    ("dog",   "like"),
-    ("cat",   "music"),
+    ("dog", "apple"),
+    ("dog", "book"),
+    ("dog", "like"),
+    ("cat", "music"),
     ("apple", "book"),
     ("apple", "i"),
-    ("fish",  "movie"),
-    ("milk",  "hate"),
-    ("book",  "dog"),
+    ("fish", "movie"),
+    ("milk", "hate"),
+    ("book", "dog"),
     ("music", "apple"),
 ]
 
@@ -361,20 +331,21 @@ DISSIMILAR_PAIRS = [
 def evaluate_cosine_delta(word_vectors: dict) -> float:
     """Cosine delta: calidad semántica de un espacio de embeddings.
 
-    score = mean_cosine(SIMILAR_PAIRS) − mean_cosine(DISSIMILAR_PAIRS)
+    score = mean_cosine(SIMILAR_PAIRS) - mean_cosine(DISSIMILAR_PAIRS)
 
-    Rango teórico: [−2, 2]. Cuanto más alto, mejor: el modelo agrupa
-    correctamente las palabras del mismo clúster semántico y aleja las de
-    clústeres distintos.
+    Rango teorico: [-2, 2]. Cuanto mas alto, mejor: el modelo agrupa
+    correctamente las palabras del mismo cluster semantico y aleja las de
+    clusters distintos.
 
     Args:
-        word_vectors: dict {word: np.ndarray} — embeddings o distribuciones
+        word_vectors: dict {word: np.ndarray} - embeddings o distribuciones
                       de probabilidad. Cualquier dimensión es válida.
 
     Returns:
         float — cosine_delta, o 0.0 si no hay suficientes pares válidos.
     """
-    # scipy cosine() devuelve distancia = 1 − similitud
+
+    # scipy cosine() devuelve distancia = 1 - similitud
     def _sim(w1, w2):
         return 1.0 - cosine_distance(word_vectors[w1], word_vectors[w2])
 
@@ -401,7 +372,7 @@ def plot_cosine_similarity_comparison(
     save_path="cosine_similarity_comparison.png",
 ):
     """
-    Heatmaps de similitud coseno (N×N) para Q-Word2Vec y Word2Vec, lado a lado.
+    Heatmaps de similitud coseno (N x N) para Q-Word2Vec y Word2Vec, lado a lado.
     Opera sobre los embeddings completos sin reducción de dimensionalidad.
     """
     words = [id_to_word[i] for i in range(len(word_to_id))]
@@ -426,8 +397,8 @@ def plot_cosine_similarity_comparison(
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
     for ax, sim, title in [
-        (axes[0], sim_w, "Word2Vec — similitud coseno"),
-        (axes[1], sim_q, "Q-Word2Vec — similitud coseno"),
+        (axes[0], sim_w, "Word2Vec - similitud coseno"),
+        (axes[1], sim_q, "Q-Word2Vec - similitud coseno"),
     ]:
         im = ax.imshow(sim, vmin=0, vmax=1, cmap="RdBu_r", aspect="auto")
         ax.set_xticks(range(n))
@@ -530,7 +501,7 @@ def print_peak_diagnostics(final_probs, label_vectors, word_to_id, id_to_word):
         )
         real_words = [id_to_word.get(p, f"#{p}") for p in real_peaks]
         exp_words = [id_to_word.get(p, f"#{p}") for p in expected_peaks]
-        match = "✓" if set(real_peaks) == set(expected_peaks) else "✗"
+        match = "[OK]" if set(real_peaks) == set(expected_peaks) else "[X]"
         print(f"  {w:<10} {str(real_words):<25} {str(exp_words):<25} {match}")
 
 
@@ -540,7 +511,7 @@ def print_intracluster_similarities(model_wv):
     for w1, w2 in SIMILAR_PAIRS:
         if w1 in model_wv and w2 in model_wv:
             sim = model_wv.similarity(w1, w2)
-            print(f"  {w1:8s} ↔ {w2:8s}  coseno={sim:.3f}")
+            print(f"  {w1:8s} <-> {w2:8s}  coseno={sim:.3f}")
 
 
 def plot_bloch_sphere(
@@ -562,7 +533,7 @@ def plot_bloch_sphere(
     words = [id_to_word[i] for i in range(len(word_to_id))]
     colors = plt.cm.hsv(np.linspace(0, 0.9, len(words)))
 
-    # ── Calcular vector de Bloch del qubit 0 de embedding para cada palabra ──
+    # -- Calcular vector de Bloch del qubit 0 de embedding para cada palabra --
     bvecs = []
     for k in range(len(word_to_id)):
         qc_bound = qc_data[k].assign_parameters({thetas_pv: theta_values})
@@ -577,7 +548,7 @@ def plot_bloch_sphere(
         bz = (r[0, 0] - r[1, 1]).real
         bvecs.append([bx, by, bz])
 
-    # ── Dibujar esfera única ─────────────────────────────────────────────────
+    # -- Dibujar esfera unica ---------------------------------------------------
     u = np.linspace(0, 2 * np.pi, 60)
     v = np.linspace(0, np.pi, 60)
     xs = np.outer(np.cos(u), np.sin(v))
@@ -601,10 +572,10 @@ def plot_bloch_sphere(
             linewidth=0.7,
         )
 
-    ax.text(0, 0, 1.45, "|0⟩", ha="center", va="bottom", fontsize=9)
-    ax.text(0, 0, -1.50, "|1⟩", ha="center", va="top", fontsize=9)
-    ax.text(1.45, 0, 0, "|+⟩", ha="left", fontsize=8, alpha=0.6)
-    ax.text(0, 1.45, 0, "|i+⟩", ha="left", fontsize=8, alpha=0.6)
+    ax.text(0, 0, 1.45, "|0>", ha="center", va="bottom", fontsize=9)
+    ax.text(0, 0, -1.50, "|1>", ha="center", va="top", fontsize=9)
+    ax.text(1.45, 0, 0, "|+>", ha="left", fontsize=8, alpha=0.6)
+    ax.text(0, 1.45, 0, "|i+>", ha="left", fontsize=8, alpha=0.6)
 
     for k, word in enumerate(words):
         bv = bvecs[k]

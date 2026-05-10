@@ -16,7 +16,7 @@ from my_tools import (
     build_target_distances,
     calculate_error_rate,
 )
-from my_qword2vec_qnspsa import qword2vec_circuit, forward_pass, calculate_custom_loss
+from qword2vec import qword2vec_circuit, forward_pass, calculate_custom_loss
 
 np.random.seed(42)
 
