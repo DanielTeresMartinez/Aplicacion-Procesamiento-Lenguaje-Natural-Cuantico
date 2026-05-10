@@ -1,0 +1,44 @@
+5. Procesamiento Lenguaje Natural (NLP)
+    5.1. ¿Qué es el procesamiento de lenguaje natural?
+    5.2. IA Generativa: El papel de los LLMs y la necesidad de representación numérica
+    5.3. Fases del NLP
+        5.3.1. Preprocesamiento y Tokenización
+
+6. Procesamiento del Lenguaje Natural Cuántico (QNLP)
+    6.1. Motivación para el uso de QNLP
+    6.2. Paralelismo entre Espacio Semántico y Espacio de Hilbert
+    6.3. Codificación de información clásica en estados cuánticos
+        6.3.1. Basis Encoding y Amplitude Encoding
+    6.4. Circuitos Cuánticos Variacionales (VQC) como modelos de aprendizaje
+
+7. Representación Vectorial de Palabras (Word Embeddings)
+    7.1. Concepto de Embedding  
+    7.2. Espacios vectoriales y similitud semántica
+
+8. Implementación Clásica: Algoritmo Word2Vec
+    8.1. Arquitectura del modelo
+        8.1.1. CBOW (Continuous Bag of Words) vs Skip-gram
+    8.2. Función de optimización y pérdida
+    8.3. Entrenamiento y generación del espacio latente
+
+9. Implementación Cuántica: Algoritmo QWord2Vec
+    9.1. Adaptación del algoritmo al entorno cuántico
+    9.2. Diseño del Circuito Cuántico Parametrizado
+    ==============================================================
+    ??? Duda en si hacer el 9.3, 9.4 y 9.5 o poner otros apartados
+    ==============================================================
+    9.3. Cálculo de similitud en hardware cuántico (Test de Swap / Fidelidad)
+    9.4. Definición de la función de coste cuántica
+    9.5. Estrategia de optimización híbrida (Clásica-Cuántica)
+
+10. Experimentación y Análisis de Resultados
+    10.1. Metodología experimental
+        10.1.1. Dataset y preprocesamiento (Corpus)
+        10.1.2. Entorno de simulación
+    10.2. Entrenamiento y convergencia
+        10.2.1. Gráficas de pérdida: Word2Vec vs QWord2Vec
+    10.3. Evaluación de calidad de los embeddings
+        10.3.1. Pruebas de analogía y similitud
+    10.4. Comparativa de recursos computacionales y tiempos
+
+11. Conclusiones

@@ -1,18 +1,17 @@
-*
-!.gitignore
-!CC BY-NC-ND 4.0
+# Root
+*.pdf
+*.png
+*.zip
+Plantilla_TFG_latex/
 
-!Practice/
-!Practice/**
-Practice/venv/
-Practice/_best_checkpoint.model
+# Python
+practice/venv/
+**/__pycache__/
+**/*.pyc
+practice/_best_checkpoint.model
+practice/otros_ejecutables
 
-!memoria/
-!memoria/**
-
-!memoria/.claude/
-!memoria/.claude/**
-
+# LaTeX 
 memoria/*.acn
 memoria/*.acr
 memoria/*.alg
@@ -37,6 +36,3 @@ memoria/*.run.xml
 memoria/*.synctex.gz
 memoria/*.toc
 memoria/*.xdv
-
-!memoria/proyecto.tex
-!memoria/proyecto.pdf
