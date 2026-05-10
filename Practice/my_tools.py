@@ -518,6 +518,31 @@ def plot_loss_history(filepath, save_path=None, title_info=None):
     plt.show()
 
 
+def print_peak_diagnostics(final_probs, label_vectors, word_to_id, id_to_word):
+    """Muestra, por cada palabra, los top-2 picos reales del modelo vs los esperados por el label vector."""
+    print("\n  Palabra     top-2 picos reales   top-2 esperados (label)")
+    for w, idx in sorted(word_to_id.items()):
+        real_peaks = list(np.argsort(final_probs[idx])[-2:][::-1])
+        expected_peaks = (
+            list(np.argsort(label_vectors[idx])[-2:][::-1])
+            if idx in label_vectors
+            else []
+        )
+        real_words = [id_to_word.get(p, f"#{p}") for p in real_peaks]
+        exp_words = [id_to_word.get(p, f"#{p}") for p in expected_peaks]
+        match = "✓" if set(real_peaks) == set(expected_peaks) else "✗"
+        print(f"  {w:<10} {str(real_words):<25} {str(exp_words):<25} {match}")
+
+
+def print_intracluster_similarities(model_wv):
+    """Imprime la similitud coseno de cada par intra-clúster según SIMILAR_PAIRS."""
+    print("\nPares intra-clúster (modelo final):")
+    for w1, w2 in SIMILAR_PAIRS:
+        if w1 in model_wv and w2 in model_wv:
+            sim = model_wv.similarity(w1, w2)
+            print(f"  {w1:8s} ↔ {w2:8s}  coseno={sim:.3f}")
+
+
 def plot_bloch_sphere(
     qc_data,
     thetas_pv,

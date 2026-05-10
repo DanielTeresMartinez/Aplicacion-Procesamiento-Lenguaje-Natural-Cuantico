@@ -120,12 +120,19 @@ def calculate_custom_loss(prob_distributions, label_vectors, C, q_dists=None):
 
 
 if __name__ == "__main__":
-    SHOW_VISUALIZATIONS = True
-    # True  → entrena y guarda los pesos en WEIGHTS_FILE
-    # False → carga los pesos desde WEIGHTS_FILE y salta el entrenamiento
+    # True: imprime diagnóstico de top-2 picos por palabra
+    VERBOSE = True
+    # True: guarda los PNG en images/
+    CREATE_IMAGES = True
+
+    os.makedirs("data", exist_ok=True)
+    if CREATE_IMAGES:
+        os.makedirs("images", exist_ok=True)
+    # True:  entrena y guarda los pesos en WEIGHTS_FILE
+    # False: carga los pesos desde WEIGHTS_FILE y salta el entrenamiento
     TRAIN = False
     WEIGHTS_FILE = "theta_values_QNSPSA_v2.pkl"
-    LOSS_FILE = "loss_history_QNSPSA_v2.txt"
+    LOSS_FILE = "data/loss_history_QNSPSA_v2.txt"
     n_qubits = 4
     n_embedding = 2
     n_layers = None
@@ -135,18 +142,18 @@ if __name__ == "__main__":
 
     # ── Datos y corpus ───────────────────────────────────────────────────────
     try:
-        corpus = load_corpus("smallCorporaV2.txt")
+        corpus = load_corpus("data/smallCorporaV2.txt")
         print("Corpus de frases cargado.")
     except FileNotFoundError:
-        print("Error: smallCorporaV2.txt no encontrado.")
+        print("Error: data/smallCorporaV2.txt no encontrado.")
         exit(1)
 
-    if os.path.isfile("smallWordList.txt"):
-        corpus = corpus + load_word_list("smallWordList.txt")
+    if os.path.isfile("data/smallWordList.txt"):
+        corpus = corpus + load_word_list("data/smallWordList.txt")
     else:
-        print("[INFO] smallWordList.txt no encontrado — entrenando solo con frases.")
+        print("[INFO] data/smallWordList.txt no encontrado — entrenando solo con frases.")
 
-    w2v_embeddings = load_word2vec_embeddings("word2vec_embeddings_v2.txt")
+    w2v_embeddings = load_word2vec_embeddings("data/word2vec_embeddings_v2.txt")
 
     word_to_id, id_to_word = build_vocabulary(corpus, n_qubits)
     print(f"Vocabulario: {len(word_to_id)}/{2**n_qubits} palabras")
@@ -342,19 +349,8 @@ if __name__ == "__main__":
     print(f"Error rate (mejor época):  {best_er_display:.4f}")
     print(f"Correlación de Pearson:    {correlation_final:.4f}  (paper: 0.81)")
 
-    # ── Diagnóstico: picos reales vs esperados por label vector ──────────────
-    print("\n  Palabra     top-2 picos reales   top-2 esperados (label)")
-    for w, idx in sorted(word_to_id.items()):
-        real_peaks = list(np.argsort(final_probs[idx])[-2:][::-1])
-        expected_peaks = (
-            list(np.argsort(label_vectors[idx])[-2:][::-1])
-            if idx in label_vectors
-            else []
-        )
-        real_words = [id_to_word.get(p, f"#{p}") for p in real_peaks]
-        exp_words = [id_to_word.get(p, f"#{p}") for p in expected_peaks]
-        match = "✓" if set(real_peaks) == set(expected_peaks) else "✗"
-        print(f"  {w:<10} {str(real_words):<25} {str(exp_words):<25} {match}")
+    if VERBOSE:
+        print_peak_diagnostics(final_probs, label_vectors, word_to_id, id_to_word)
 
     top2_accuracy = 1.0 - best_er_display
     print(f"Top-2 accuracy (picos):    {top2_accuracy:.4f}")
@@ -364,34 +360,41 @@ if __name__ == "__main__":
         f"ath={ath:.4f}  hd=400  reg=1.60e-02"
         f"  a={spsa_a:.4f}  c={spsa_c:.4f}  L={n_layers}  C={c_val}"
     )
-    plot_loss_history(
-        LOSS_FILE,
-        save_path=[
-            "lossCurvesQWord2Vec_v2.png",
-            f"{MEMORIA_IMG}/lossCurvesQWord2Vec_v2.png",
-        ],
-        title_info=title_info,
-    )
-    plot_embeddings_comparison(
-        final_probs,
-        w2v_embeddings,
-        word_to_id,
-        id_to_word,
-        save_path=[
-            "embeddings_comparison_v2.png",
-            f"{MEMORIA_IMG}/embeddings_comparison_v2.png",
-        ],
-    )
-    plot_cosine_similarity_comparison(
-        final_probs,
-        w2v_embeddings,
-        word_to_id,
-        id_to_word,
-        save_path=[
-            "cosine_similarity_comparison_v2.png",
-            f"{MEMORIA_IMG}/cosine_similarity_comparison_v2.png",
-        ],
-    )
-    plot_bloch_sphere(
-        qc_data, thetas, theta_values, n_embedding, word_to_id, id_to_word
-    )
+    if CREATE_IMAGES:
+        plot_loss_history(
+            LOSS_FILE,
+            save_path=[
+                "images/lossCurvesQWord2Vec_v2.png",
+                f"{MEMORIA_IMG}/lossCurvesQWord2Vec_v2.png",
+            ],
+            title_info=title_info,
+        )
+        plot_embeddings_comparison(
+            final_probs,
+            w2v_embeddings,
+            word_to_id,
+            id_to_word,
+            save_path=[
+                "images/embeddings_comparison_v2.png",
+                f"{MEMORIA_IMG}/embeddings_comparison_v2.png",
+            ],
+        )
+        plot_cosine_similarity_comparison(
+            final_probs,
+            w2v_embeddings,
+            word_to_id,
+            id_to_word,
+            save_path=[
+                "images/cosine_similarity_comparison_v2.png",
+                f"{MEMORIA_IMG}/cosine_similarity_comparison_v2.png",
+            ],
+        )
+        plot_bloch_sphere(
+            qc_data,
+            thetas,
+            theta_values,
+            n_embedding,
+            word_to_id,
+            id_to_word,
+            save_path="images/bloch_sphere_v2.png",
+        )

@@ -11,11 +11,11 @@ from gensim.models.word2vec import LineSentence
 from gensim.models.callbacks import CallbackAny2Vec
 import numpy as np
 import matplotlib.pyplot as plt
-from my_tools import evaluate_cosine_delta, SIMILAR_PAIRS
+from my_tools import evaluate_cosine_delta, print_intracluster_similarities
 
 FINAL_EPOCHS = 500
 PRINT_EVERY = 50
-LOSS_FILE = "loss_history_word2vec.txt"
+LOSS_FILE = "data/loss_history_word2vec.txt"
 
 BEST_PARAMS = {
     "vector_size": 2,
@@ -98,9 +98,16 @@ def _save_embeddings(filepath, word_vec_dict, header_comment=""):
 
 
 if __name__ == "__main__":
-    sentences = list(LineSentence("smallCorpora.txt"))
-    # random.seed(42)
-    # random.shuffle(sentences)
+    # True: imprime similitudes intra-clúster al final
+    VERBOSE = False
+    # True: guarda los PNG en images/
+    CREATE_IMAGES = True
+
+    os.makedirs("data", exist_ok=True)
+    if CREATE_IMAGES:
+        os.makedirs("images", exist_ok=True)
+
+    sentences = list(LineSentence("data/smallCorpora.txt"))
     print(f"Corpus cargado: {len(sentences)} frases")
 
     loss_cb = LossCallback()
@@ -131,11 +138,8 @@ if __name__ == "__main__":
     final_corr = evaluate(model)
     print(f"\nCosine delta final: {final_corr:.4f}")
 
-    print("\nPares intra-clúster (modelo final):")
-    for w1, w2 in SIMILAR_PAIRS:
-        if w1 in model.wv and w2 in model.wv:
-            sim = model.wv.similarity(w1, w2)
-            print(f"  {w1:8s} ↔ {w2:8s}  coseno={sim:.3f}")
+    if VERBOSE:
+        print_intracluster_similarities(model.wv)
 
     fig1, ax0 = plt.subplots(figsize=(8, 6))
 
@@ -187,10 +191,12 @@ if __name__ == "__main__":
     ax0b.tick_params(axis="y", labelcolor="steelblue", labelsize=7)
 
     fig1.tight_layout()
-    fig1.savefig("lossCurvesWord2Vec.png", dpi=150)
-    shutil.copy(
-        "lossCurvesWord2Vec.png", "../../memoria/imagenes/lossCurvesWord2Vec.png"
-    )
+    if CREATE_IMAGES:
+        fig1.savefig("images/lossCurvesWord2Vec.png", dpi=150)
+        shutil.copy(
+            "images/lossCurvesWord2Vec.png",
+            "../../memoria/imagenes/lossCurvesWord2Vec.png",
+        )
 
     fig2, ax1 = plt.subplots(figsize=(8, 6))
 
@@ -233,14 +239,16 @@ if __name__ == "__main__":
     ax1.grid(True, linestyle="--", alpha=0.4)
 
     fig2.tight_layout()
-    fig2.savefig("embeddingsWord2Vec.png", dpi=150)
-    shutil.copy(
-        "embeddingsWord2Vec.png", "../../memoria/imagenes/embeddingsWord2Vec.png"
-    )
+    if CREATE_IMAGES:
+        fig2.savefig("images/embeddingsWord2Vec.png", dpi=150)
+        shutil.copy(
+            "images/embeddingsWord2Vec.png",
+            "../../memoria/imagenes/embeddingsWord2Vec.png",
+        )
 
     orig_embs = {w: model.wv[w] for w in vocab}
     _save_embeddings(
-        "word2vec_embeddings.txt",
+        "data/word2vec_embeddings.txt",
         orig_embs,
         header_comment=f"vector_size={BEST_PARAMS['vector_size']}",
     )
