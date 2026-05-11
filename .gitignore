@@ -10,6 +10,7 @@ practice/venv/
 **/*.pyc
 practice/_best_checkpoint.model
 practice/otros_ejecutables
+practice/fine_tuning*
 
 # LaTeX 
 memoria/*.acn
