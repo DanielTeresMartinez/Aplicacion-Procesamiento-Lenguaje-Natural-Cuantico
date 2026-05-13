@@ -351,8 +351,6 @@ if __name__ == "__main__":
     final_word_vectors = {id_to_word[k]: final_probs[k] for k in range(len(word_to_id))}
     cosine_delta_final = evaluate_cosine_delta(final_word_vectors)
     print(f"Error rate (mejor época):  {best_er_display:.4f}")
-    top2_accuracy = 1.0 - best_er_display
-    print(f"Top-2 accuracy (picos):    {top2_accuracy:.4f}")
     print(f"Cosine delta (evaluación): {cosine_delta_final:.4f}")
     print(f"Correlación de Pearson:    {correlation_final:.4f}")
 

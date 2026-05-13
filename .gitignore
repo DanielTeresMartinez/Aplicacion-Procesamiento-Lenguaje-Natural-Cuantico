@@ -37,3 +37,4 @@ memoria/*.run.xml
 memoria/*.synctex.gz
 memoria/*.toc
 memoria/*.xdv
+memoria/backup

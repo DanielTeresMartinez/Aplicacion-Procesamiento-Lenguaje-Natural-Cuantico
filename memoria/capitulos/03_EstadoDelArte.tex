@@ -51,7 +51,7 @@ El aspecto fundamental en todo esto, es que tras finalizar el entrenamiento, el 
 \begin{figure}[h]
   \centering
   \includegraphics[width=1.0\linewidth]{imagenes/Word-embeddings-model.png}
-  \caption{Representación visual de un modelo basado en predicciones para generar embeddings de palabras. Fuente: \url{https://neptune.ai/blog/word-embeddings-guide}.}
+  \caption{Representación visual de un modelo basado en predicciones para generar embeddings de palabras. Fuente: \cite{neptune_word_embeddings_guide}.}
   \label{fig:word_embeddings_model}
 \end{figure}
 
@@ -72,7 +72,7 @@ El modelo híbrido con más popularidad en este ámbito es el de \textbf{GloVe (
 \begin{figure}[h]
   \centering
   \includegraphics[width=0.9\linewidth]{imagenes/word-embedding-counting-model.png}
-  \caption{Representación visual de un modelo basado en conteos para generar embeddings de palabras. Fuente: \url{https://www.scaler.com/topics/tensorflow/tensorflow-word-embeddings/}.}
+  \caption{Representación visual de un modelo basado en conteos para generar embeddings de palabras. Fuente: \cite{malingan_tensorflow_embeddings_2023}.}
   \label{fig:word_embedding_counting_model}
 \end{figure}
 
@@ -113,7 +113,7 @@ En el contexto que nos encontramos de embeddings de palabras, hay que pensar que
 \begin{figure}[h]
   \centering
   \includegraphics[width=0.7\linewidth]{imagenes/ejemploSimilitudCoseno.png}
-  \caption{Ejemplo visual de la representación de vectores y su cercanía empleando la similitud coseno. Fuente: \url{https://x.com/levikul09}.}
+  \caption{Ejemplo visual de la representación de vectores y su cercanía empleando la similitud coseno. Fuente: \cite{levikul09_cosine_similarity_x}.}
   \label{fig:ejemploSimilitudCoseno}
 \end{figure}
 
@@ -414,7 +414,7 @@ donde los términos que intervienen en la expresión son:
   \item $n$: número total de qubits del sistema.
   \item $n_e$: número de qubits de embeddings.
   \item $A_{th}$: umbral de tolerancia determinado de forma empírica.
-  \item $p(n, n_e) \in [0, 0{,}5)$: probabilidad de error en función de $n$ y $n_e$.
+  \item $p(n, n_e) \in [0, 0.5)$: probabilidad de error en función de $n$ y $n_e$.
 \end{itemize}
 
 La expresión determina la profundidad mínima necesaria para que la cantidad promedio de datos por parámetro no supere el umbral $A_{th}$. Dado que cada capa aporta $3(n + n_e)$ parámetros entrenables (un parámetro entrenable por cada matriz de rotación de Pauli), la fórmula divide la carga total de entrenamiento entre dicha capacidad ponderada por el umbral. La función techo $\lceil \cdot \rceil$ garantiza que $L$ tome un valor entero.
@@ -458,7 +458,7 @@ A este componente clásico poseen también un segundo término basado en el coef
 
 donde $\mathcal{L}_{\text{CE}}$ representa la pérdida por entropía cruzada y $C > 0$ es un parámetro de balanceo. Por su parte, $\rho(D, Y)$ denota el coeficiente de correlación de Pearson calculado entre el vector distancia de los \textit{embeddings} generados por QWord2Vec ($D$) y el vector de etiquetas de entrenamiento ($Y$). Las representaciones de los \textit{embeddings} se actualizan en cada iteración, mientras que el vector $Y$ se obtiene de la siguiente forma:
 
-dada una palabra objetivo del corpus, se asigna un valor de $0{,}5$ a las dos palabras inmediatamente adyacentes a la palabra de referencia, estableciendo a cero el resto de las posiciones del vector de etiquetas de tamaño $N = 2^n$. De este modo, el vector resultante suma $1$ y puede interpretarse como una distribución de probabilidad uniforme sobre los dos contextos posibles de cada palabra objetivo.
+dada una palabra objetivo del corpus, se asigna un valor de $0.5$ a las dos palabras inmediatamente adyacentes a la palabra de referencia, estableciendo a cero el resto de las posiciones del vector de etiquetas de tamaño $N = 2^n$. De este modo, el vector resultante suma $1$ y puede interpretarse como una distribución de probabilidad uniforme sobre los dos contextos posibles de cada palabra objetivo.
 
 Para un vector de tamaño $N$ correspondiente a $\ket{k}$
 
