@@ -1,6 +1,10 @@
 \chapter{Conceptos previos}
 \label{chap:conceptos_previos}
 
+Para entender el análisis y la comparación de los modelos Word2Vec y QWord2Vec que se desarrollan a lo largo de este trabajo, es necesario establecer previamente los fundamentos teóricos que los sustentan. Este capítulo presenta los conceptos necesarios procedentes para entender la disciplina de \gls{pln} y la computación cuántica.
+
+En primer lugar, se introduce el \gls{pln}, describiendo su definición, sus principales fases de análisis lingüístico y el papel que desempeña en los sistemas de inteligencia artificial actuales. A continuación, se sientan las bases matemáticas de la computación cuántica, comenzando por los números complejos y la notación de Dirac para luego desarrollar el concepto de qubit y sus propiedades fundamentales. El capítulo cierra con una introducción al \gls{plnc}, el campo emergente que busca integrar ambas disciplinas y que constituye el contexto directo en el que se enmarca este trabajo.
+
 \section{Procesamiento Lenguaje Natural}
 \label{chap:pln}
 
@@ -13,9 +17,9 @@ El \gls{pln} forma parte a día de hoy de muchos motores de búsqueda, chatbots 
 El campo de la computación lingüística incluye tradicionalmente diversas fases para el análisis. Para el análisis de las palabras existen dos enfoques principales:
 
 \begin{itemize}
-      \item \textbf{Análisis de dependencias:} Examina las relaciones gramaticales binarias entre las palabras, identificando, por ejemplo, qué palabra modifica a cuál o cuál es el sujeto y el verbo principal.
+    \item \textbf{Análisis de dependencias:} Examina las relaciones gramaticales binarias entre las palabras, identificando, por ejemplo, qué palabra modifica a cuál o cuál es el sujeto y el verbo principal.
 
-      \item \textbf{Análisis de constituyentes:} Construye un árbol sintáctico que representa la estructura gramatical anidada de una oración, descomponiéndola en sintagmas o frases ordenadas jerárquicamente.
+    \item \textbf{Análisis de constituyentes:} Construye un árbol sintáctico que representa la estructura gramatical anidada de una oración, descomponiéndola en sintagmas o frases ordenadas jerárquicamente.
 \end{itemize}
 
 \subsection{Fases del \glsentryshort{pln}}
@@ -23,10 +27,10 @@ El campo de la computación lingüística incluye tradicionalmente diversas fase
 Las fases para realizar el \gls{pln} se pueden observar en la Figura \ref{fig:FasesNLP}:
 
 \begin{figure}[h]
-      \centering
-      \includegraphics[width=1.0\linewidth]{imagenes/FasesNLP.png}
-      \caption{Esquema de las fases del \gls{pln}. Extraído de \cite{geeksforgeeks_phases_nlp_2025}.}
-      \label{fig:FasesNLP}
+    \centering
+    \includegraphics[width=1.0\linewidth]{imagenes/FasesNLP.png}
+    \caption{Esquema de las fases del \gls{pln}. Extraído de \cite{geeksforgeeks_phases_nlp_2025}.}
+    \label{fig:FasesNLP}
 \end{figure}
 
 A continuación, basándose en la estructura descrita en \cite{geeksforgeeks_phases_nlp_2025}, se detalla en qué consiste cada una de estas fases:
@@ -36,21 +40,21 @@ A continuación, basándose en la estructura descrita en \cite{geeksforgeeks_pha
 Esta fase constituye el nivel inicial del procesamiento lingüístico computacional. Su propósito fundamental es transformar el texto crudo en una secuencia estructurada de unidades discretas y manejables. Para lograrlo, se integran diversas tareas de análisis léxico y morfológico que preparan la información para las etapas posteriores.
 
 \begin{enumerate}
-      \item \textbf{Preprocesamiento:} Esta fase inicial comprende un conjunto de operaciones destinadas a homogeneizar el texto. Entre las principales subtareas se encuentran la limpieza del contenido, la normalización (como la conversión a minúsculas) y la eliminación de caracteres especiales. Adicionalmente, suele llevarse a cabo la supresión de las \textit{stopwords}, que son palabras de muy alta frecuencia pero que carecen de una gran carga semántica (tales como ``el'', ``de'', ``y''). Como parte de este preprocesamiento, también se aplican técnicas de análisis morfológico para estandarizar el vocabulario:
-            \begin{itemize}
-                  \item \textit{Lematización:} Consiste en convertir las palabras a su forma base o lema canónico (por ejemplo, el verbo ``soy'' se transforma en ``ser'').
-                  \item \textit{Stemming:} Se basa en reducir las palabras a su raíz léxica, eliminando sufijos y prefijos (por ejemplo, ``niñero'' se reduce a ``niño'').
-            \end{itemize}
+    \item \textbf{Preprocesamiento:} Esta fase inicial comprende un conjunto de operaciones destinadas a homogeneizar el texto. Entre las principales subtareas se encuentran la limpieza del contenido, la normalización (como la conversión a minúsculas) y la eliminación de caracteres especiales. Adicionalmente, suele llevarse a cabo la supresión de las \textit{stopwords}, que son palabras de muy alta frecuencia pero que carecen de una gran carga semántica (tales como ``el'', ``de'', ``y''). Como parte de este preprocesamiento, también se aplican técnicas de análisis morfológico para estandarizar el vocabulario:
+          \begin{itemize}
+              \item \textit{Lematización:} Consiste en convertir las palabras a su forma base o lema canónico (por ejemplo, el verbo ``soy'' se transforma en ``ser'').
+              \item \textit{Stemming:} Se basa en reducir las palabras a su raíz léxica, eliminando sufijos y prefijos (por ejemplo, ``niñero'' se reduce a ``niño'').
+          \end{itemize}
 
-      \item \textbf{Tokenización:} Representa el proceso crítico mediante el cual se segmenta el flujo de texto en unidades atómicas significativas, denominadas \textit{tokens}.
+    \item \textbf{Tokenización:} Representa el proceso crítico mediante el cual se segmenta el flujo de texto en unidades atómicas significativas, denominadas \textit{tokens}.
 
-            A modo de ejemplo, la oración \textit{Me gusta programar} se dividiría en la siguiente lista de tokens: \texttt{[``Me'', ``gusta'', ``programar'']}.
+          A modo de ejemplo, la oración \textit{Me gusta programar} se dividiría en la siguiente lista de tokens: \texttt{[``Me'', ``gusta'', ``programar'']}.
 
-            La granularidad de los tokens depende del modelo empleado. Pueden corresponder a palabras completas, subpalabras (una técnica común en los modelos de tipo \gls{gpt}) o incluso a caracteres individuales. Una vez completada la tokenización, a cada token se le asigna un índice numérico único dentro de un vocabulario, un paso indispensable para la posterior generación de representaciones vectoriales o \textit{Embeddings} (concepto que se desarrollará en detalle en el Capítulo \ref{chap:word_embeddings}).
+          La granularidad de los tokens depende del modelo empleado. Pueden corresponder a palabras completas, subpalabras (una técnica común en los modelos de tipo \gls{gpt}) o incluso a caracteres individuales. Una vez completada la tokenización, a cada token se le asigna un índice numérico único dentro de un vocabulario, un paso indispensable para la posterior generación de representaciones vectoriales o \textit{Embeddings} (concepto que se desarrollará en detalle en el Capítulo \ref{chap:word_embeddings}).
 
-      \item \textbf{Etiquetado gramatical (\gls{pos} Tagging):} En esta etapa se asigna a cada token su correspondiente categoría morfológica (como sustantivo, verbo, adjetivo, entre otras), tomando en consideración tanto su definición formal como el contexto en el que aparece. Esto resulta esencial para desambiguar la función sintáctica que desempeña cada palabra en la oración.
+    \item \textbf{Etiquetado gramatical (\gls{pos} Tagging):} En esta etapa se asigna a cada token su correspondiente categoría morfológica (como sustantivo, verbo, adjetivo, entre otras), tomando en consideración tanto su definición formal como el contexto en el que aparece. Esto resulta esencial para desambiguar la función sintáctica que desempeña cada palabra en la oración.
 
-            Siguiendo con el ejemplo anterior, el etiquetado de los tokens daría como resultado: \texttt{[``Me'' $\rightarrow$ Pronombre, ``gusta'' $\rightarrow$ Verbo, ``programar'' $\rightarrow$ Verbo]}.
+          Siguiendo con el ejemplo anterior, el etiquetado de los tokens daría como resultado: \texttt{[``Me'' $\rightarrow$ Pronombre, ``gusta'' $\rightarrow$ Verbo, ``programar'' $\rightarrow$ Verbo]}.
 \end{enumerate}
 
 \subsubsection{Análisis sintáctico}
@@ -58,8 +62,8 @@ Esta fase constituye el nivel inicial del procesamiento lingüístico computacio
 El análisis sintáctico examina la organización de las palabras dentro de una oración para verificar que se cumple con las reglas gramaticales del idioma. El objetivo fundamental de esta fase es la generación de un \textbf{árbol de análisis sintáctico}, el cual representa jerárquicamente la estructura gramatical del texto analizado. Esta representación estructurada permite a los sistemas computacionales interpretar las relaciones de dependencia y jerarquía entre los distintos elementos léxicos. Las tareas principales que abarca son:
 
 \begin{itemize}
-      \item \textbf{Etiquetado gramatical:} Se fundamenta en el proceso de \gls{pos} Tagging explicado en la fase de \textit{Preprocesamiento y Tokenización}. En esta etapa de análisis sintáctico, las categorías morfológicas previamente asignadas a cada token se utilizan para validar la corrección de la estructura jerárquica de la oración.
-      \item \textbf{Resolución de ambigüedad sintáctica:} Consiste en determinar la estructura gramatical correcta cuando una oración puede analizarse de múltiples formas. Por ejemplo, en la frase \textit{Vi al hombre con el telescopio}, el sistema debe resolver si el telescopio es el instrumento utilizado por el sujeto para ver, o si es un objeto que lleva consigo el hombre.
+    \item \textbf{Etiquetado gramatical:} Se fundamenta en el proceso de \gls{pos} Tagging explicado en la fase de \textit{Preprocesamiento y Tokenización}. En esta etapa de análisis sintáctico, las categorías morfológicas previamente asignadas a cada token se utilizan para validar la corrección de la estructura jerárquica de la oración.
+    \item \textbf{Resolución de ambigüedad sintáctica:} Consiste en determinar la estructura gramatical correcta cuando una oración puede analizarse de múltiples formas. Por ejemplo, en la frase \textit{Vi al hombre con el telescopio}, el sistema debe resolver si el telescopio es el instrumento utilizado por el sujeto para ver, o si es un objeto que lleva consigo el hombre.
 \end{itemize}
 
 \subsubsection{Análisis semántico}
@@ -67,13 +71,13 @@ El análisis sintáctico examina la organización de las palabras dentro de una 
 Esta fase se centra en la coherencia lógica y la relevancia contextual del enunciado. Su objetivo principal es interpretar el significado de las palabras, analizando tanto su definición de diccionario como su variación según el contexto de uso. De este modo, se busca comprender el rol semántico de cada palabra para construir una representación lógica del mensaje. Las tareas fundamentales que abarca esta fase son:
 
 \begin{enumerate}
-      \item \textbf{\gls{ner}:} Se ocupa de la identificación y clasificación de elementos clave en el texto, tales como nombres de personas, ubicaciones geográficas, organizaciones, etc.
-            \\
-            Ejemplo: En la oración \textit{Mercedes anunció un nuevo coche en Berlín}, el sistema \gls{ner} identificaría a \textit{Mercedes} como una \textit{Organización} y a \textit{Berlín} como un \textit{Lugar}.
+    \item \textbf{\gls{ner}:} Se ocupa de la identificación y clasificación de elementos clave en el texto, tales como nombres de personas, ubicaciones geográficas, organizaciones, etc.
+          \\
+          Ejemplo: En la oración \textit{Mercedes anunció un nuevo coche en Berlín}, el sistema \gls{ner} identificaría a \textit{Mercedes} como una \textit{Organización} y a \textit{Berlín} como un \textit{Lugar}.
 
-      \item \textbf{\gls{wsd}:} Consiste en identificar el significado exacto de una palabra polisémica basándose en el contexto en el que se encuentra (proceso conocido como resolución de ambigüedad léxico-semántica).
-            \\
-            Ejemplo: El término \textit{banco} se interpreta como una \textit{entidad financiera} en la frase \textit{Fui a sacar dinero al banco}, pero adquiere el significado de \textit{asiento} en la oración \textit{Me senté en el banco del parque}.
+    \item \textbf{\gls{wsd}:} Consiste en identificar el significado exacto de una palabra polisémica basándose en el contexto en el que se encuentra (proceso conocido como resolución de ambigüedad léxico-semántica).
+          \\
+          Ejemplo: El término \textit{banco} se interpreta como una \textit{entidad financiera} en la frase \textit{Fui a sacar dinero al banco}, pero adquiere el significado de \textit{asiento} en la oración \textit{Me senté en el banco del parque}.
 \end{enumerate}
 
 \subsubsection{Integración del discurso}
@@ -81,13 +85,13 @@ Esta fase se centra en la coherencia lógica y la relevancia contextual del enun
 Este proceso analiza cómo las oraciones individuales se conectan y relacionan entre sí para entender el contexto global. El objetivo de esta fase es garantizar que el significado del texto mantenga su coherencia lógica a través de los distintos párrafos y frases. Los aspectos fundamentales de esta fase son:
 
 \begin{itemize}
-      \item \textbf{Resolución de anáforas:} Consiste en identificar la conexión entre un pronombre y lo mencionado previamente en el texto.
-            \\
-            Ejemplo: En la secuencia \textit{Esther fue a comprar. Ella compró fruta}, el sistema debe vincular el pronombre \textit{Ella} con \textit{Esther}.
+    \item \textbf{Resolución de anáforas:} Consiste en identificar la conexión entre un pronombre y lo mencionado previamente en el texto.
+          \\
+          Ejemplo: En la secuencia \textit{Esther fue a comprar. Ella compró fruta}, el sistema debe vincular el pronombre \textit{Ella} con \textit{Esther}.
 
-      \item \textbf{Referencias contextuales:} Aborda la interpretación de palabras o expresiones cuyo significado completo depende intrínsecamente de la información proporcionada en oraciones anteriores o posteriores.
-            \\
-            Ejemplo: La frase \textit{Fue un buen día} adquiere un significado concreto únicamente si se analiza dentro del contexto de la conversación.
+    \item \textbf{Referencias contextuales:} Aborda la interpretación de palabras o expresiones cuyo significado completo depende intrínsecamente de la información proporcionada en oraciones anteriores o posteriores.
+          \\
+          Ejemplo: La frase \textit{Fue un buen día} adquiere un significado concreto únicamente si se analiza dentro del contexto de la conversación.
 \end{itemize}
 
 \subsubsection{Análisis pragmático}
@@ -95,13 +99,13 @@ Este proceso analiza cómo las oraciones individuales se conectan y relacionan e
 Esta fase final analiza más allá de la interpretación literal de las oraciones para inferir el significado real que se pretende transmitir. A diferencia del análisis semántico, que se ocupa del significado proposicional de las palabras, el análisis pragmático examina factores como el tono y el contexto. Las tareas principales de esta fase son:
 
 \begin{itemize}
-      \item \textbf{Detección de intenciones:} El sistema debe ver el propósito de la comunicación (si es una petición, una queja, una orden, etc.).
-            \\
-            Ejemplo: Ante la pregunta \textit{¿Tienes hora?}, el análisis pragmático entiende que la intención real del usuario es saber qué hora es, no una pregunta de sí o no.
+    \item \textbf{Detección de intenciones:} El sistema debe ver el propósito de la comunicación (si es una petición, una queja, una orden, etc.).
+          \\
+          Ejemplo: Ante la pregunta \textit{¿Tienes hora?}, el análisis pragmático entiende que la intención real del usuario es saber qué hora es, no una pregunta de sí o no.
 
-      \item \textbf{Interpretación de lenguaje figurado:} Se encarga de identificar metáforas, ironías o frases hechas.
-            \\
-            Ejemplo: En la expresión \textit{Echar una mano}, el análisis pragmático entiende que significa \textit{ayudar a alguien}.
+    \item \textbf{Interpretación de lenguaje figurado:} Se encarga de identificar metáforas, ironías o frases hechas.
+          \\
+          Ejemplo: En la expresión \textit{Echar una mano}, el análisis pragmático entiende que significa \textit{ayudar a alguien}.
 \end{itemize}
 
 
@@ -517,30 +521,30 @@ Una de las hipótesis fundamentales que motiva la intersección entre el procesa
 
 El framework \gls{discocat} \cite{wu2019categoricalcompositionaldistributionalmodelling} es el más conocido en formalizar esta relación. Nace de proponer la unificación de los dos enfoques clásicos del significado:
 \begin{itemize}
-  \item \textbf{Distribucional:} Basado en la estadística y el contexto, que es la base de los vectores de palabras modernos.
-  \item \textbf{Composicional:} Basado en la estructura gramatical, donde el significado de una frase depende de sus partes y de cómo se combinan (reglas sintácticas).
+    \item \textbf{Distribucional:} Basado en la estadística y el contexto, que es la base de los vectores de palabras modernos.
+    \item \textbf{Composicional:} Basado en la estructura gramatical, donde el significado de una frase depende de sus partes y de cómo se combinan (reglas sintácticas).
 \end{itemize}
 
 La relevancia de DisCoCat para el \gls{plnc} radica en que modela el lenguaje utilizando diagramas de palabras y productos tensoriales, una estructura matemática que es a la que describe a su vez la computación cuántica. Esto sugiere que los ordenadores cuánticos son, de manera nativa, idóneos para procesar el lenguaje natural.
 
 \begin{figure}[h]
-  \centering
-  \includegraphics[width=0.4\linewidth]{imagenes/dani_come_pizza_discocat.png}
-  \caption{Diagrama de la oración ``Dani come pizza'' en el formalismo DisCoCat.}
-  \label{fig:DisCoCat_Dani}
+    \centering
+    \includegraphics[width=0.4\linewidth]{imagenes/dani_come_pizza_discocat.png}
+    \caption{Diagrama de la oración ``Dani come pizza'' en el formalismo DisCoCat.}
+    \label{fig:DisCoCat_Dani}
 \end{figure}
 
 En la Figura \ref{fig:DisCoCat_Dani}, las cajas representan el significado de las palabras que se transmiten mediante los ``cables'', esto es similar a la técnica de \gls{dpt} muy popular en la literatura lingüística. En la frase, el sujeto es ``Dani'', mientras que ``pizza'' es el objeto, ambas palabras se relacionan mediante el verbo ``come'' y la combinación de estas palabras, crean el significado conjunto de la frase. Con DisCoCat, el significado de la oración se construye utilizando una gramática preagrupada mediante composición de productos tensoriales. Es decir, quedaría representado de la siguiente manera:
 
 \[
-  (\overrightarrow{\text{Dani}} \otimes \overrightarrow{\text{suj}}) \otimes \overrightarrow{\text{come}} \otimes (\overrightarrow{\text{pizza}} \otimes \overrightarrow{\text{obj}});
+    (\overrightarrow{\text{Dani}} \otimes \overrightarrow{\text{suj}}) \otimes \overrightarrow{\text{come}} \otimes (\overrightarrow{\text{pizza}} \otimes \overrightarrow{\text{obj}});
 \]
 
 En esta expresión matemática:
 \begin{itemize}
-  \item $\overrightarrow{\text{Dani}}$, $\overrightarrow{\text{come}}$ y $\overrightarrow{\text{pizza}}$ representan los vectores semánticos correspondientes a cada palabra individual.
-  \item $\overrightarrow{\text{suj}}$ y $\overrightarrow{\text{obj}}$ son los vectores que codifican los roles sintácticos de sujeto y objeto, dictados por las reglas de la gramática.
-  \item El operador $\otimes$ denota el producto tensorial, que es el mecanismo matemático que permite componer o entrelazar los significados léxicos con su función gramatical.
+    \item $\overrightarrow{\text{Dani}}$, $\overrightarrow{\text{come}}$ y $\overrightarrow{\text{pizza}}$ representan los vectores semánticos correspondientes a cada palabra individual.
+    \item $\overrightarrow{\text{suj}}$ y $\overrightarrow{\text{obj}}$ son los vectores que codifican los roles sintácticos de sujeto y objeto, dictados por las reglas de la gramática.
+    \item El operador $\otimes$ denota el producto tensorial, que es el mecanismo matemático que permite componer o entrelazar los significados léxicos con su función gramatical.
 \end{itemize}
 
 Todo este vector resultante generado en el espacio de productos tensoriales se puede considerar como el significado matemático de la oración completa ``Dani come pizza''. Por ende, se dice que este framework lo ha expresado en términos afines a la computación cuántica.
@@ -552,10 +556,10 @@ Cabe destacar que, aunque el modelo DisCoCat original funciona perfectamente sin
 Al igual que en computación clásica la información necesita ser codificada de manera que los modelos pueda entender los datos que se le proporcionan y así trabajar con ellos, la computación cuántica necesita poder codificar los datos de la computación clásica (texto en este caso, ya que estamos dentro del ámbito de \gls{pln} y \gls{plnc}), a estados cuánticos. Para ello existe diversas técnicas las cuales explicaremos a continuación:
 
 \begin{itemize}
-  \item \textbf{Basis Encoding:} Utiliza $n$ qubits. Complejidad $O(1)$. Simple, entradas cortas y simbólicas.
-  \item \textbf{Angle Encoding:} Utiliza $n$ qubits. Complejidad $O(n)$. Resiliente al ruido, vectores de características pequeños.
-  \item \textbf{Amplitude Encoding:} Utiliza $\log_2(n)$ qubits. Complejidad $O(2^n)$. Eficiente en memoria, vectores de frases completas.
-  \item \textbf{Hamiltonian Encoding:} Utiliza $\log_2(n)$ qubits. Complejidad $O(t)$. Estructura de grafos, análisis sintáctico (parsing), traducción.
+    \item \textbf{Basis Encoding:} Utiliza $n$ qubits. Complejidad $O(1)$. Simple, entradas cortas y simbólicas.
+    \item \textbf{Angle Encoding:} Utiliza $n$ qubits. Complejidad $O(n)$. Resiliente al ruido, vectores de características pequeños.
+    \item \textbf{Amplitude Encoding:} Utiliza $\log_2(n)$ qubits. Complejidad $O(2^n)$. Eficiente en memoria, vectores de frases completas.
+    \item \textbf{Hamiltonian Encoding:} Utiliza $\log_2(n)$ qubits. Complejidad $O(t)$. Estructura de grafos, análisis sintáctico (parsing), traducción.
 \end{itemize}
 
 De todas estas técnicas, se ha optado por implementar la técnica de \textit{Basis Encoding} \cite{quantumzeitgeist_encoding_overview}. Este tipo de codificación se utiliza principalmente cuando un número real debe ser matemáticamente manipulado en un algoritmo cuántico. Su funcionamiento consiste en representar un número real como un número binario y luego transformarlo en un estado cuántico en la base computacional.
@@ -565,9 +569,9 @@ El estado cuántico embebido es la traducción bit a bit de una cadena binaria a
 Supongamos que queremos codificar la frase ``María estudia medicina'' utilizando \textit{Basis Encoding}. Primero, definimos un vocabulario simplificado donde asignamos un índice entero único a cada palabra y fijamos una longitud de $\tau = 5$ bits por palabra (lo que permitiría un vocabulario de hasta $2^5 = 32$ palabras).
 
 \begin{itemize}
-  \item \textit{María} $\rightarrow$ Índice 3 $\rightarrow$ \texttt{00011}
-  \item \textit{estudia} $\rightarrow$ Índice 12 $\rightarrow$ \texttt{01100}
-  \item \textit{medicina} $\rightarrow$ Índice 21 $\rightarrow$ \texttt{10101}
+    \item \textit{María} $\rightarrow$ Índice 3 $\rightarrow$ \texttt{00011}
+    \item \textit{estudia} $\rightarrow$ Índice 12 $\rightarrow$ \texttt{01100}
+    \item \textit{medicina} $\rightarrow$ Índice 21 $\rightarrow$ \texttt{10101}
 \end{itemize}
 
 El vector de características de la frase corresponde entonces a la concatenación de estas secuencias binarias: $b = \texttt{00011 01100 10101}$.
@@ -575,7 +579,7 @@ El vector de características de la frase corresponde entonces a la concatenaci�
 Finalmente, esta secuencia se representa mediante el estado cuántico conjunto en la base computacional:
 
 \[
-  \ket{\psi}_{\text{frase}} = \ket{00011} \otimes \ket{01100} \otimes \ket{10101} = \ket{00011\;01100\;10101};
+    \ket{\psi}_{\text{frase}} = \ket{00011} \otimes \ket{01100} \otimes \ket{10101} = \ket{00011\;01100\;10101};
 \]
 
 De esta forma, hemos codificado una frase de lengua clásica directamente en un estado cuántico en la base computacional.
@@ -590,25 +594,25 @@ A pesar de estas limitaciones, se generó una gran expectación en la comunidad 
 Los \gls{cvc} nacieron como la mejor estrategia para hacer frente a los ordenadores \gls{nisq}. Debido a las limitaciones de estos dipsositivos, se utilizó la estrategia de optimización basado en el aprendizaje. No son más que una analogía cuántica a los técnicas existentes del campo de \gls{ml} como pueden ser las redes neuronales. En definitiva, son algoritmos cuánticos que tienen parámetros libres \cite{pennylane_variational_circuit}. Al igual que cualquier otro circuito cuántico estándar, se necesita hacer uso de estos tres conceptos básicos:
 
 \begin{enumerate}
-  \item Preparación con un \textbf{estado inicial} fijo.
-  \item Un \textbf{circuito cuántico} $U(\theta)$ parametrizado con un conjunto de parámetros libres $\theta$.
-  \item \textbf{Medición} de un observable $\hat{B}$ en la salida. Este observable puede estar compuesto por varios observables, cada uno de manera local a un cable del circuito, o bien, a un conjunto de cables del circuito.
+    \item Preparación con un \textbf{estado inicial} fijo.
+    \item Un \textbf{circuito cuántico} $U(\theta)$ parametrizado con un conjunto de parámetros libres $\theta$.
+    \item \textbf{Medición} de un observable $\hat{B}$ en la salida. Este observable puede estar compuesto por varios observables, cada uno de manera local a un cable del circuito, o bien, a un conjunto de cables del circuito.
 \end{enumerate}
 
 Para ilustrar estos tres conceptos de forma más intuitiva, imaginemos un sistema cuántico muy básico diseñado para clasificar el sentimiento de una frase (positivo o negativo):
 \begin{itemize}
-  \item \textbf{1. Preparación:} Se recibe la información de entrada (por ejemplo, la frase ``Me encanta'') y se codifica en el ordenador cuántico, alterando los qubits desde su estado base $\ket{0}$ hacia un estado que represente matemáticamente dicha frase.
-  \item \textbf{2. Circuito parametrizado:} Actúa de forma análoga a las neuronas de una red neuronal clásica. Se aplican puertas lógicas cuánticas que dependen de unos ángulos $\theta$. Durante el entrenamiento, el algoritmo irá ajustando estos parámetros $\theta$ para aprender a separar las frases positivas de las negativas.
-  \item \textbf{3. Medición:} Tras el circuito, se miden los qubits resultantes. Podemos definir por ejemplo que si el sistema colapsa mayoritariamente en el estado $\ket{0}$, el sentimiento predicho es ``positivo'', mientras que si colapsa en $\ket{1}$ es ``negativo''.
+    \item \textbf{1. Preparación:} Se recibe la información de entrada (por ejemplo, la frase ``Me encanta'') y se codifica en el ordenador cuántico, alterando los qubits desde su estado base $\ket{0}$ hacia un estado que represente matemáticamente dicha frase.
+    \item \textbf{2. Circuito parametrizado:} Actúa de forma análoga a las neuronas de una red neuronal clásica. Se aplican puertas lógicas cuánticas que dependen de unos ángulos $\theta$. Durante el entrenamiento, el algoritmo irá ajustando estos parámetros $\theta$ para aprender a separar las frases positivas de las negativas.
+    \item \textbf{3. Medición:} Tras el circuito, se miden los qubits resultantes. Podemos definir por ejemplo que si el sistema colapsa mayoritariamente en el estado $\ket{0}$, el sentimiento predicho es ``positivo'', mientras que si colapsa en $\ket{1}$ es ``negativo''.
 \end{itemize}
 
 Normalmente, los valores esperados $f(\theta) = \langle 0 | U^\dagger(\theta) \hat{B} U(\theta) | 0 \rangle$ de uno o varios circuitos, definen un coste escalar para la tarea específica. Los parámetros libres $\theta = (\theta_1, \theta_2, \dots)$ son ajustados para optimizar esta función de coste, tal como se representa esquemáticamente en la Figura \ref{fig:costeVQC}: el circuito recibe los parámetros, aplica las transformaciones unitarias, obtiene un coste $f(\theta)$ mediante la medición del observable, y retroalimenta ese valor al optimizador clásico para actualizar $\theta$ en la siguiente iteración.
 
 \begin{figure}[ht]
-  \centering
-  \includegraphics[scale=0.6]{imagenes/costeVQC.png}
-  \caption{Coste de un Circuito Cuántico Variacional, imagen obtenida de: \cite{pennylane_variational_circuit}}
-  \label{fig:costeVQC}
+    \centering
+    \includegraphics[scale=0.6]{imagenes/costeVQC.png}
+    \caption{Coste de un Circuito Cuántico Variacional, imagen obtenida de: \cite{pennylane_variational_circuit}}
+    \label{fig:costeVQC}
 \end{figure}
 
 Los circuitos cuánticos variacionales son entrenados mediante un algoritmo de optimización clásico que realiza consultas al hardware cuántico. La optimización suele ser un esquema iterativo que busca mejores candidatos para los parámetros en cada paso.
@@ -617,13 +621,15 @@ Los parámetros variacionales $\theta$, posiblemente junto con un conjunto adici
 
 Finalmente, la información cuántica se convierte de nuevo en información clásica evaluando el valor esperado del observable $\hat{B}$, tal y como se esquematiza en la Figura \ref{fig:circuitoVQCArgumentos}:
 \[
-  f(x; \theta) = \langle \hat{B} \rangle = \bra{0} U^\dagger(x; \theta) \hat{B} U(x; \theta) \ket{0}.
+    f(x; \theta) = \langle \hat{B} \rangle = \bra{0} U^\dagger(x; \theta) \hat{B} U(x; \theta) \ket{0}.
 \]
 En esta expresión, $U(x; \theta)$ representa el circuito cuántico parametrizado que transforma el estado base $\ket{0}$: los parámetros $\theta$ son los pesos entrenables del modelo, mientras que $x$ son los datos de entrada no modificables (por ejemplo, la codificación cuántica de un texto). El operador $\hat{B}$ es el observable que se mide a la salida del circuito, y su valor esperado $\langle \hat{B} \rangle$ produce un escalar real que actúa como predicción del modelo para una tarea concreta (como la clasificación de sentimientos del ejemplo anterior).
 
 \begin{figure}[htbp]
-  \centering
-  \includegraphics[scale=0.13]{imagenes/circuitoVQCArgumentos.png}
-  \caption{Circuito variacional cuántico con parámetros modificables $x$ y no modificables $\theta$. Imagen obtenida de: \cite{pennylane_variational_circuit}}
-  \label{fig:circuitoVQCArgumentos}
+    \centering
+    \includegraphics[scale=0.13]{imagenes/circuitoVQCArgumentos.png}
+    \caption{Circuito variacional cuántico con parámetros modificables $x$ y no modificables $\theta$. Imagen obtenida de: \cite{pennylane_variational_circuit}}
+    \label{fig:circuitoVQCArgumentos}
 \end{figure}
+
+Una vez entendido los fundamentos explicados en este capítulo, se dispone ya del conocimiento necesario para abordar el estado del arte de las técnicas de representación de palabras. El siguiente capítulo profundiza en los modelos concretos que hacen posible convertir palabras en vectores, comenzando por los \textit{word embeddings} clásicos y avanzando hasta las dos arquitecturas centrales de este trabajo que son Word2Vec y su reciente equivalente cuántico desarrollado, QWord2Vec.
