@@ -1,56 +1,32 @@
-# Cambio de métrica: error_rate → cosine_delta
+# Experimento: uso de cosine_delta como métrica de entrenamiento en Q-Word2Vec
 
 ## Motivación
 
-La evaluación final de Q-Word2Vec se hacía con **cosine_delta** (igual que Word2Vec),
-pero el criterio de parada del entrenamiento usaba **error_rate** (tasa de error en top-2 picos).
-Esto crea una desalineación: el modelo para cuando deja de mejorar en una métrica pero se
-evalúa con otra, sin garantía de que ambas sean óptimas a la vez.
+Se intentó sustituir **error_rate** por **cosine_delta** en el early stopping de Q-Word2Vec,
+para que el criterio de parada y la evaluación final usaran la misma métrica y la
+comparación con Word2Vec fuera más directa.
 
-Al unificar criterio de parada y métrica final en **cosine_delta** para ambos modelos, la
-comparación Word2Vec vs Q-Word2Vec es más justa: los dos se guían y se miden con la misma señal.
+## Resultados del grid search con cosine_delta como objetivo
 
-## Qué es cosine_delta
-
-```
-cosine_delta = mean_cosine(pares similares) - mean_cosine(pares disimilares)
-```
-
-- **Pares similares**: palabras del mismo clúster semántico (animal, food, culture, sentiment).
-- **Pares disimilares**: palabras de clústeres distintos.
-- **Rango teórico**: [-2, 2]. Cuanto más alto, mejor agrupación semántica.
-- **Funciona igual** para vectores Word2Vec (R²) y distribuciones de probabilidad Q-Word2Vec (R¹⁶).
-
-## Ficheros modificados
-
-### `small_corpora/qword2vec.py` y `small_corpora_v2/qword2vec.py`
-
-| Elemento | Antes | Después |
+| Versión | Mejor época | Mejor cosine_delta |
 |---|---|---|
-| Variable de control | `best_er = [np.inf]` | `best_cd = [-np.inf]` |
-| Condición de mejora | `er < best_er[0] - MIN_DELTA` | `cd > best_cd[0] + MIN_DELTA` |
-| Métrica calculada | `calculate_error_rate(probs, label_vectors)` | `evaluate_cosine_delta(word_vectors)` |
-| Cabecera del log | `epoch,loss,error_rate` | `epoch,loss,cosine_delta` |
-| Rama TRAIN=False | busca mínimo de error_rate | busca máximo de cosine_delta |
-| Salida final | `Error rate` + `Top-2 accuracy` | `Cosine delta (mejor época)` + `Cosine delta (evaluación)` |
+| V1 (13 frases) | 502 | **0.1360** |
+| V2 (64 frases) | 800 (límite) | **0.3923** |
 
-### `my_tools.py` — `plot_loss_history`
+Comparación con Word2Vec:
 
-- Variable `error_rates` → `cosine_deltas`
-- Eje Y derecho: "Error rate" → "Cosine delta"
-- Anotación del mejor punto: `min` → `max`
+| Versión | Word2Vec cosine_delta | Q-Word2Vec cosine_delta |
+|---|---|---|
+| V1 | ~0.8927 | 0.1360 |
+| V2 | ~0.9360 | 0.3923 |
 
-## Resumen del impacto
+## Por qué se descartó
 
-```
-Antes:
-  Word2Vec    → parada: cosine_delta  | evaluación: cosine_delta  ✓
-  Q-Word2Vec  → parada: error_rate    | evaluación: cosine_delta  ✗ (desalineado)
+Los valores obtenidos (0.14 y 0.39) son muy inferiores a los de Word2Vec (~0.89 y ~0.94),
+lo que se traduce en una representación visual de embeddings muy pobre: el circuito
+cuántico no logra separar los clústeres semánticos cuando se entrena optimizando cosine_delta.
 
-Después:
-  Word2Vec    → parada: cosine_delta  | evaluación: cosine_delta  ✓
-  Q-Word2Vec  → parada: cosine_delta  | evaluación: cosine_delta  ✓ (alineado)
-```
+## Estado actual
 
-El criterio de parada sigue siendo distinto en mecanismo (checkpointing en W2V,
-early stopping en QW2V) por razones del optimizador, pero el **criterio** es el mismo.
+Se volvió al esquema original con error_rate para el early stopping. El cosine_delta
+se sigue calculando y mostrando como métrica adicional en la evaluación final del modelo.

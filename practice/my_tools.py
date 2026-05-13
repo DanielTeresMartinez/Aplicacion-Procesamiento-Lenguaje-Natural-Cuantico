@@ -423,7 +423,7 @@ def plot_loss_history(filepath, save_path=None, title_info=None):
         iter,loss,error_rate
         1,4.80,...
     """
-    iters, losses, cosine_deltas = [], [], []
+    iters, losses, error_rates = [], [], []
     header_info = ""
 
     with open(filepath, "r") as f:
@@ -442,7 +442,7 @@ def plot_loss_history(filepath, save_path=None, title_info=None):
             if len(parts) >= 3 and it % 10 == 0:
                 iters.append(it)
                 losses.append(float(parts[1]))
-                cosine_deltas.append(float(parts[2]))
+                error_rates.append(float(parts[2]))
 
     fig, ax1 = plt.subplots(figsize=(10, 5))
 
@@ -454,21 +454,21 @@ def plot_loss_history(filepath, save_path=None, title_info=None):
     ax1.tick_params(axis="y", labelcolor="steelblue")
 
     ax2 = ax1.twinx()
-    ax2.plot(iters, cosine_deltas, color="darkorange", linewidth=1.2, label="Cosine delta")
-    ax2.set_ylabel("Cosine delta", color="darkorange")
+    ax2.plot(iters, error_rates, color="darkorange", linewidth=1.2, label="Error rate")
+    ax2.set_ylabel("Error rate", color="darkorange")
     ax2.tick_params(axis="y", labelcolor="darkorange")
 
-    # Marcar el mejor cosine delta
-    best_cd = max(cosine_deltas)
-    best_it = iters[cosine_deltas.index(best_cd)]
-    ax2.axhline(best_cd, color="darkorange", linestyle="--", linewidth=0.8, alpha=0.5)
+    # Marcar el mejor error rate
+    best_er = min(error_rates)
+    best_it = iters[error_rates.index(best_er)]
+    ax2.axhline(best_er, color="darkorange", linestyle="--", linewidth=0.8, alpha=0.5)
     ax2.annotate(
-        f"best={best_cd:.4f} (it={best_it})",
-        xy=(best_it, best_cd),
-        xytext=(best_it + len(iters) * 0.02, best_cd + 0.015),
+        f"best={best_er:.4f} (it={best_it})",
+        xy=(best_it, best_er),
+        xytext=(best_it + len(iters) * 0.02, best_er - 0.015),
         fontsize=8,
         color="darkorange",
-        va="bottom",
+        va="top",
     )
 
     title = "Historial de entrenamiento Q-Word2Vec"

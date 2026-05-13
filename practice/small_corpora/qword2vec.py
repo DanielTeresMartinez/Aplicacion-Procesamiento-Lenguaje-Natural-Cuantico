@@ -122,7 +122,7 @@ if __name__ == "__main__":
     # True: imprime diagnóstico de top-2 picos por palabra
     VERBOSE = False
     # True: guarda los PNG en images/
-    CREATE_IMAGES = False
+    CREATE_IMAGES = True
 
     os.makedirs("data", exist_ok=True)
     if CREATE_IMAGES:
@@ -245,11 +245,11 @@ if __name__ == "__main__":
                 k += 1
 
         loss_file = open(LOSS_FILE, "w")
-        loss_file.write("epoch,loss,cosine_delta\n")
+        loss_file.write("epoch,loss,error_rate\n")
 
         # Estado compartido entre los dos callbacks
         # para que Python lo trate como si fueran variables pasadas por referencia
-        best_cd = [-np.inf]
+        best_er = [np.inf]
         best_loss = [np.inf]
         best_x = [None]
         no_improve_count = [0]
@@ -262,13 +262,12 @@ if __name__ == "__main__":
             # ── Checkpoint de early stopping cada EVAL_EVERY iteraciones ─────
             if it % EVAL_EVERY == 0 or it == 1:
                 probs = forward_pass(qc_data, thetas, x, n_shots, sim)
-                word_vectors = {id_to_word[k]: probs[k] for k in range(len(word_to_id))}
-                cd = evaluate_cosine_delta(word_vectors)
-                loss_file.write(f"{it},{fx},{cd}\n")
+                er = calculate_error_rate(probs, label_vectors)
+                loss_file.write(f"{it},{fx},{er}\n")
                 loss_file.flush()
 
-                if cd > best_cd[0] + MIN_DELTA:
-                    best_cd[0] = cd
+                if er < best_er[0] - MIN_DELTA:
+                    best_er[0] = er
                     best_loss[0] = fx
                     best_x[0] = x.copy()
                     no_improve_count[0] = 0
@@ -282,8 +281,8 @@ if __name__ == "__main__":
                 print(
                     f"  Época {it:>4}/{iterations}"
                     f"  |  Pérdida ≈ {fx:+.4f}"
-                    f"  |  Cosine delta ≈ {cd:.4f}"
-                    f"  |  Mejor ≈ {best_cd[0]:.4f}{improve_tag}"
+                    f"  |  Error rate ≈ {er:.4f}"
+                    f"  |  Mejor ≈ {best_er[0]:.4f}{improve_tag}"
                     f"  (sin_mejora={no_improve_count[0]}/{PATIENCE})"
                 )
 
@@ -291,7 +290,7 @@ if __name__ == "__main__":
                     print(
                         f"\n[Early stopping] Sin mejora en {PATIENCE} evaluaciones "
                         f"consecutivas (cada {EVAL_EVERY} iters). "
-                        f"Mejor cosine delta: {best_cd[0]:.4f}"
+                        f"Mejor error rate: {best_er[0]:.4f}"
                     )
                     stop_flag[0] = True
 
@@ -320,7 +319,7 @@ if __name__ == "__main__":
         with open(WEIGHTS_FILE, "rb") as f:
             theta_values = pickle.load(f)
         print(
-            f"Mejor cosine delta encontrado: {best_cd[0]:.4f}"
+            f"Mejor error rate encontrado: {best_er[0]:.4f}"
             f"  |  Pérdida en mejor época: {best_loss[0]:.4f}"
             f" — pesos cargados desde {WEIGHTS_FILE}"
         )
@@ -329,30 +328,32 @@ if __name__ == "__main__":
         print(f"Cargando pesos desde {WEIGHTS_FILE} ...")
         with open(WEIGHTS_FILE, "rb") as f:
             theta_values = pickle.load(f)
-        best_cd_file, best_loss_file = -np.inf, np.inf
+        best_er_file, best_loss_file = np.inf, np.inf
         with open(LOSS_FILE, "r") as f:
             for line in f:
                 parts = line.strip().split(",")
                 if len(parts) >= 3:
                     try:
-                        cd, loss = float(parts[2]), float(parts[1])
-                        if cd > best_cd_file:
-                            best_cd_file, best_loss_file = cd, loss
+                        er, loss = float(parts[2]), float(parts[1])
+                        if er < best_er_file:
+                            best_er_file, best_loss_file = er, loss
                     except ValueError:
                         continue
         print(f"Pérdida en mejor época:     {best_loss_file:.4f}")
-        best_cd_display = best_cd_file
+        best_er_display = best_er_file
 
     final_probs = forward_pass(qc_data, thetas, theta_values, n_shots, sim)
     if TRAIN:
-        best_cd_display = best_cd[0]
+        best_er_display = best_er[0]
     q_dists_final = pdist(final_probs, metric="euclidean")
     correlation_final, _ = pearsonr(q_dists_final, target_distances)
     final_word_vectors = {id_to_word[k]: final_probs[k] for k in range(len(word_to_id))}
     cosine_delta_final = evaluate_cosine_delta(final_word_vectors)
-    print(f"Cosine delta (mejor época): {best_cd_display:.4f}")
-    print(f"Cosine delta (evaluación):  {cosine_delta_final:.4f}")
-    print(f"Correlación de Pearson:     {correlation_final:.4f}")
+    print(f"Error rate (mejor época):  {best_er_display:.4f}")
+    top2_accuracy = 1.0 - best_er_display
+    print(f"Top-2 accuracy (picos):    {top2_accuracy:.4f}")
+    print(f"Cosine delta (evaluación): {cosine_delta_final:.4f}")
+    print(f"Correlación de Pearson:    {correlation_final:.4f}")
 
     if VERBOSE:
         print_peak_diagnostics(final_probs, label_vectors, word_to_id, id_to_word)

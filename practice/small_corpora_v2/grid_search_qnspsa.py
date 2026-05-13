@@ -166,7 +166,7 @@ def run_trial(ath, regularization, hessian_delay, spsa_a, spsa_c):
 param_grid = {
     "ath": [0.018, 0.021, 0.024],
     "hessian_delay": [300, 400, 500],
-    "regularization": [8e-3, 1.6e-2, 3e-2],
+    "regularization": [5e-4, 5e-3, 1.6e-2],
     "spsa_a": [0.10, 0.16, 0.25],
     "spsa_c": [0.05, 0.07, 0.12],
 }
