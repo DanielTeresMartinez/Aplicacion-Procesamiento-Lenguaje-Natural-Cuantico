@@ -1,6 +1,10 @@
 \chapter{Estado del arte}
 \label{chap:estado_arte}
 
+Los fundamentos matemáticos y cuánticos presentados en el capítulo anterior constituyen todo el conocimiento necesario sobre el que se asienta el estado del arte de la representación vectorial de palabras. Representar el significado de una palabra mediante un vector numérico es el problema central que tanto Word2Vec como QWord2Vec buscan resolver, cada uno desde su propio paradigma computacional.
+
+Este capítulo aborda dicho problema en tres bloques progresivos. En primer lugar, se introduce el concepto de \textit{word embedding} y la característica que los definen, es decir, de qué modo la cercanía en el espacio vectorial codifica similitud semántica y por qué el espacio de Hilbert cuántico ofrece una alternativa estructuralmente afín al espacio euclídeo clásico. A continuación, se describe en detalle el algoritmo Word2Vec y en concreto su variante Skip-gram, modelo clásico de referencia de este trabajo. Finalmente, se expone QWord2Vec (la primera adaptación formal de Word2Vec al entorno cuántico definida en \cite{ohno_qword2vec_2025}), detallando el diseño de su circuito parametrizado, su función de pérdida y la estrategia de optimización \gls{qn-spsa}.
+
 \section{Representación Vectorial de Palabras (Word Embeddings)}
 \label{chap:word_embeddings}
 
@@ -552,3 +556,5 @@ Cada paso de optimización $t$ requiere tres direcciones de perturbación $\math
 \end{figure}
 
 Como se puede apreciar, en este caso sale que el que mejor resultados tiene es \gls{qng}. Sin embargo aquí no se está contemplando el tiempo de ejecución, que como se comentó, este optimizador es menos eficiente y no escala bien (aquí se tienen pocas iteraciones). Con esto se demuestra como el \gls{qn-spsa} es el que mejor resultado ofrece de manera equlibrada, teniendo una pérdida (loss) baja así como un tiempo de ejecución también menor y siendo una opción buena en cuanto a la escalabilidad.
+
+Descritas en detalle las arquitecturas de ambos modelos, quedan por responder a la pregunta más importante para ver su viabilidad en la actualidad ¿son capaces los \textit{embeddings} cuánticos de preservar las relaciones semánticas con una calidad comparable a los clásicos? El capítulo siguiente recoge la experimentación llevada a cabo para responder a estas cuestiones, comparando Word2Vec y QWord2Vec de forma sistemática mediante métricas de calidad de los \textit{embeddings}, análisis de la función de pérdida y un estudio del impacto de ampliar el corpus de entrenamiento respecto al corpus utilizado en el artículo de referencia \cite{ohno_qword2vec_2025}.
