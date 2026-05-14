@@ -122,7 +122,7 @@ if __name__ == "__main__":
     # True: imprime diagnóstico de top-2 picos por palabra
     VERBOSE = False
     # True: guarda los PNG en images/
-    CREATE_IMAGES = True
+    CREATE_IMAGES = False
 
     os.makedirs("data", exist_ok=True)
     if CREATE_IMAGES:
