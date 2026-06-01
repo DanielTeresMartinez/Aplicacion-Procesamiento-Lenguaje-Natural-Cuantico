@@ -16,6 +16,9 @@
 \addto\shorthandsspanish{\let\esperiod\es@period@code}
 \makeatother
 
+% Renombrar los flotantes de tipo tabla como "Tabla" en lugar del "Cuadro" por defecto de babel-spanish
+\addto\captionsspanish{\renewcommand{\tablename}{Tabla}}
+
 
 %\usepackage[chapter]{algorithm}
 \RequirePackage{verbatim}
@@ -48,7 +51,7 @@
 Telecomunicación\xspace}
 \newcommand{\myFacultyShort}{E.T.S. de Ingenierías Informática y de
 Telecomunicación\xspace}
-\newcommand{\myDepartment}{Departamento de Ciencias de la Computación e Inteligencia Artificial\xspace}
+\newcommand{\myDepartment}{de Ciencias de la Computación e Inteligencia Artificial\xspace}
 \newcommand{\myUni}{\protect{Universidad de Granada}\xspace}
 \newcommand{\myLocation}{Granada\xspace}
 \newcommand{\myTime}{\today\xspace}
@@ -59,8 +62,8 @@ Telecomunicación\xspace}
 pdfauthor = {\myName (danielteres@correo.ugr.es)},
 pdftitle = {\myTitle},
 pdfsubject = {},
-pdfkeywords = {palabra_clave1, palabra_clave2, palabra_clave3, ...},
-pdfcreator = {LaTeX con el paquete ....},
+pdfkeywords = {procesamiento del lenguaje natural, computación cuántica, word embeddings, Word2Vec, QWord2Vec, circuitos cuánticos parametrizados, aprendizaje automático cuántico, espacio de Hilbert},
+pdfcreator = {LaTeX con el paquete hyperref},
 pdfproducer = {pdflatex}
 }
 

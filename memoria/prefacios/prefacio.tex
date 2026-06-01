@@ -5,24 +5,30 @@
 
 
 \begin{center}
-{\large\bfseries \myTitle}\\
+       {\large\bfseries \myTitle}\\
 \end{center}
 \begin{center}
-\myName\\
+       \myName\\
 \end{center}
 
 %\vspace{0.7cm}
-\noindent{\textbf{Palabras clave}: palabra\_clave1, palabra\_clave2, palabra\_clave3, ......}\\
+\noindent{\textbf{Palabras clave}: procesamiento del lenguaje natural, computación cuántica, \textit{word embeddings}, Word2Vec, QWord2Vec, circuitos cuánticos parametrizados, aprendizaje automático cuántico, espacio de Hilbert.}\\
 
 \vspace{0.7cm}
 \noindent{\textbf{Resumen}}\\
 
-Poner aquí el resumen.
+La computación cuántica y el procesamiento del lenguaje natural constituyen dos de los campos más dinámicos y estudiados de la computación moderna. Su intersección da lugar al procesamiento del lenguaje natural cuántico, una disciplina emergente que explora si los fenómenos propios de la computación cuántica (superposición, entrelazamiento, etc.) pueden aprovecharse para representar y procesar el lenguaje de forma más eficiente que los modelos clásicos actuales.
+
+Este Trabajo de Fin de Grado se centra en QWord2Vec, la primera adaptación formal del algoritmo Word2Vec a la computación cuántica, propuesto recientemente por Ohno en agosto de 2025 \cite{ohno_qword2vec_2025}. El objetivo principal es implementar, evaluar y proponer mejoras sobre este modelo cuántico, comparando su rendimiento empírico con el del estándar clásico Word2Vec cuando cada uno se entrena con las mejores técnicas disponibles en su propio paradigma.
+
+Se implementan ambos modelos en Python, empleando las librerías Gensim y Qiskit respectivamente. El modelo clásico se entrena sobre un corpus lingüístico mediante la arquitectura Skip-gram, mientras que el modelo cuántico hace uso de un circuito cuántico parametrizado optimizado con el algoritmo QN-SPSA. La calidad de los \textit{embeddings} se evalúa mediante el \textit{cosine\_delta} y la correlación de Pearson entre las geometrías de ambos espacios.
+
+Los resultados muestran que Word2Vec alcanza un \textit{cosine\_delta} de $0.9360$ frente al $0.3293$ obtenido por QWord2Vec, si bien la mejora observada al equilibrar el corpus resulta prometedora. El modelo cuántico converge en aproximadamente $360$ iteraciones, muy por debajo de las hasta $20\,000$ empleadas en la investigación de referencia, gracias a la combinación de \textit{Grid Search} para hacer el fine tunning, inicialización por \textit{educated guess} y la activación del parámetro \textit{blocking} (entre otras técnicas más). Este trabajo constituye un diagnóstico del estado actual de la computación cuántica aplicada al procesamiento del lenguaje natural. Es una tecnología con fundamentos teóricos sólidos y resultados iniciales prometedores, pero que requiere todavía avances importantes tanto en hardware como en algoritmia para competir con los estándares clásicos en condiciones de aplicabilidad real.
 
 \noindent\rule[-1ex]{\textwidth}{2pt}\\[4.5ex]
 
 Yo, \textbf{\myName}, alumno de la titulación \myDegree de la \textbf{Escuela Técnica Superior
-de Ingenierías Informática y de Telecomunicación de la Universidad de Granada}, con DNI 41542052G, autorizo la
+       de Ingenierías Informática y de Telecomunicación de la Universidad de Granada}, con DNI 41542052G, autorizo la
 ubicación de la siguiente copia de mi Trabajo Fin de Grado en la biblioteca del centro para que pueda ser
 consultada por las personas que lo deseen.
 
@@ -33,7 +39,7 @@ consultada por las personas que lo deseen.
 \vspace{2cm}
 
 \begin{flushright}
-Granada \myTime.
+       Granada \myTime.
 \end{flushright}
 
 \noindent\rule[-1ex]{\textwidth}{2pt}\\[4.5ex]
@@ -68,9 +74,15 @@ Y para que conste, expiden y firman el presente informe en Granada \myTime.
 
 \chapter*{Agradecimientos}
 
-       \vspace{1cm}
+\vspace{1cm}
 
 
-Poner aquí agradecimientos...
+En primer lugar, deseo expresar mi más sincero agradecimiento al Dr. Manuel Pegalajar, director de este Trabajo de Fin de Grado, por su implicación constante y su orientación a lo largo de todo el proceso. Su disposición para dedicar tiempo a explicarme en profundidad los conceptos más complejos de la computación cuántica, así como los materiales adicionales que puso a mi disposición, ha sido fundamental durante toda la trayectoria.
+
+Asimismo, quiero agradecer al profesor Serafín Moral, cotutor de este proyecto, por su labor de seguimiento y corrección de la memoria. Sus revisiones detalladas, sus consejos sobre estructura y su guía a lo largo de las distintas etapas de redacción han contribuido de manera decisiva a mejorar la calidad y la coherencia del documento.
+
+Este trabajo no habría sido posible sin el apoyo incondicional de mi padre. Ha sido mi pilar fundamental durante toda la carrera, facilitándome cuanto ha estado en su mano para que pudiera llegar hasta aquí. Su esfuerzo y su confianza en mí han sido, sin duda, el impulso más grande que he tenido.
+
+Por último, quiero dedicar estas páginas a mi madre. Aunque ya no está presente para verlo, sé que este logro también es suyo.
 
 
