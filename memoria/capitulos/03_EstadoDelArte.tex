@@ -3,7 +3,7 @@
 
 Los fundamentos matemáticos y cuánticos presentados en el capítulo anterior constituyen todo el conocimiento necesario sobre el que se asienta el estado del arte de la representación vectorial de palabras. Representar el significado de una palabra mediante un vector numérico es el problema central que tanto Word2Vec como QWord2Vec buscan resolver, cada uno desde su propio paradigma computacional.
 
-Este capítulo aborda dicho problema en tres bloques progresivos. En primer lugar, se introduce el concepto de \textit{word embedding} y la característica que los definen, es decir, de qué modo la cercanía en el espacio vectorial codifica similitud semántica y por qué el espacio de Hilbert cuántico ofrece una alternativa estructuralmente afín al espacio euclídeo clásico. A continuación, se describe en detalle el algoritmo Word2Vec y en concreto su variante Skip-gram, modelo clásico de referencia de este trabajo. Finalmente, se expone QWord2Vec (la primera adaptación formal de Word2Vec al entorno cuántico definida en \cite{ohno_qword2vec_2025}), detallando el diseño de su circuito parametrizado, su función de pérdida y la estrategia de optimización \gls{qn-spsa}.
+Este capítulo aborda dicho problema en tres bloques progresivos. En primer lugar, se introduce el concepto de \textit{word embedding} y las características que los definen, es decir, de qué modo la cercanía en el espacio vectorial codifica similitud semántica y por qué el espacio de Hilbert cuántico ofrece una alternativa estructuralmente afín al espacio euclídeo clásico. A continuación, se describe en detalle el algoritmo Word2Vec y en concreto su variante Skip-gram, modelo clásico de referencia de este trabajo. Finalmente, se expone QWord2Vec (la primera adaptación formal de Word2Vec al entorno cuántico definida en \cite{ohno_qword2vec_2025}), detallando el diseño de su circuito parametrizado, su función de pérdida y la estrategia de optimización \gls{qn-spsa}.
 
 \section{Representación Vectorial de Palabras (Word Embeddings)}
 \label{chap:word_embeddings}
@@ -20,7 +20,7 @@ En las siguientes secciones se explorará en mayor profundidad los word embeddin
 
 De manera intuitiva, un \textit{embedding} de texto es una representación matemática que proyecta un fragmento de texto en un espacio latente de alta dimensionalidad. En este espacio, la posición del texto se define mediante un vector, donde cada componente del vector corresponde a una dimensión. Al igual que en un plano cartesiano se tienen dos dimensiones, en un embedding, se suele trabajar con muchas más dimensiones para representar una palabra en el espacio\cite{henner_intuitive_embeddings_2023}. Por ejemplo, el modelo de \textbf{OpenAI} \textit{text-embedding-ada-002} el cual tiene un espacio de dimensión de 1536. Es decir, cada vector está formado por 1536 componentes.
 
-Mostramos un ejemplo de cómo se verían los valores que toma cada dimensión es el siguiente:
+Un ejemplo de cómo se verían los valores que toma cada dimensión es el siguiente:
 
 \begin{quote}
   \textit{``A text embedding is a piece of text projected into a high-dimensional latent space. The position of our text in this space is a vector, a long sequence of numbers. Think of the two-dimensional cartesian coordinates from algebra class, but with more dimensions---often 768 or 1536.''} \cite{henner_intuitive_embeddings_2023}
@@ -37,7 +37,7 @@ Al procesar el párrafo anterior mediante el modelo \textit{text-embedding-ada-0
 
 Un \textbf{espacio de embedding} o \textbf{espacio latente} se define matemáticamente como un espacio donde los elementos están posicionados de manera más cercana uno del otro cuando tienen valores parecidos, mientras que si difieren dichos elementos, se posicionan más lejos entre ellos. En el caso del \gls{pln}, frases que son semánticamente más similares a otras tendrán un vector de embedding similar, por lo que estarán más juntas en el espacio.
 
-Aunque la comparación entre frases es una de las aplicaciones más conocidas, los \textit{embeddings} también se aplica en modelos de \gls{ml} y en arquitecturas de redes neuronales complejas.
+Aunque la comparación entre frases es una de las aplicaciones más conocidas, los \textit{embeddings} también se aplican en modelos de \gls{ml} y en arquitecturas de redes neuronales complejas.
 
 \subsubsection{Embeddings de palabras (\textit{Word Embeddings})}
 
@@ -103,7 +103,7 @@ Pensemos ahora en un sistema de recomendación sencillo. A partir de la selecci�
 
 Siguiendo el razonamiento lógico, si se analiza a través de la distancia euclídea, se pondrá el libro $(\text{perro}_5, \text{gato}_1)$ más cerca del libro $(\text{perro}_1, \text{gato}_5)$ que de un libro mucho más extenso o enciclopédico como $(\text{perro}_{100}, \text{gato}_1)$. Esto plantea un grave problema semántico: un lector de libros cortos de perros con proporción $(5, 1)$ seguramente prefiera a continuación una enciclopedia gigante sobre perros de $(100, 1)$ antes que un libro corto sobre gatos de $(1, 5)$. La métrica euclídea penaliza severamente la longitud en palabras del libro (magnitud) omitiendo por completo el reparto del tema de este (la proporción).
 
-Cuando resulta más relevante concentrarse en los pesos relativos temáticos que en sus magnitudes absolutas, los vectores se normalizan. Esto se logra dividiendo en ambos la cantidad de apariciones de perros y gatos para obtener la conocida \textbf{similitud coseno} \cite{porter_understanding_2023}. De manera más visual, este cálculo equivale geométricamente a proyectar todos los puntos disponibles en el espacio sobre una circunferencia de radio unidad (es decir, que el módulo de todos los vectores es $1$) y medir la distancia a lo largo del arco que los une. Al ignorar la longitud del documento orginal, se evalúa únicamente la dirección del vector respecto al origen, logrando una métrica de similitud mucho más robusta y natural al lenguaje humano.
+Cuando resulta más relevante concentrarse en los pesos relativos temáticos que en sus magnitudes absolutas, los vectores se normalizan. Esto se logra dividiendo en ambos la cantidad de apariciones de perros y gatos para obtener la conocida \textbf{similitud coseno} \cite{porter_understanding_2023}. De manera más visual, este cálculo equivale geométricamente a proyectar todos los puntos disponibles en el espacio sobre una circunferencia de radio unidad (es decir, que el módulo de todos los vectores es $1$) y medir la distancia a lo largo del arco que los une. Al ignorar la longitud del documento original, se evalúa únicamente la dirección del vector respecto al origen, logrando una métrica de similitud mucho más robusta y natural al lenguaje humano.
 
 Matemáticamente, esta métrica se define mediante el cociente del producto escalar de dos determinados vectores entre el producto de sus magnitudes:
 
@@ -124,7 +124,7 @@ En el contexto que nos encontramos de embeddings de palabras, hay que pensar que
 
 \subsubsection{Información Latente}
 
-Cualquier texto suele emplear sinónimos o términos relacionados para referirse a un mismo concepto; por ejemplo, volviendo al mismo ejemplo de antes, un libro sobre perros utilizará frecuentemente palabras como ``canino''. En un modelo básico de bolsa de palabras, incorpusr este nuevo vocablo requiere añadir una dimensión perpendicular adicional a las ya existentes, transformando nuestro anterior sistema de coordenadas en $(\text{perro}_x, \text{gato}_y, \text{canino}_z)$.
+Cualquier texto suele emplear sinónimos o términos relacionados para referirse a un mismo concepto; por ejemplo, volviendo al mismo ejemplo de antes, un libro sobre perros utilizará frecuentemente palabras como ``canino''. En un modelo básico de bolsa de palabras, incorporar este nuevo vocablo requiere añadir una dimensión perpendicular adicional a las ya existentes, transformando nuestro anterior sistema de coordenadas en $(\text{perro}_x, \text{gato}_y, \text{canino}_z)$.
 
 Bajo este mismo principio, resulta muy sencillo continuar agregando nuevas dimensiones para representar más palabras, consiguiendo un espacio multidimensional $(\text{perro}_x, \text{gato}_y, \text{canino}_z, \text{felino}_w)$. Sin embargo, este enfoque tan básico conlleva dos grandes problemas que imposibilitan su aplicación a gran escala: rompe de inmediato la interpretabilidad espacial (como lo era la sencilla idea inicial de una biblioteca bidimensional) y provoca una explosión en los requisitos necesarios para el cómputo.
 
@@ -370,7 +370,7 @@ Como se indicó con anterioridad, la arquitectura de \textit{QWord2Vec} mantiene
 
 En la imagen anterior, se aprecia como hay dos matrices parametrizadas, $U(\theta_u)$ y $V(\theta_v)$, junto a una matriz unitaria de entrelazamiento $U(_\text{enta})$. En este sistema, $n$ denota el número total de qubits, mientras que $n_e$ indica el número de qubits destinados específicamente a la representación de los \textit{embeddings}, debiendo cumplirse la restricción $1 \leq n_e \leq n$.
 
-La entrada al circuito viene dada por el estado cuántico $\ket{k}$, el cual representa a una palabra codificada mediante un vector \textit{one-hot}en Word2Vec donde $0 \leq k \leq 2^n - 1$. A partir de este estado inicial, el sistema evoluciona hacia un estado de salida $\ket{\psi}$. Parecido al mapeo directo que realiza Word2Vec, el mapeo que hay entre $\ket{k}$ y $\ket{\psi}$ lo realizan los bloques $U$ y $V$.
+La entrada al circuito viene dada por el estado cuántico $\ket{k}$, el cual representa a una palabra codificada mediante un vector \textit{one-hot} en Word2Vec donde $0 \leq k \leq 2^n - 1$. A partir de este estado inicial, el sistema evoluciona hacia un estado de salida $\ket{\psi}$. Parecido al mapeo directo que realiza Word2Vec, el mapeo que hay entre $\ket{k}$ y $\ket{\psi}$ lo realizan los bloques $U$ y $V$.
 
 Los estados cuánticos de salida resultantes codifican la información correspondiente al contexto de la palabra de entrada, cuya extracción se lleva a cabo realizando mediciones en la base computacional (observable Pauli $Z$).
 
@@ -441,7 +441,7 @@ donde $H(p)$ es la función de entropía binaria, representada en la Figura \ref
 
 \subsection{Definición de la función de evaluación y pérdida usadas}
 
-A continuación se procederá a explicar cuales han sido las funciones de evaluación y de pérdidas que han sido utilizadas para entrenar a este modelo, ya que difieren completamente de la aproximación clásica seguida.
+A continuación se procederá a explicar cuáles han sido las funciones de evaluación y de pérdidas que han sido utilizadas para entrenar a este modelo, ya que difieren completamente de la aproximación clásica seguida.
 
 \subsubsection{Evaluación de los datos de embeddings}
 
@@ -455,7 +455,7 @@ El motivo por el que no se utiliza únicamente la entropía cruzada como métric
 
 La función de pérdida diseñada para el modelo combina dos métricas. En primer lugar, emplea la \textit{entropía cruzada}, una métrica que evalúa el grado de acierto de las predicciones de un modelo frente a la realidad. De forma intuitiva, mide la diferencia entre dos distribuciones de probabilidad: la real (los datos objetivo) y la estimada por el modelo. Su propósito es penalizar los errores, de modo que cuanto más se alejen las predicciones de la etiqueta real, mayor será el valor de la pérdida. En el contexto de QWord2Vec, la entropía cruzada cuantifica el error entre las probabilidades generadas por el circuito cuántico y las etiquetas de entrenamiento que dictan el contexto correcto de cada palabra.
 
-A este componente clásico poseen también un segundo término basado en el coeficiente de correlación de Pearson, el cual actúa como mecanismo para garantizar la fidelidad de las representaciones espaciales. De este modo, la función de pérdida global se expresa de la siguiente manera:
+A este componente clásico se añade también un segundo término basado en el coeficiente de correlación de Pearson, el cual actúa como mecanismo para garantizar la fidelidad de las representaciones espaciales. De este modo, la función de pérdida global se expresa de la siguiente manera:
 
 \[
   \mathcal{L} = \mathcal{L}_{\text{CE}} - C \cdot \rho(D, Y)
@@ -555,7 +555,7 @@ Cada paso de optimización $t$ requiere tres direcciones de perturbación $\math
   \label{fig:comparacion_optimizadores}
 \end{figure}
 
-Como se puede apreciar, en este caso sale que el que mejor resultados tiene es \gls{qng}. Sin embargo aquí no se está contemplando el tiempo de ejecución, que como se comentó, este optimizador es menos eficiente y no escala bien (aquí se tienen pocas iteraciones). Con esto se demuestra como el \gls{qn-spsa} es el que mejor resultado ofrece de manera equlibrada, teniendo una pérdida (loss) baja así como un tiempo de ejecución también menor y siendo una opción buena en cuanto a la escalabilidad.
+Como se puede apreciar, en este caso sale que el que mejor resultados tiene es \gls{qng}. Sin embargo aquí no se está contemplando el tiempo de ejecución, que como se comentó, este optimizador es menos eficiente y no escala bien (aquí se tienen pocas iteraciones). Con esto se demuestra como el \gls{qn-spsa} es el que mejor resultado ofrece de manera equilibrada, teniendo una pérdida (loss) baja así como un tiempo de ejecución también menor y siendo una opción buena en cuanto a la escalabilidad.
 
 \section{Limitaciones identificadas y enfoque del trabajo}
 \label{sec:limitaciones_enfoque}

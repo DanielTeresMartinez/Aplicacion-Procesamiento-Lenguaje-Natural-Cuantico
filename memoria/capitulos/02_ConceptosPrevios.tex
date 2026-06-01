@@ -1,11 +1,11 @@
 \chapter{Conceptos previos}
 \label{chap:conceptos_previos}
 
-Para entender el análisis y la comparación de los modelos Word2Vec y QWord2Vec que se desarrollan a lo largo de este trabajo, es necesario establecer previamente los fundamentos teóricos que los sustentan. Este capítulo presenta los conceptos necesarios procedentes para entender la disciplina de \gls{pln} y la computación cuántica.
+Para entender el análisis y la comparación de los modelos Word2Vec y QWord2Vec que se desarrollan a lo largo de este trabajo, es necesario establecer previamente los fundamentos teóricos que los sustentan. Este capítulo presenta los conceptos necesarios para entender la disciplina de \gls{pln} y la computación cuántica.
 
 En primer lugar, se introduce el \gls{pln}, describiendo su definición, sus principales fases de análisis lingüístico y el papel que desempeña en los sistemas de inteligencia artificial actuales. A continuación, se sientan las bases matemáticas de la computación cuántica, comenzando por los números complejos y la notación de Dirac para luego desarrollar el concepto de qubit y sus propiedades fundamentales. El capítulo cierra con una introducción al \gls{plnc}, el campo emergente que busca integrar ambas disciplinas y que constituye el contexto directo en el que se enmarca este trabajo.
 
-\section{Procesamiento Lenguaje Natural}
+\section{Procesamiento del Lenguaje Natural}
 \label{chap:pln}
 
 \subsection{Introducción al Procesamiento del Lenguaje Natural}
@@ -120,7 +120,7 @@ El conjunto de los números complejos, representado por el símbolo $\mathbb{C}$
 Los números complejos sirven para dar sentido a la raíz cuadrada de números negativos. Esto permite que ecuaciones de segundo grado con discriminante negativo, puedan ser resueltas. Con esto se abre la puerta a un gran mundo en el que todas las operaciones (excepto dividir entre 0), son posibles.
 
 
-Las características principales de los números complejos con las siguientes:
+Las características principales de los números complejos son las siguientes:
 
 \begin{itemize}
     \item Tiene distintas formas de expresarse.
@@ -304,7 +304,7 @@ donde $\alpha^*$ y $\beta^*$ son los complejos conjugados de $\alpha$ y $\beta$.
     \ket{0} = \begin{pmatrix} 1 \\ 0 \end{pmatrix}, \quad \ket{1} = \begin{pmatrix} 0 \\ 1 \end{pmatrix};
 \]
 
-Utilizando esta notación, se puede definir las siguientes operaciones:
+Utilizando esta notación, se pueden definir las siguientes operaciones:
 
 \begin{itemize}
     \item \textbf{Producto interno:} Es un número obtenido al multiplicar un bra por un ket.
@@ -553,7 +553,7 @@ Cabe destacar que, aunque el modelo DisCoCat original funciona perfectamente sin
 
 \paragraph{Técnicas de codificación de datos clásicos a estados cuánticos}
 
-Al igual que en computación clásica la información necesita ser codificada de manera que los modelos pueda entender los datos que se le proporcionan y así trabajar con ellos, la computación cuántica necesita poder codificar los datos de la computación clásica (texto en este caso, ya que estamos dentro del ámbito de \gls{pln} y \gls{plnc}), a estados cuánticos. Para ello existe diversas técnicas las cuales explicaremos a continuación:
+Al igual que en computación clásica la información necesita ser codificada de manera que los modelos pueda entender los datos que se le proporcionan y así trabajar con ellos, la computación cuántica necesita poder codificar los datos de la computación clásica (texto en este caso, ya que estamos dentro del ámbito de \gls{pln} y \gls{plnc}), a estados cuánticos. Para ello existen diversas técnicas las cuales explicaremos a continuación:
 
 \begin{itemize}
     \item \textbf{Basis Encoding:} Utiliza $n$ qubits. Complejidad $O(1)$. Simple, entradas cortas y simbólicas.
@@ -587,11 +587,11 @@ De esta forma, hemos codificado una frase de lengua clásica directamente en un 
 \subsubsection{Circuitos Variacionales Cuánticos como modelos de aprendizaje}
 
 En 2016, se tuvo acceso al primer ordenador cuántico en la nube, aunque el ruido y las limitaciones
-de quibits de las que se disponía hacía que fuera difícil implementar algoritmos cuánticos.
+de qubits de las que se disponía hacía que fuera difícil implementar algoritmos cuánticos.
 
 A pesar de estas limitaciones, se generó una gran expectación en la comunidad investigadora respecto al potencial que ofrecía esta nueva generación de dispositivos denominados \gls{nisq}. Estos ordenadores contaban con entre 50 y 100 \glsentryplural{qubit}, lo que les permitía superar en rendimiento a los mejores superordenadores clásicos en determinadas áreas matemáticas \cite{arute2019quantum,zhong2020quantum}.
 
-Los \gls{cvc} nacieron como la mejor estrategia para hacer frente a los ordenadores \gls{nisq}. Debido a las limitaciones de estos dipsositivos, se utilizó la estrategia de optimización basado en el aprendizaje. No son más que una analogía cuántica a los técnicas existentes del campo de \gls{ml} como pueden ser las redes neuronales. En definitiva, son algoritmos cuánticos que tienen parámetros libres \cite{pennylane_variational_circuit}. Al igual que cualquier otro circuito cuántico estándar, se necesita hacer uso de estos tres conceptos básicos:
+Los \gls{cvc} nacieron como la mejor estrategia para hacer frente a los ordenadores \gls{nisq}. Debido a las limitaciones de estos dispositivos, se utilizó la estrategia de optimización basado en el aprendizaje. No son más que una analogía cuántica a los técnicas existentes del campo de \gls{ml} como pueden ser las redes neuronales. En definitiva, son algoritmos cuánticos que tienen parámetros libres \cite{pennylane_variational_circuit}. Al igual que cualquier otro circuito cuántico estándar, se necesita hacer uso de estos tres conceptos básicos:
 
 \begin{enumerate}
     \item Preparación con un \textbf{estado inicial} fijo.
@@ -628,7 +628,7 @@ En esta expresión, $U(x; \theta)$ representa el circuito cuántico parametrizad
 \begin{figure}[htbp]
     \centering
     \includegraphics[scale=0.13]{imagenes/circuitoVQCArgumentos.png}
-    \caption{Circuito variacional cuántico con parámetros modificables $x$ y no modificables $\theta$. Imagen obtenida de: \cite{pennylane_variational_circuit}}
+    \caption{Circuito variacional cuántico con parámetros modificables $\theta$ y no modificables $x$. Imagen obtenida de: \cite{pennylane_variational_circuit}}
     \label{fig:circuitoVQCArgumentos}
 \end{figure}
 
