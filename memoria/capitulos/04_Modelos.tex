@@ -1,9 +1,9 @@
-\chapter{Algoritmos Word2Vec y QWord2Vec}
+\chapter{Metodología}
 \label{chap:modelos}
 
 Los fundamentos de los \textit{word embeddings} presentados en el capítulo anterior establecen el marco teórico sobre el que se construyen los algoritmos de generación de representaciones vectoriales de palabras. Este capítulo aborda en detalle los dos modelos centrales de este trabajo. En primer lugar, se describe el algoritmo clásico Word2Vec y su variante Skip-gram. A continuación, se presenta QWord2Vec, la primera adaptación formal de Word2Vec al entorno cuántico. Por último, se exponen las propuestas de mejora introducidas en este Trabajo de Fin de Grado sobre el modelo cuántico original que son la sustitución del optimizador \gls{spsa} por \gls{qn-spsa} y la inicialización guiada de los parámetros del circuito.
 
-\section{Implementación Clásica: Algoritmo Word2Vec}
+\section{Algoritmo Word2Vec}
 \label{chap:word2vec}
 
 Word2Vec, cuyo nombre proviene de la contracción de \textit{Word to Vector}, es un modelo de \gls{ml} que permite representar palabras como vectores de grandes dimensiones. Su principal virtud reside en que las relaciones semánticas y sintácticas entre palabras quedan codificadas como proximidad geométrica entre dichos vectores, permitiendo así capturar el significado de forma numérica y operable.
@@ -180,7 +180,7 @@ Maximizar esta expresión conlleva maximizar el producto escalar en su primer t�
 
 En cuanto a la elección del hiperparámetro $k$, el segundo artículo de Google sobre Word2Vec \cite{mikolov_skipgram_phrases_2013} indica que un valor en el rango de 5 a 20 es adecuado para corpus de entrenamiento de tamaño reducido, mientras que para corpus de gran escala se recomienda utilizar valores de entre 2 y 5.
 
-\section{Implementación Cuántica: Algoritmo QWord2Vec}
+\section{Algoritmo QWord2Vec}
 \label{chap:qword2vec}
 
 En la sección anterior se describió en detalle el algoritmo Word2Vec clásico y su variante Skip-gram, que emplea redes neuronales superficiales para aprender representaciones vectoriales de palabras a partir de grandes corpus de texto. En esta sección se presenta \textit{QWord2Vec}, una adaptación cuántica de dicho modelo propuesta por Ohno \cite{ohno_qword2vec_2025}, cuyo objetivo es explorar si el uso de circuitos cuánticos paramétricos puede ofrecer ventajas en la calidad de las representaciones vectoriales de palabras.
@@ -303,7 +303,7 @@ dada una palabra objetivo del corpus, se asigna un valor de $0.5$ a las dos pala
 \section{Propuestas de mejora sobre QWord2Vec}
 \label{sec:propuestas_mejora}
 
-Del análisis del modelo QWord2Vec original propuesto por Ohno \cite{ohno_qword2vec_2025} se desprenden varias limitaciones que condicionan su rendimiento. La más relevante se encuentra en el proceso de optimización: el entrenamiento original utiliza el optimizador \gls{spsa} y requiere un número muy elevado de iteraciones (hasta $20\,000$) para alcanzar la convergencia, lo que, unido al coste exponencial de la simulación clásica de circuitos, encarece de forma notable el entrenamiento. A esta dificultad se suma la fuerte dependencia del resultado respecto a la inicialización de los parámetros del circuito y a la propia naturaleza estocástica del optimizador, factores que dificultan una convergencia estable y reproducible.
+Del análisis del modelo QWord2Vec original propuesto por Ohno \cite{ohno_qword2vec_2025} se desprenden varias limitaciones que condicionan su rendimiento. La más relevante se encuentra en el proceso de optimización, el entrenamiento original utiliza el optimizador \gls{spsa} y requiere un número muy elevado de iteraciones (hasta $20\,000$) para alcanzar la convergencia, lo que, unido al coste exponencial de la simulación clásica de circuitos, encarece de forma notable el entrenamiento. A esta dificultad se suma la fuerte dependencia del resultado respecto a la inicialización de los parámetros del circuito y a la propia naturaleza estocástica del optimizador, factores que dificultan una convergencia estable y reproducible.
 
 Partiendo de esta base, el presente Trabajo de Fin de Grado propone dos vías de mejora orientadas a mitigar estos problemas. En primer lugar, se sustituye el optimizador \gls{spsa} original por \gls{qn-spsa}, que incorpora información sobre la geometría del espacio de estados cuánticos a través del tensor de Fubini-Study. En segundo lugar, se introduce una estrategia de inicialización informada de los parámetros (\textit{educated guess}) que reduce la dependencia respecto a la aleatoriedad inicial.
 
@@ -316,7 +316,7 @@ Para entender el funcionamiento de \gls{qn-spsa}, es necesario introducir previa
 
 \subsubsection{Funcionamiento del algoritmo}
 
-Los optimizadores empleados en \glspl{cvc} operan bajo el mismo principio que los utilizados en \gls{ml} clásico: en cada iteración estiman el gradiente de la función de coste y, a partir de este, actualizan los parámetros del modelo con el objetivo de minimizar dicha función.
+Los optimizadores empleados en \glspl{cvc} operan bajo el mismo principio que los utilizados en \gls{ml} clásico. En cada iteración estiman el gradiente de la función de coste y, a partir de este, actualizan los parámetros del modelo con el objetivo de minimizar dicha función.
 
 El punto de partida es el \gls{gd}, cuya regla de actualización de parámetros es:
 
@@ -404,6 +404,6 @@ La segunda propuesta de mejora aborda la dependencia del entrenamiento respecto 
 
 En este trabajo se introduce una estrategia de inicialización informada, denominada \textit{educated guess}, que evalúa un conjunto de puntos de inicio aleatorios antes de comenzar la optimización y selecciona aquel con menor pérdida. En concreto, se generan 10 configuraciones iniciales de parámetros muestreadas aleatoriamente, se evalúa la función de pérdida del circuito para cada una de ellas, y se adopta como punto de partida la configuración que produce el menor valor de pérdida. De este modo, el optimizador comienza su búsqueda desde una región ya orientada hacia un mínimo prometedor del espacio de parámetros.
 
-Esta técnica aporta dos ventajas principales. En primer lugar, elimina la necesidad de un paso de aprendizaje agresivo para explorar regiones lejanas del espacio de parámetros, ya que el punto de partida se encuentra en una zona favorable. En segundo lugar, reduce el impacto del ruido inherente a las primeras iteraciones del entrenamiento: los valores de pérdidas de un circuito variacional cuántico sin pesos preentrenados son especialmente ruidosos debido a la alta varianza de las estimaciones obtenidas por muestreo finito del simulador, de modo que partir de una configuración más estable contribuye a una convergencia más robusta.
+Esta técnica aporta dos ventajas principales. En primer lugar, elimina la necesidad de un paso de aprendizaje agresivo para explorar regiones lejanas del espacio de parámetros, ya que el punto de partida se encuentra en una zona favorable. En segundo lugar, reduce el impacto del ruido inherente a las primeras iteraciones del entrenamiento ya que los valores de pérdidas de un circuito variacional cuántico sin pesos preentrenados son especialmente ruidosos debido a la alta varianza de las estimaciones obtenidas por muestreo finito del simulador, de modo que partir de una configuración más estable contribuye a una convergencia más robusta.
 
 La combinación de esta inicialización guiada con el optimizador \gls{qn-spsa} descrito en la sección anterior constituye el núcleo de las propuestas de mejora de este trabajo. El capítulo siguiente detalla el diseño experimental construido sobre estas ideas y evalúa empíricamente en qué medida dichas optimizaciones permiten a QWord2Vec aproximarse a la calidad de los \textit{embeddings} generados por Word2Vec.
