@@ -3,10 +3,7 @@
 
 Los fundamentos matemáticos y cuánticos presentados en el capítulo anterior constituyen todo el conocimiento necesario sobre el que se asienta el estado del arte de la representación vectorial de palabras. Representar el significado de una palabra mediante un vector numérico es el problema central que tanto Word2Vec como QWord2Vec buscan resolver, cada uno desde su propio paradigma computacional.
 
-Este capítulo introduce el concepto de \textit{word embedding} y las características que los definen, es decir, de qué modo la cercanía en el espacio vectorial codifica similitud semántica y por qué el espacio de Hilbert cuántico ofrece una alternativa estructuralmente afín al espacio euclídeo clásico. Sobre estos fundamentos, el capítulo siguiente describe en detalle los algoritmos Word2Vec y QWord2Vec, junto con las propuestas de mejora introducidas en este trabajo.
-
-\section{Representación Vectorial de Palabras (Word Embeddings)}
-\label{chap:word_embeddings}
+Este capítulo comienza con un repaso de toda la investigación realizada sobre los \textit{word embedding} así como las características que los definen, es decir, de qué modo la cercanía en el espacio vectorial codifica similitud semántica y por qué el espacio de Hilbert cuántico ofrece una alternativa estructuralmente afín al espacio euclídeo clásico. Sobre estos fundamentos, el capítulo siguiente describe en detalle los algoritmos Word2Vec y QWord2Vec, junto con las propuestas de mejora introducidas en este trabajo.
 
 Los word embeddings son una de las técnicas más usadas en \gls{pln}. Gracias a los word embeddings, existen lenguajes de modelo como GPT-3, GPT-4, etc.
 
@@ -16,7 +13,52 @@ En esencia, estos modelos aprenden a extraer y representar patrones complejos a 
 
 En las siguientes secciones se explorará en mayor profundidad los word embeddings así como conceptos más avanzados de estos.
 
+\section{Embeddings en Computación Clásica}
+\label{sec:embeddings_clasicos}
+
+\subsection{Evolución histórica de los \textit{word embeddings}}
+\label{subsec:evolucion_historica}
+
+La representación matemática y computacional del lenguaje natural ha sido uno de los desafíos más profundos en la historia del \gls{pln}. El desarrollo de los denominados \textit{word embeddings} (representaciones vectoriales de palabras) ha atravesado siete décadas de investigación, evolucionando a través de cuatro grandes paradigmas: métodos estadísticos, \textit{embeddings} estáticos, \textit{embeddings} contextuales y \textit{embeddings} de oraciones/documentos. Esta evolución demuestra una continua investigación y desarrollo en el que cada nueva técnica intentaba resolver las limitaciones semánticas, matemáticas y de escalabilidad de sus predecesoras, culminando en la actual era de los grandes modelos de lenguaje (\glsentryplural{llm}) \cite{nguyen_tracing_2026}.
+
+\subsubsection{Representaciones estadísticas y modelos espaciales iniciales}
+
+Los primeros intentos de representación textual se basaron fundamentalmente en la hipótesis distribucional formulada por Zellig Harris en 1954 \cite{harris_distributional_1954}, la cual postula que las palabras que ocurren en contextos similares tienden a poseer significados similares. En sus inicios, las arquitecturas utilizaban enfoques de \textit{one-hot encoding} \cite{salton_vector_1975}, donde cada palabra del vocabulario se representaba como un vector extremadamente extenso y disperso, compuesto íntegramente por ceros, a excepción de un único uno en la posición correspondiente al índice de la palabra. Aunque útil para crear índices, este método carecía de nociones de similitud semántica, ya que la distancia geométrica entre cualquier par de palabras era idéntica.
+
+A partir de esta limitación, surgió el modelo \textit{Bag-of-Words} (BoW), que agregaba estos indicadores en un vector de frecuencia de términos para un documento completo. Sin embargo, seguían generándose vectores de muy alta dimensionalidad dominados por palabras muy frecuentes que aportaban poco valor semántico. Para solucionar esto, Karen Sparck Jones introdujo el concepto de TF-IDF (\textit{Term Frequency - Inverse Document Frequency}) \cite{jones_statistical_1972}. Este método preservaba la naturaleza dispersa del vector, pero introducía una métrica de informatividad: penalizaba las palabras omnipresentes y asignaba mayor peso a aquellos términos raros pero característicos de un documento. Se considera que el principio de asignar pesos variables según la relevancia en TF-IDF es un precursor conceptual del mecanismo de atención moderno.
+
+Pese a esta mejora, los métodos basados en frecuencia no podían resolver la sinonimia ni la polisemia. El avance fundamental llegó con el Análisis Semántico Latente (LSA), propuesto por Deerwester et al. en 1990 \cite{deerwester_indexing_1990}. Mediante el uso de la descompocición en valores singulares (\gls{dvs}), el LSA lograba proyectar esa matriz dispersa hacia un espacio semántico latente de menor dimensión, agrupando conceptos afines. Finalmente, a principios de la década de los 2000, Bengio et al. \cite{bengio_neural_2003} desarrollaron el primer modelo de lenguaje probabilístico neuronal, demostrando que era posible aprender representaciones densas optimizando una red neuronal para predecir la siguiente palabra mediante propagación hacia atrás (\textit{backpropagation}), sentando las bases absolutas para los \textit{embeddings} modernos.
+
+\subsubsection{La revolución de los \textit{embeddings} de palabras estáticos}
+
+El gran salto hacia el uso masivo de vectores densos ocurrió en 2013 con la introducción de Word2Vec por Tomas Mikolov y su equipo \cite{mikolov_efficient_2013}. Word2Vec propuso dos arquitecturas predictivas altamente eficientes: \textit{Continuous Bag-of-Words} (CBOW), que predecía una palabra objetivo a partir de su contexto, y \textit{Skip-Gram}, que utilizaba la palabra objetivo para predecir el contexto. Este modelo logró traducir relaciones semánticas y sintácticas en operaciones algebraicas simples (como la capacidad de resolver la analogía $\vec{v}(\text{Rey}) - \vec{v}(\text{Hombre}) + \vec{v}(\text{Mujer}) \approx \vec{v}(\text{Reina})$). No obstante, dependía de ventanas de contexto locales pequeñas y no utilizaba eficientemente la información global del corpus.
+
+Para subsanar esta debilidad, Pennington et al. desarrollaron GloVe (\textit{Global Vectors}) en 2014 \cite{pennington_glove_2014}. GloVe funcionaba factorizando explícitamente una matriz global de coocurrencia palabra-contexto utilizando mínimos cuadrados ponderados. Esto resultó en un espacio vectorial mucho más estable, combinando las ventajas del conteo estadístico con las representaciones neuronales. Paralelamente, investigadores como Levy y Goldberg (2014) \cite{levy_dependency_2014} cuestionaron el uso de ventanas de proximidad lineal y propusieron \textit{embeddings} basados en dependencias sintácticas. Esto permitió agrupar las palabras por su rol funcional en la oración en lugar de su parentesco temático (por ejemplo, agrupar escuelas diferentes entre sí en lugar de asociar una escuela a sus alumnos).
+
+El límite práctico de Word2Vec y GloVe era el manejo de palabras fuera del vocabulario y la morfología compleja. FastText, presentado por Bojanowski et al. en 2017 \cite{bojanowski_enriching_2017}, resolvió esto representando cada palabra como una bolsa de n-gramas de caracteres (subpalabras). Esto permitió al modelo componer vectores significativos para palabras nunca antes vistas sumando los vectores de sus fragmentos. Sin embargo, todos estos modelos compartían un defecto insalvable: eran estáticos. Asignaban un único vector fijo a cada palabra, colapsando todos sus significados posibles en uno solo. Aunque intentos como Sense2Vec (Trask et al., 2015) \cite{trask_sense2vec_2015} intentaron paliar esto etiquetando las palabras con su categoría gramatical (separando el sustantivo del verbo), la solución definitiva requería un cambio de paradigma.
+
+\subsubsection{Embeddings contextuales y la transición a arquitecturas dinámicas}
+
+La incapacidad de manejar la polisemia impulsó la adopción de \textit{embeddings} contextuales, un cambio catalizado por la arquitectura \textit{Transformer} introducida por Vaswani et al. en 2017 \cite{vaswani_attention_2017}. El \textit{Transformer} introdujo el mecanismo de autoatención (\textit{self-attention}), permitiendo procesar el contexto global de una secuencia en paralelo y calcular dinámicamente cómo cada palabra afectaba a las demás, rompiendo el cuello de botella secuencial de las redes recurrentes.
+
+Antes del dominio total del \textit{Transformer}, el modelo ELMo propuesto por Peters et al. en 2018 \cite{peters_deep_2018} demostró que se podían generar vectores distintos para la misma palabra según su oración utilizando redes neuronales recurrentes bidireccionales (Bi-LSTM). ELMo generaba representaciones jerárquicas donde las capas bajas captaban la sintaxis y las altas la semántica.
+
+El impacto definitivo lo marcó BERT, lanzado por Devlin et al. en 2019 \cite{devlin_bert_2019}. BERT utilizó el codificador del \textit{Transformer} preentrenado mediante el modelado de lenguaje enmascarado (MLM) y la predicción de la siguiente oración (NSP). Esto le otorgó una comprensión bidireccional que revolucionó las tareas de comprensión lectora. Simultáneamente, la familia de modelos GPT de Radford et al. \cite{radford_improving_2018} utilizó el decodificador del \textit{Transformer} con un enfoque autorregresivo unidireccional, entrenándose para predecir la siguiente palabra, lo que sentó las bases para la generación de texto a largo plazo y el razonamiento generativo.
+
+\subsubsection{Embeddings de frases, documentos y la recuperación semántica}
+
+Históricamente, fue necesario codificar secuencias completas más allá de palabras individuales. Le y Mikolov adaptaron su propio trabajo en 2014 para crear Doc2Vec \cite{le_distributed_2014}, introduciendo un vector de párrafo que actuaba como una memoria temática del documento. Posteriormente, Kiros et al. (2015) \cite{kiros_skip_2015} propusieron los \textit{Skip-Thought Vectors}, que aplicaban el objetivo de \textit{Skip-Gram} a nivel de oración, obligando al modelo a predecir las oraciones circundantes para capturar propiedades discursivas.
+
+Para proporcionar un estándar universal y eficiente, Cer et al. introdujeron el \textit{Universal Sentence Encoder} (USE) en 2018 \cite{cer_universal_2018}, entrenado en múltiples tareas para lograr una generalización masiva. No obstante, el avance más transformador en este subcampo fue Sentence-BERT (S-BERT), propuesto por Reimers y Gurevych en 2019 \cite{reimers_sentence_2019}. Al notar que el vector nativo de BERT era deficiente para comparar similitudes, adaptaron la arquitectura utilizando redes siamesas. Esto redujo el tiempo necesario para buscar oraciones similares en corpus masivos de horas a solo milisegundos, impulsando los sistemas de búsqueda semántica modernos.
+
+\subsubsection{El impacto de GPT-3 y la era de los LLMs (2020 - Actualidad)}
+
+La investigación en \textit{word embeddings} experimentó una disrupción estructural con el lanzamiento de GPT-3 por Brown et al. en 2020 \cite{brown_language_2020}. Con 175 mil millones de parámetros, demostró que los \textit{embeddings} ya no necesitaban ser componentes aislados. A partir de este momento, la producción de artículos centrados exclusivamente en \textit{embeddings} estáticos o estadísticos se desplomó. Los \textit{embeddings} han pasado a subsumirse como capas de representación internas dentro de inmensos modelos de aprendizaje profundo de extremo a extremo (\textit{end-to-end}).
+
+Esta última transición ha provocado que el campo se desplace de pequeños grupos de investigación académica a grandes consorcios corporativos, debido a los inmensos recursos computacionales requeridos. Sin embargo, la investigación contemporánea no ha abandonado las teorías previas; al contrario, métodos clásicos de frecuencia siguen integrándose hoy en arquitecturas híbridas (como la generación aumentada por recuperación o RAG) para complementar a las redes neuronales, demostrando que las siete décadas de innovación en representación textual mantienen una profunda continuidad histórica.
+
 \subsection{Introducción al concepto de \textit{Embedding}}
+\label{sec:introduccion_embedding}
 
 De manera intuitiva, un \textit{embedding} de texto es una representación matemática que proyecta un fragmento de texto en un espacio latente de alta dimensionalidad. En este espacio, la posición del texto se define mediante un vector, donde cada componente del vector corresponde a una dimensión. Al igual que en un plano cartesiano se tienen dos dimensiones, en un embedding, se suele trabajar con muchas más dimensiones para representar una palabra en el espacio\cite{henner_intuitive_embeddings_2023}. Por ejemplo, el modelo de \textbf{OpenAI} \textit{text-embedding-ada-002} el cual tiene un espacio de dimensión de 1536. Es decir, cada vector está formado por 1536 componentes.
 
@@ -134,6 +176,11 @@ La solución a la alta dimensionalidad radica en abstraer el conteo literal haci
 
 De la misma forma, términos más amplios como ``mascota'' o ``mamífero'' representan características semánticas compartidas simultáneamente por ``perro'' y ``gato''. En un espacio latente bien optimizado, estas palabras genéricas actúan como atributos comunes que vinculan y aproximan ambos animales en ciertas dimensiones del espacio. Por otro lado, si la elevada reducción dimensional provocara una superposición excesiva donde términos que debieran ser distintos terminen colapsando —por ejemplo, confundiéndose ambos en el mismo punto exacto—, esta carencia de precisión podría mitigarse introduciendo nuevos ejes latentes. Estos nuevos atributos ocultos de diferenciación (por ejemplo, proyectando qué palabras se relacionan estrechamente con ``mesa'' frente a los animales vivos mencionados anteriormente) permiten desenredar los agrupamientos de datos semánticos complejos.
 
+
+\section{Embeddings en Computación Cuántica}
+\label{sec:embeddings_cuanticos}
+
+El procesamiento de lenguaje natural ha comenzado a explorar el paradigma cuántico como una alternativa para superar las limitaciones de espacio y expresividad de los modelos clásicos. En esta sección se aborda la fundamentación teórica que justifica la representación de conceptos lingüísticos dentro de espacios vectoriales cuánticos.
 
 \subsection{Paralelismo entre Espacio Semántico y Espacio de Hilbert}
 
