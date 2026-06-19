@@ -3,14 +3,14 @@
 
 Los fundamentos matemáticos y cuánticos presentados en el capítulo anterior constituyen el conocimiento necesario sobre el que se asienta el estado del arte de la representación vectorial de palabras. Representar el significado de una palabra mediante un vector numérico es el problema central que tanto Word2Vec como QWord2Vec buscan resolver, cada uno desde su propio paradigma computacional.
 
-Este capítulo introduce el concepto de \textit{word embedding} y describe las características geométricas que los definen, explicando cómo la cercanía en el espacio vectorial codifica la similitud semántica. A continuación, se detalla la evolución histórica de estas técnicas clásicas, desde las representaciones estadísticas iniciales hasta la era de los grandes modelos de lenguaje \gls{llm}. Posteriormente, se presenta la versión cuántico de representación de palabras, analizando por qué el espacio de Hilbert cuántico ofrece una alternativa estructuralmente afín al espacio euclídeo clásico.
+Este capítulo introduce el concepto de \textit{word embedding} y describe las características geométricas que los definen explicando cómo la cercanía en el espacio vectorial codifica la similitud semántica. A continuación, se detalla la evolución histórica de estas técnicas clásicas, desde las representaciones estadísticas iniciales hasta la era de los grandes modelos de lenguaje \gls{llm}. Posteriormente, se presenta la versión cuántica de representación de palabras, analizando por qué el espacio de Hilbert cuántico ofrece una alternativa estructuralmente afín al espacio euclídeo clásico.
 
 \section{Embeddings en Computación Clásica}
 \label{sec:embeddings_clasicos}
 \subsection{Introducción al concepto de \textit{Embedding}}
 \label{sec:introduccion_embedding}
 
-De manera intuitiva, un \textit{embedding} de texto es una representación matemática que proyecta un fragmento de texto en un espacio latente de alta dimensionalidad. En este espacio, la posición del texto se define mediante un vector, donde cada componente del vector corresponde a una dimensión. Al igual que en un plano cartesiano se tienen dos dimensiones, en un embedding, se suele trabajar con muchas más dimensiones para representar una palabra en el espacio\cite{henner_intuitive_embeddings_2023}. Por ejemplo, el modelo de \textbf{OpenAI} \textit{text-embedding-ada-002} el cual tiene un espacio de dimensión de 1536. Es decir, cada vector está formado por 1536 componentes.
+De manera intuitiva, un \textit{embedding} de texto es una representación matemática que proyecta un fragmento de texto en un espacio latente de alta dimensionalidad. En este espacio, la posición del texto se define mediante un vector, donde cada componente del vector corresponde a una dimensión. Mientras que en un plano cartesiano se tienen dos dimensiones, en un \textit{embedding} se suele trabajar con muchas más para representar una palabra en el espacio \cite{henner_intuitive_embeddings_2023}. Un ejemplo de esto es el modelo de \textbf{OpenAI} \textit{text-embedding-ada-002}, el cual tiene un espacio de dimensión de 1536 (es decir, cada vector está formado por 1536 componentes).
 
 Un ejemplo de cómo se verían los valores que toma cada dimensión es el siguiente:
 
@@ -27,7 +27,7 @@ Al procesar el párrafo anterior mediante el modelo \textit{text-embedding-ada-0
   \label{fig:ejemploValoresEmbedding}
 \end{figure}
 
-Un \textbf{espacio de embedding} o \textbf{espacio latente} se define matemáticamente como un espacio donde los elementos están posicionados de manera más cercana uno del otro cuando tienen valores parecidos, mientras que si difieren dichos elementos, se posicionan más lejos entre ellos \cite{google_embedding_space_2025}. En el caso del \gls{pln}, frases que son semánticamente más similares a otras tendrán un vector de embedding similar, por lo que estarán más juntas en el espacio.
+Un \textbf{espacio de embedding} o \textbf{espacio latente} se define matemáticamente como un espacio donde los elementos están posicionados de manera más cercana uno del otro cuando tienen valores parecidos mientras que si difieren dichos elementos se posicionan más lejos entre ellos \cite{google_embedding_space_2025}. En el caso del \gls{pln}, frases que son semánticamente más similares a otras tendrán un vector de embedding similar, por lo que estarán más juntas en el espacio.
 
 Aunque la comparación entre frases es una de las aplicaciones más conocidas, los \textit{embeddings} también se aplican en modelos de \gls{ml} y en arquitecturas de redes neuronales complejas. Los embeddings pueden aplicarse tanto a nivel de documento o frase completa como a nivel de palabras individuales (denominados \textit{word embeddings}). A nivel práctico, los métodos para construir estas representaciones vectoriales clásicas se dividen en dos grandes estrategias conceptuales y algorítmicas: los modelos basados en conteos y los modelos basados en predicciones, cuya evolución histórica se expone en la sección \ref{subsec:evolucion_historica}.
 
@@ -36,41 +36,6 @@ Aunque la comparación entre frases es una de las aplicaciones más conocidas, l
 Una vez comprendido que un embedding proyecta palabras en un espacio continuo donde la cercanía espacial equivale a similitud semántica, surgen dos interrogantes fundamentales en el diseño de estos sistemas ¿Cómo se estructuran los ejes de este espacio para encapsular el significado complejo del lenguaje? y ¿Cómo se calcula con precisión matemática la distancia entre dos vectores?
 
 Para responder a la primera cuestión, es necesario analizar el papel de la \textbf{información latente} \cite{henner_intuitive_embeddings_2023}, la cual permite pasar de representaciones dispersas a vectores densos basados en atributos ocultos. Para la segunda, se debe explorar \textbf{métricas de distancia} específicas que sean efectivas en espacios de tantas dimensiones.
-
-\subsubsection{Métricas de Distancia}
-
-Como se explicó con anterioridad, una de las características principales de un embedding representado en el espacio, es que mantiene la distancia. Los vectores de alta dimensionalidad que se utilizan en los embeddings de palabra (así como en los \glsentryplural{llm}), no son intuitivos. Pero la intuición espacial se mantiene igual mientras reducimos la escala de estos.
-
-Un ejemplo básico es el siguiente: imagina un plano de planta bidimensional de una biblioteca de una sola planta. Los usuarios de la biblioteca son amantes de los gatos, de los perros, o se sitúan en algún punto intermedio. El objetivo es colocar los libros sobre gatos cerca de otros libros de gatos, y los libros sobre perros cerca de otros libros de perros.
-
-El enfoque más sencillo se conoce como el modelo de bolsa de palabras. Consiste en establecer un eje de perros a lo largo de una pared y un eje de gatos perpendicular a él. A continuación, se cuentan las ocurrencias de las palabras ``gato'' y ``perro'' en cada libro y se ubica dicho libro en su punto correspondiente dentro del sistema de coordenadas $(\text{perro}_x, \text{gato}_y)$.
-
-Pensemos ahora en un sistema de recomendación sencillo. A partir de la selección anterior de un libro, ¿qué se podría sugerir a continuación? Bajo la suposición (muy simplificada) de que estas dos dimensiones capturan adecuadamente las preferencias del lector, basta con buscar el libro que se encuentre más cerca. En este caso, el sentido intuitivo de cercanía es la distancia euclídea —el camino más corto entre dos libros—:
-
-\[
-  d(\mathbf{p}, \mathbf{q}) = \sqrt{\sum_{i=1}^{n} (q_i - p_i)^2};
-\]
-
-Siguiendo el razonamiento lógico, si se analiza a través de la distancia euclídea, se pondrá el libro $(\text{perro}_5, \text{gato}_1)$ más cerca del libro $(\text{perro}_1, \text{gato}_5)$ que de un libro mucho más extenso o enciclopédico como $(\text{perro}_{100}, \text{gato}_1)$. Esto plantea un grave problema semántico: un lector de libros cortos de perros con proporción $(5, 1)$ seguramente prefiera a continuación una enciclopedia gigante sobre perros de $(100, 1)$ antes que un libro corto sobre gatos de $(1, 5)$. La métrica euclídea penaliza severamente la longitud en palabras del libro (magnitud) omitiendo por completo el reparto del tema de este (la proporción).
-
-Cuando resulta más relevante concentrarse en los pesos relativos temáticos que en sus magnitudes absolutas, los vectores se normalizan. Esto se logra dividiendo en ambos la cantidad de apariciones de perros y gatos para obtener la conocida \textbf{similitud coseno} \cite{porter_understanding_2023}. De manera más visual, este cálculo equivale geométricamente a proyectar todos los puntos disponibles en el espacio sobre una circunferencia de radio unidad (es decir, que el módulo de todos los vectores es $1$) y medir la distancia a lo largo del arco que los une. Al ignorar la longitud del documento original, se evalúa únicamente la dirección del vector respecto al origen, logrando una métrica de similitud mucho más robusta y natural al lenguaje humano.
-
-Matemáticamente, esta métrica se define mediante el cociente del producto escalar de dos determinados vectores entre el producto de sus magnitudes:
-
-\[
-  \text{similitud}(\mathbf{p}, \mathbf{q}) = \cos(\theta) = \frac{\mathbf{p} \cdot \mathbf{q}}{\|\mathbf{p}\| \|\mathbf{q}\|} = \frac{\sum_{i=1}^{n} p_i q_i}{\sqrt{\sum_{i=1}^{n} p_i^2} \sqrt{\sum_{i=1}^{n} q_i^2}};
-\]
-
-Un pensamiento intuitivo para entender la fórmula de similitud coseno, es que si dos vectores apuntan en la misma dirección, el ángulo entre ellos es 0 por lo que le coseno es 1. Si son ortogonales, significa que no comparten una 'direccionalidad', el coseno es 0.
-
-En el contexto que nos encontramos de embeddings de palabras, hay que pensar que cada vector actúa como una flecha que apunta desde el origen hasta la posición de la palabra en nuestra librería imaginada. Palabras que son similares semánticamente tendrán vectores que apuntan en direcciones similares, es decir, la similitud coseno será mayor, tal y como se puede apreciar gráficamente en la Figura \ref{fig:ejemploSimilitudCoseno}.
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=0.7\linewidth]{imagenes/ejemploSimilitudCoseno.png}
-  \caption{Ejemplo visual de la representación de vectores y su cercanía empleando la similitud coseno. Fuente: \cite{levikul09_cosine_similarity_x}.}
-  \label{fig:ejemploSimilitudCoseno}
-\end{figure}
 
 \subsubsection{Información Latente}
 
@@ -83,6 +48,41 @@ Resulta evidente que, a nivel computacional, esta aproximación es extremadament
 La solución a la alta dimensionalidad radica en abstraer el conteo literal hacia ejes que representen verdaderos atributos semánticos. Si el modelo es capaz de identificar la relación semántica entre ``gato'' y ``felino'', podría agrupar la contribución de ambas en una única variable latente compartida. Esto no solo comprime el tamaño de los vectores, haciendo a los algoritmos mucho más eficientes y veloces, sino que también genera una representación geométrica mucho más afín a la intuición humana.
 
 De la misma forma, términos más amplios como ``mascota'' o ``mamífero'' representan características semánticas compartidas simultáneamente por ``perro'' y ``gato''. En un espacio latente bien optimizado, estas palabras genéricas actúan como atributos comunes que vinculan y aproximan ambos animales en ciertas dimensiones del espacio. Por otro lado, si la elevada reducción dimensional provocara una superposición excesiva donde términos que debieran ser distintos terminen colapsando —por ejemplo, confundiéndose ambos en el mismo punto exacto—, esta carencia de precisión podría mitigarse introduciendo nuevos ejes latentes. Estos nuevos atributos ocultos de diferenciación (por ejemplo, proyectando qué palabras se relacionan estrechamente con ``mesa'' frente a los animales vivos mencionados anteriormente) permiten desenredar los agrupamientos de datos semánticos complejos.
+
+\subsubsection{Métricas de Distancia}
+
+Como se explicó con anterioridad, una de las características principales de un embedding representado en el espacio es que mantiene la distancia. Los vectores de alta dimensionalidad que se utilizan en los embeddings de palabra (así como en los \glsentryplural{llm}) no son intuitivos. Sin embargo, la intuición espacial se mantiene igual mientras reducimos la escala de estos.
+
+Un ejemplo básico es el siguiente: imagina un plano de planta bidimensional de una biblioteca de una sola planta. Los usuarios de la biblioteca son amantes de los gatos, de los perros, o se sitúan en algún punto intermedio. El objetivo es colocar los libros sobre gatos cerca de otros libros de gatos, y los libros sobre perros cerca de otros libros de perros.
+
+El enfoque más sencillo se conoce como el modelo de bolsa de palabras. Consiste en establecer un eje de perros a lo largo de una pared y un eje de gatos perpendicular a él. A continuación, se cuentan las ocurrencias de las palabras ``gato'' y ``perro'' en cada libro y se ubica dicho libro en su punto correspondiente dentro del sistema de coordenadas $(\text{perro}_x, \text{gato}_y)$.
+
+Pensemos ahora en un sistema de recomendación sencillo. A partir de la selección anterior de un libro, ¿qué se podría sugerir a continuación? Bajo la suposición (muy simplificada) de que estas dos dimensiones capturan adecuadamente las preferencias del lector, basta con buscar el libro que se encuentre más cerca. En este caso, el sentido intuitivo de cercanía es la distancia euclídea —el camino más corto entre dos libros—:
+
+\[
+  d(\mathbf{p}, \mathbf{q}) = \sqrt{\sum_{i=1}^{n} (q_i - p_i)^2};
+\]
+
+Siguiendo el razonamiento lógico, si se analiza a través de la distancia euclídea, se pondrá el libro $(\text{perro}_5, \text{gato}_1)$ más cerca del libro $(\text{perro}_1, \text{gato}_5)$ que de un libro mucho más extenso o enciclopédico como $(\text{perro}_{100}, \text{gato}_1)$. Esto plantea un grave problema semántico: un lector de libros cortos de perros con proporción $(5, 1)$ seguramente prefiera a continuación una enciclopedia gigante sobre perros de $(100, 1)$ antes que un libro corto sobre gatos de $(1, 5)$. La métrica euclídea penaliza severamente la longitud en palabras del libro (magnitud), omitiendo por completo el reparto del tema de este (la proporción).
+
+Cuando resulta más relevante concentrarse en los pesos relativos temáticos que en sus magnitudes absolutas los vectores se normalizan. Esto se logra dividiendo en ambos la cantidad de apariciones de perros y gatos para obtener la conocida \textbf{similitud coseno} \cite{porter_understanding_2023}. De manera más visual, este cálculo equivale geométricamente a proyectar todos los puntos disponibles en el espacio sobre una circunferencia de radio unidad (es decir, que el módulo de todos los vectores es $1$) y medir la distancia a lo largo del arco que los une. Al ignorar la longitud del documento original, se evalúa únicamente la dirección del vector respecto al origen, logrando una métrica de similitud mucho más robusta y natural al lenguaje humano.
+
+Matemáticamente, esta métrica se define mediante el cociente del producto escalar de dos determinados vectores entre el producto de sus magnitudes:
+
+\[
+  \text{similitud}(\mathbf{p}, \mathbf{q}) = \cos(\theta) = \frac{\mathbf{p} \cdot \mathbf{q}}{\|\mathbf{p}\| \|\mathbf{q}\|} = \frac{\sum_{i=1}^{n} p_i q_i}{\sqrt{\sum_{i=1}^{n} p_i^2} \sqrt{\sum_{i=1}^{n} q_i^2}};
+\]
+
+Un pensamiento intuitivo para entender la fórmula de similitud coseno es que si dos vectores apuntan en la misma dirección, el ángulo entre ellos es 0, por lo que el coseno es 1. Si son ortogonales, significa que no comparten una 'direccionalidad', el coseno es 0.
+
+En el contexto que nos encontramos de embeddings de palabras, hay que pensar que cada vector actúa como una flecha que apunta desde el origen hasta la posición de la palabra en nuestra librería imaginada. Palabras que son similares semánticamente tendrán vectores que apuntan en direcciones similares, es decir, la similitud coseno será mayor, tal y como se puede apreciar gráficamente en la Figura \ref{fig:ejemploSimilitudCoseno}.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.7\linewidth]{imagenes/ejemploSimilitudCoseno.png}
+  \caption{Ejemplo visual de la representación de vectores y su cercanía empleando la similitud coseno. Fuente: \cite{levikul09_cosine_similarity_x}.}
+  \label{fig:ejemploSimilitudCoseno}
+\end{figure}
 
 
 \subsection{Evolución histórica de los \textit{word embeddings}}
@@ -98,7 +98,7 @@ Los primeros intentos de representación textual se basaron fundamentalmente en 
 
 A partir de esta limitación, surgió el modelo \textit{Bag-of-Words} (BoW), que agregaba estos indicadores en un vector de frecuencia de términos para un documento completo. Sin embargo, seguían generándose vectores de muy alta dimensionalidad dominados por palabras muy frecuentes que aportaban poco valor semántico. Para solucionar esto, Karen Sparck Jones introdujo el concepto de TF-IDF (\textit{Term Frequency - Inverse Document Frequency}) \cite{jones_statistical_1972}. Este método preservaba la naturaleza dispersa del vector, pero introducía una métrica de informatividad la cual penalizaba las palabras omnipresentes y asignaba mayor peso a aquellos términos raros pero característicos de un documento.
 
-Para formalizar y estructurar la información estadística global, surgieron los denominados \textbf{modelos basados en conteos}. Estos modelos se aprovechan de los recuentos de coocurrencia (palabra y contexto) estructurando toda la información como grandes matrices de palabra-contexto. El funcionamiento radica en la creación de una matriz de tamaño $n \times n$ (donde $n$ es la cantidad de palabras del vocabulario) que contabiliza el número de apariciones conjuntas de cada palabra con su contexto. No obstante, esto genera un severo cuello de botella de almacenamiento y el problema de la dispersión de datos (vectores muy largos llenos de ceros para palabras que jamás coexisten).
+Para formalizar y estructurar la información estadística global, surgieron los denominados \textbf{modelos basados en conteos}. Estos modelos se aprovechan de los recuentos de coocurrencia (palabra y contexto), estructurando toda la información como grandes matrices de palabra-contexto. El funcionamiento radica en la creación de una matriz de tamaño $n \times n$ (donde $n$ es la cantidad de palabras del vocabulario) que contabiliza el número de apariciones conjuntas de cada palabra con su contexto. No obstante, esto genera un severo cuello de botella de almacenamiento y el problema de la dispersión de datos (vectores muy largos llenos de ceros para palabras que jamás coexisten).
 
 El avance fundamental para resolver la sinonimia y la polisemia mediante representaciones densas llegó con el Análisis Semántico Latente (LSA), propuesto por Deerwester et al. en 1990 \cite{deerwester_indexing_1990}. LSA reducía la dimensionalidad a través de la descomposición en valores singulares (\gls{dvs}), sintetizando enormes matrices dispersas en vectores cortos y densos donde los conceptos afines compartían valores similares, como se ilustra en la Figura \ref{fig:word_embedding_counting_model}.
 
@@ -109,13 +109,13 @@ El avance fundamental para resolver la sinonimia y la polisemia mediante represe
   \label{fig:word_embedding_counting_model}
 \end{figure}
 
-Finalmente, a principios de la década de los 2000, Bengio et al. \cite{bengio_neural_2003} desarrollaron el primer modelo de lenguaje probabilístico neuronal, demostrando que era posible aprender representaciones densas optimizando una red neuronal para predecir la siguiente palabra mediante propagación hacia atrás (\textit{backpropagation}), sentando las bases absolutas para los \textit{embeddings} modernos.
+Finalmente, a principios de la década de los 2000, Bengio et al. \cite{bengio_neural_2003} desarrollaron el primer modelo de lenguaje probabilístico neuronal, demostrando que era posible aprender representaciones densas optimizando una red neuronal para predecir la siguiente palabra mediante propagación hacia atrás (\textit{backpropagation}). De esta forma, se sentaron las bases absolutas para los \textit{embeddings} modernos.
 
 \subsubsection{La revolución de los \textit{embeddings} de palabras estáticas y modelos de predicción}
 
 El gran salto hacia el uso masivo de vectores densos ocurrió en 2013 con la introducción de Word2Vec de Google realizada por Tomas Mikolov y su equipo \cite{mikolov_efficient_2013}. Este trabajo popularizó los \textbf{modelos basados en predicciones}, los cuales se centran en aprender el significado de un término de forma prospectiva, es decir, prediciendo palabras a partir de su contexto.
 
-Para lograrlo, emplean una red neuronal sencilla dotada de una ventana de contexto de tamaño fijo y móvil. A medida que lee el texto, el modelo intenta predecir el significado de una palabra central en base a las palabras vecinas de esta ventana, o a la inversa, predecir el contexto apoyándose únicamente en dicho término central. Tras finalizar el entrenamiento, el objetivo de predecir deja de ser prioritario, en su lugar, se extraen los pesos y valores ajustados internamente en la capa oculta, que se convierten directamente en el \textit{word embedding} densos. De esta manera, aquellas palabras empleadas en contextos idénticos acaban reteniendo representaciones vectoriales prácticamente iguales (Figura \ref{fig:word_embeddings_model}).
+Para lograrlo, emplean una red neuronal sencilla dotada de una ventana de contexto de tamaño fijo y móvil. A medida que lee el texto, el modelo intenta predecir el significado de una palabra central en base a las palabras vecinas de esta ventana, o a la inversa, predecir el contexto apoyándose únicamente en dicho término central. Tras finalizar el entrenamiento, el objetivo de predecir deja de ser prioritario. En su lugar, se extraen los pesos y valores ajustados internamente en la capa oculta, que se convierten directamente en los \textit{word embeddings} densos. De esta manera, aquellas palabras empleadas en contextos idénticos acaban reteniendo representaciones vectoriales prácticamente iguales. Este fenómeno puede observarse en la Figura \ref{fig:word_embeddings_model}.
 
 \begin{figure}[h]
   \centering
@@ -126,9 +126,9 @@ Para lograrlo, emplean una red neuronal sencilla dotada de una ventana de contex
 
 Word2Vec propuso dos arquitecturas predictivas altamente eficientes basadas en este principio: \textit{Continuous Bag-of-Words} (CBOW), que predecía una palabra objetivo a partir de su contexto, y \textit{Skip-Gram}, que utilizaba la palabra objetivo para predecir el contexto. Este modelo logró traducir relaciones semánticas y sintácticas en operaciones algebraicas simples (como la capacidad de resolver la analogía $\vec{v}(\text{Rey}) - \vec{v}(\text{Hombre}) + \vec{v}(\text{Mujer}) \approx \vec{v}(\text{Reina})$). No obstante, dependía de ventanas de contexto locales pequeñas y no utilizaba eficientemente la información global del corpus.
 
-Para subsanar esta debilidad, Pennington et al. desarrollaron GloVe (\textit{Global Vectors}) en 2014 \cite{pennington_glove_2014}. GloVe funcionaba como un modelo híbrido, factorizaba explícitamente una matriz global de coocurrencia palabra-contexto (característica de los modelos de conteo) utilizando mínimos cuadrados ponderados, pero con la capacidad de optimización de parámetros propia de los modelos basados en predicciones. Esto resultó en un espacio vectorial mucho más estable. Paralelamente, investigadores como Levy y Goldberg (2014) \cite{levy_dependency_2014} propusieron \textit{embeddings} basados en dependencias sintácticas.
+Para subsanar esta debilidad, Pennington et al. desarrollaron GloVe (\textit{Global Vectors}) en 2014 \cite{pennington_glove_2014}. GloVe funcionaba como un modelo híbrido: factorizaba explícitamente una matriz global de coocurrencia palabra-contexto (característica de los modelos de conteo) utilizando mínimos cuadrados ponderados, pero con la capacidad de optimización de parámetros propia de los modelos basados en predicciones. Esto resultó en un espacio vectorial mucho más estable. Paralelamente, investigadores como Levy y Goldberg (2014) \cite{levy_dependency_2014} propusieron \textit{embeddings} basados en dependencias sintácticas.
 
-Para paliar el problema de la polisemia en modelos estáticos, propuestas como Sense2Vec (Trask et al., 2015) \cite{trask_sense2vec_2015} intentaron etiquetar las palabras con su categoría gramatical (separando, por ejemplo, el sustantivo del verbo). Por otro lado, para solventar el límite práctico de Word2Vec y GloVe en el manejo de palabras fuera del vocabulario y la morfología compleja, Bojanowski et al. presentaron en 2017 FastText \cite{bojanowski_enriching_2017}, que representaba cada palabra como una bolsa de n-gramas de caracteres (subpalabras), permitiendo al modelo componer vectores significativos para palabras nunca antes vistas. Sin embargo, todos estos modelos compartían un defecto, que eran estáticos, asignando un único vector fijo a cada palabra y colapsando todos sus significados posibles en uno solo, por lo que la solución definitiva requería un cambio de paradigma.
+Para paliar el problema de la polisemia en modelos estáticos, propuestas como Sense2Vec (Trask et al., 2015) \cite{trask_sense2vec_2015} intentaron etiquetar las palabras con su categoría gramatical (separando, por ejemplo, el sustantivo del verbo). Por otro lado, para solventar el límite práctico de Word2Vec y GloVe en el manejo de palabras fuera del vocabulario y la morfología compleja, Bojanowski et al. presentaron en 2017 FastText \cite{bojanowski_enriching_2017}, que representaba cada palabra como una bolsa de n-gramas de caracteres (subpalabras), permitiendo al modelo componer vectores significativos para palabras nunca antes vistas. Sin embargo, todos estos modelos compartían un defecto: eran estáticos, es decir, asignaban un único vector fijo a cada palabra y colapsaban todos sus significados posibles en uno solo, por lo que la solución definitiva requería un cambio de paradigma.
 
 \subsubsection{Embeddings contextuales y la transición a arquitecturas dinámicas}
 
@@ -136,7 +136,7 @@ La incapacidad de manejar la polisemia impulsó la adopción de \textit{embeddin
 
 Antes del dominio total del \textit{Transformer}, el modelo ELMo propuesto por Peters et al. en 2018 \cite{peters_deep_2018} demostró que se podían generar vectores distintos para la misma palabra según su oración utilizando redes neuronales recurrentes bidireccionales (Bi-LSTM). ELMo generaba representaciones jerárquicas donde las capas bajas captaban la sintaxis y las altas la semántica.
 
-El impacto definitivo lo marcó BERT, lanzado por Devlin et al. en 2019 \cite{devlin_bert_2019}. BERT utilizó el codificador del \textit{Transformer} preentrenado mediante el modelado de lenguaje enmascarado (MLM) y la predicción de la siguiente oración (NSP). Esto le otorgó una comprensión bidireccional que revolucionó las tareas de comprensión lectora. Simultáneamente, la familia de modelos GPT de Radford et al. \cite{radford_improving_2018} utilizó el decodificador del \textit{Transformer} con un enfoque autorregresivo unidireccional, entrenándose para predecir la siguiente palabra, lo que sentó las bases para la generación de texto a largo plazo y el razonamiento generativo.
+El impacto definitivo lo marcó BERT (\textit{Bidirectional Encoder Representations from Transformers}), lanzado por Devlin et al. en 2019 \cite{devlin_bert_2019}. BERT utilizó el codificador del \textit{Transformer} preentrenado mediante el modelado de lenguaje enmascarado (\textit{Masked Language Modeling}, MLM) y la predicción de la siguiente oración (\textit{Next Sentence Prediction}, NSP). Esto le otorgó una comprensión bidireccional que revolucionó las tareas de comprensión lectora. Simultáneamente, la familia de modelos GPT de Radford et al. \cite{radford_improving_2018} utilizó el decodificador del \textit{Transformer} con un enfoque autorregresivo unidireccional, entrenándose para predecir la siguiente palabra. Esto sentó las bases para la generación de texto a largo plazo y el razonamiento generativo.
 
 \subsubsection{Embeddings de frases, documentos y la recuperación semántica}
 
@@ -170,7 +170,7 @@ Al trasladar el procesamiento de lenguaje al dominio cuántico de Hilbert, las p
 
 \begin{itemize}
   \item \textbf{Componente Real:} Se utiliza de la misma forma para codificar la \textit{semántica distribucional}. Captura el uso estadístico clásico, determinando el comportamiento de la palabra estrictamente en base a su contexto y al número de interacciones o apariciones que realiza con respecto a las palabras que le rodean en los distintos documentos analizados.
-  \item \textbf{Componente Imaginaria:} Se reserva de forma ortogonal para alojar la \textit{semántica referencial u ontológica}. Representa los fundamentos preexistentes, los conceptos formales o el núcleo estricto que designa la propia palabra (el significado que podría extraerse de ontologías taxonómicas u organizaciones como base de conocimientos, por ejemplo \textit{WordNet} o diagramas \textit{SNOMED-CT}).
+  \item \textbf{Componente Imaginaria:} Se reserva de forma ortogonal para alojar la \textit{semántica referencial u ontológica}. Representa los fundamentos preexistentes, los conceptos formales o el núcleo estricto que designa la propia palabra (el significado que podría extraerse de ontologías taxonómicas u organizaciones como base de conocimientos, por ejemplo, \textit{WordNet} o diagramas \textit{SNOMED-CT}).
 \end{itemize}
 
 Esta división entre semántica distribucional y referencial, y cómo ambas conviven en el mismo espacio vectorial complejo, queda representada esquemáticamente en la Figura \ref{fig:componentesEmbeddingsCuanticos}.
@@ -184,16 +184,16 @@ Esta división entre semántica distribucional y referencial, y cómo ambas conv
 
 \subsubsection{Afinidad Cuántica, Superposiciones y Fases}
 
-En el apartado clásico se demostró que la afinidad semántica puede medirse mediante distintas distancias sobre un espacio real continuo. No obstante, al emplear el espacio de Hilbert esta medición no solo relaciona dos palabras distintas, sino que va un paso más allá. Al tratar con números complejos, es posible medir la distancia cuantitativa que existe entre la parte estadística de uso de la palabra (su componente real) y su definición conceptual referencial alojada en su componente imaginaria.
+En el apartado clásico se demostró que la afinidad semántica puede medirse mediante distintas distancias sobre un espacio real continuo. No obstante, al emplear el espacio de Hilbert, esta medición no solo relaciona dos palabras distintas, sino que va un paso más allá. Al tratar con números complejos, es posible medir la distancia cuantitativa que existe entre la parte estadística de uso de la palabra (su componente real) y su definición conceptual referencial alojada en su componente imaginaria.
 
 Para este análisis se evalúa la \textbf{fase o ángulo} que se forma interactivamente entre ambas componentes, logrando que el producto interno refleje tanto la componente real como imaginaria del contenido.
 
-\subsection{Evolución histórica del PLNC}
+\subsection{Evolución histórica de las representaciones del lenguaje en computación cuántica}
 \label{subsec:evolucion_historica_plnc}
 
 El desafío cuántico residía en encontrar un formalismo matemático capaz de calcular el significado de una oración completa a partir de las representaciones estadísticas de sus vocablos constituyentes, guiándose por su estructura gramatical. Este problema de unificar la semántica empírica distribucional con la estructura sintáctica formal fue planteado originalmente por Clark y Pulman en 2007 \cite{clark_symbolic_distributional_2007}.
 
-La propuesta fundacional para resolverlo fue el modelo composicional-distribucional categórico, conocido como \gls{discocat} (\textit{Categorical Compositional Distributional}), formulado por Coecke, Sadrzadeh y Clark en 2008 \cite{clark_compositional_distributional_2008}. Este enfoque identificó una profunda correspondencia matemática, las categorías monoidales cerradas y compactas que rigen la Mecánica Cuántica Categórica (\gls{cqm}) para modelar la interacción de sistemas cuánticos comparten la misma estructura algebraica que las gramáticas de pregrupos utilizadas para describir la interacción sintáctica de las palabras. Aunque las primeras implementaciones de \gls{discocat} en hardware clásico demostraron una gran efectividad y superaron a otros modelos contemporáneos de la época \cite{clark_compositional_distributional_2008}, se toparon con un cuello de botella de escalabilidad. Dado que la composición del significado de frases se basa en el producto tensorial, la dimensionalidad del espacio vectorial resultante crece de forma exponencial con la longitud de la oración, haciendo que el cálculo clásico resulte intratable a gran escala.
+La propuesta fundacional para resolverlo fue el modelo composicional-distribucional categórico, conocido como \gls{discocat} (\textit{Categorical Compositional Distributional}), formulado por Coecke, Sadrzadeh y Clark en 2008 \cite{clark_compositional_distributional_2008}. Este enfoque identificó una profunda correspondencia matemática. En concreto, descubrió que las categorías monoidales cerradas y compactas, utilizadas en la Mecánica Cuántica Categórica (\gls{cqm}) para modelar la interacción de sistemas cuánticos, comparten la misma estructura algebraica que las gramáticas de pregrupos empleadas para describir la interacción sintáctica de las palabras. Aunque las primeras implementaciones de \gls{discocat} en hardware clásico demostraron una gran efectividad y superaron a otros modelos de la época \cite{clark_compositional_distributional_2008}, pronto se toparon con un cuello de botella de escalabilidad. Dado que la composición del significado de las frases se basa en el producto tensorial, la dimensionalidad del espacio vectorial resultante crece exponencialmente con la longitud de la oración. Como consecuencia, el cálculo en computadoras clásicas resulta intratable a gran escala.
 
 Para mitigar estas restricciones y modelar fenómenos lingüísticos de mayor complejidad, el estado del arte comenzó a adoptar estructuras formales de la mecánica cuántica como elementos nativos de representación:
 \begin{itemize}
@@ -202,14 +202,12 @@ Para mitigar estas restricciones y modelar fenómenos lingüísticos de mayor co
   \item \textbf{Uso de espacios vectoriales complejos:} Con el fin de expandir la expresividad del modelo y dotarlo de mayor capacidad de parametrización, diversos trabajos exploraron el uso de números complejos y fases para tareas avanzadas de representación, tales como la factorización tensorial y la completitud de grafos de conocimiento semánticos \cite{blacoe_quantum_theoretic_2013, trouillon_complex_embeddings_2016}.
 \end{itemize}
 
-El salto hacia la demostración de una potencial ventaja cuántica en el procesamiento del lenguaje fue formalizado en 2016 por Zeng y Coecke \cite{zeng_quantum_algorithms_2016}. En su trabajo, demostraron que al procesar los modelos lingüísticos basados en \gls{discocat} de forma nativa en hardware cuántico, la explosión exponencial del espacio de almacenamiento originada por el producto tensorial clásico desaparece. Además, propusieron algoritmos cuánticos específicos para la inferencia semántica y el emparejamiento de frases que ofrecen aceleraciones cuadráticas teóricas de tipo Grover \cite{zeng_quantum_algorithms_2016}.
+El salto hacia la demostración de una potencial ventaja cuántica en el procesamiento del lenguaje fue formalizado en 2016 por Zeng y Coecke \cite{zeng_quantum_algorithms_2016}. En su trabajo demostraron que al procesar los modelos lingüísticos basados en \gls{discocat} de forma nativa en hardware cuántico, la explosión exponencial del espacio de almacenamiento originada por el producto tensorial clásico desaparece. Además, propusieron algoritmos cuánticos específicos para la inferencia semántica y el emparejamiento de frases que ofrecen aceleraciones cuadráticas teóricas de tipo Grover \cite{zeng_quantum_algorithms_2016}.
 
 En la actualidad, la investigación práctica en \gls{plnc} opera dentro del paradigma de los dispositivos \gls{nisq}. Experimentos recientes han demostrado la viabilidad de ejecutar tareas sencillas de \gls{plnc} (como la clasificación de frases y respuesta a preguntas) en ordenadores cuánticos reales de IBM \cite{coecke_actual_computer_2020, meichanetzidis_grammar_aware_2020}. No obstante, dado que el hardware actual carece de memorias RAM cuánticas viables para inyectar datos masivos de vocabulario directamente en los estados físicos, el estándar de implementación actual se basa en los circuitos variacionales cuánticos (\glsentryplural{cvc}) \cite{benedetti_parameterized_quantum_2019, ma_variational_quantum_2019, schuld_circuit_centric_2020}. Bajo este enfoque híbrido clásico-cuántico, la gramática sintáctica de la oración dicta directamente la topología del circuito cuántico (lo que permite una representación sin coste espacial añadido), y los significados de las palabras se codifican indirectamente como parámetros ajustables que se entrenan y optimizan al igual que con la computación clásica \cite{benedetti_parameterized_quantum_2019}.
 
 Es precisamente el uso de estos circuitos parametrizados lo que ha impulsado recientemente la creación de modelos de \textit{word embeddings} puramente cuánticos, diseñados para aprender la semántica directamente desde los corpus de texto sin heredar las limitaciones de los modelos clásicos. Entre las propuestas más recientes del estado del arte destacan modelos como QCSE (\textit{Quantum Context-Sensitive Embedding}) \cite{varmantchaonala_qcse_2025} y QuCoWE (\textit{Quantum Contrastive Word Embeddings}) \cite{karanjai_qucowe_2025}. Por un lado, QCSE utiliza circuitos variacionales combinados con matrices de contexto para capturar las relaciones y la sensibilidad del entorno de cada palabra de forma nativa en estados cuánticos. Por otro lado, QuCoWE adapta el clásico modelo \textit{skip-gram} bajo un objetivo de aprendizaje contrastivo, proponiendo circuitos superficiales (\textit{shallow}) que son altamente eficientes y viables para las limitaciones del hardware \gls{nisq} actual. Junto a estas innovaciones se encuentra QWord2Vec \cite{ohno_qword2vec_2025}, otra técnica fundamental que adapta la representación vectorial al espacio cuántico.
 
-Si bien el estado del arte en representación de texto continúa en constante desarrollo a través de arquitecturas altamente complejas, el presente trabajo toma como eje de estudio y comparación el modelo \textbf{QWord2Vec} frente a su homólogo clásico \textbf{Word2Vec}. La elección de este par de modelos responde a la necesidad de establecer un marco de comparación directo y homogéneo. Al constituir QWord2Vec la traslación cuántica directa del clásico modelo de predicción Word2Vec, su estudio conjunto permite aislar y evaluar el impacto real del paradigma cuántico en el aprendizaje de representaciones bajo un mismo marco conceptual.
-
-De este modo, habiendo descrito las propiedades geométricas, conceptuales e históricas que fundamentan las representaciones vectoriales tanto en el dominio clásico como en el cuántico, el capítulo siguiente se dedica a detallar el funcionamiento de ambos algoritmos centrales. Asimismo, se presentarán una serie de propuestas de optimización introducidas en este trabajo sobre el modelo cuántico original para mejorar su convergencia y rendimiento.
+Si bien el estado del arte en representación de texto continúa en constante desarrollo a través de arquitecturas altamente complejas, el presente trabajo toma como eje de estudio y comparación el modelo \textbf{QWord2Vec} frente a su homólogo clásico \textbf{Word2Vec}. La elección de este par de modelos responde a la necesidad de establecer un marco de comparación directo y homogéneo. Al constituir QWord2Vec, la traslación cuántica directa del clásico modelo de predicción Word2Vec, su estudio conjunto permite aislar y evaluar el impacto real del paradigma cuántico en el aprendizaje de representaciones bajo un mismo marco conceptual.
 
 

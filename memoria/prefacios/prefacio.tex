@@ -5,10 +5,10 @@
 
 
 \begin{center}
-       {\large\bfseries \myTitle}\\
+  {\large\bfseries \myTitle}\\
 \end{center}
 \begin{center}
-       \myName\\
+  \myName\\
 \end{center}
 
 %\vspace{0.7cm}
@@ -19,16 +19,16 @@
 
 La computación cuántica y el procesamiento del lenguaje natural constituyen dos de los campos más dinámicos y estudiados de la computación moderna. Su intersección da lugar al procesamiento del lenguaje natural cuántico, una disciplina emergente que explora si los fenómenos propios de la computación cuántica (superposición, entrelazamiento, etc.) pueden aprovecharse para representar y procesar el lenguaje de forma más eficiente que los modelos clásicos actuales.
 
-Este Trabajo de Fin de Grado se centra en QWord2Vec, la primera adaptación formal del algoritmo Word2Vec a la computación cuántica, propuesto recientemente por Ohno en agosto de 2025 \cite{ohno_qword2vec_2025}. El objetivo principal es implementar, evaluar y proponer mejoras sobre este modelo cuántico, comparando su rendimiento empírico con el del estándar clásico Word2Vec cuando cada uno se entrena con las mejores técnicas disponibles en su propio paradigma.
+Este trabajo se centra en QWord2Vec, la primera adaptación formal del algoritmo Word2Vec a la computación cuántica \cite{ohno_qword2vec_2025}. El objetivo principal es implementar, evaluar y proponer mejoras sobre este modelo cuántico —específicamente en la inicialización de parámetros, el ajuste de hiperparámetros y la configuración del optimizador—, comparando su rendimiento empírico con el del estándar clásico Word2Vec cuando cada uno se entrena con las mejores técnicas disponibles en su propio paradigma.
 
 Se implementan ambos modelos en Python, empleando las librerías Gensim y Qiskit respectivamente. El modelo clásico se entrena sobre un corpus lingüístico mediante la arquitectura Skip-gram, mientras que el modelo cuántico hace uso de un circuito cuántico parametrizado optimizado con el algoritmo QN-SPSA. La calidad de los \textit{embeddings} se evalúa mediante el \textit{cosine\_delta} y la correlación de Pearson entre las geometrías de ambos espacios.
 
-Los resultados muestran que Word2Vec alcanza un \textit{cosine\_delta} de $0.9360$ frente al $0.3293$ obtenido por QWord2Vec, si bien la mejora observada al equilibrar el corpus resulta prometedora. El modelo cuántico converge en aproximadamente $360$ iteraciones, muy por debajo de las hasta $20\,000$ empleadas en la investigación de referencia, gracias a la combinación de \textit{Grid Search} para hacer el fine tunning, inicialización por \textit{educated guess} y la activación del parámetro \textit{blocking} (entre otras técnicas más). Este trabajo constituye un diagnóstico del estado actual de la computación cuántica aplicada al procesamiento del lenguaje natural. Es una tecnología con fundamentos teóricos sólidos y resultados iniciales prometedores, pero que requiere todavía avances importantes tanto en hardware como en algoritmia para competir con los estándares clásicos en condiciones de aplicabilidad real.
+Los resultados muestran que el modelo clásico supera significativamente al cuántico en la calidad de las representaciones vectoriales obtenidas, si bien se observa un comportamiento prometedor al equilibrar el corpus de entrenamiento. Asimismo, las optimizaciones introducidas en el modelo cuántico logran reducir de manera drástica el número de iteraciones necesarias para la convergencia en comparación con el trabajo de referencia. Este trabajo constituye un diagnóstico del estado actual de la computación cuántica aplicada al procesamiento del lenguaje natural. Es una tecnología con fundamentos teóricos sólidos y resultados iniciales prometedores, pero que requiere todavía avances importantes tanto en hardware como en algoritmia para competir con los estándares clásicos en condiciones de aplicabilidad real.
 
 \noindent\rule[-1ex]{\textwidth}{2pt}\\[4.5ex]
 
 Yo, \textbf{\myName}, alumno de la titulación \myDegree de la \textbf{Escuela Técnica Superior
-       de Ingenierías Informática y de Telecomunicación de la Universidad de Granada}, con DNI 41542052G, autorizo la
+  de Ingenierías Informática y de Telecomunicación de la Universidad de Granada}, con DNI 41542052G, autorizo la
 ubicación de la siguiente copia de mi Trabajo Fin de Grado en la biblioteca del centro para que pueda ser
 consultada por las personas que lo deseen.
 
@@ -39,7 +39,7 @@ consultada por las personas que lo deseen.
 \vspace{2cm}
 
 \begin{flushright}
-       Granada \myTime.
+  Granada \myTime.
 \end{flushright}
 
 \noindent\rule[-1ex]{\textwidth}{2pt}\\[4.5ex]
