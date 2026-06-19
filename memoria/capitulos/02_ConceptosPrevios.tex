@@ -10,7 +10,7 @@ En primer lugar, se introduce el \gls{pln}, describiendo su definición, sus pri
 
 \subsection{Introducción al Procesamiento del Lenguaje Natural}
 
-El \acrfull{pln} es la rama de la \gls{ia} encargada de la interacción entre computadoras y el lenguaje humano. Este campo integra la lingüística computacional, basada en el modelado de reglas del lenguaje, con modelos estadísticos y algoritmos de aprendizaje profundo (\gls{dl}) y aprendizaje automático (\gls{ml}) \cite{stryker_what_nlp}.
+El \acrfull{pln} es la rama de la \gls{ia} encargada de la interacción entre ordenadores y el lenguaje humano. Este campo integra la lingüística computacional, basada en el modelado de reglas del lenguaje, con modelos estadísticos y algoritmos de aprendizaje profundo (\gls{dl}) y aprendizaje automático (\gls{ml} por sus siglas en inglés) \cite{stryker_what_nlp}.
 
 El \gls{pln} forma parte a día de hoy de muchos motores de búsqueda, chatbots para atención al cliente (ya sea por escrito o por voz), y asistentes digitales como Alexa de Amazon o Siri de Apple.
 
@@ -35,9 +35,9 @@ Las fases para realizar el \gls{pln} se pueden observar en la Figura \ref{fig:Fa
 
 A continuación, basándose en la estructura descrita en \cite{geeksforgeeks_phases_nlp_2025}, se detalla en qué consiste cada una de estas fases:
 
-\subsubsection{Tokenización y Preprocesamiento}
+\subsubsection{Análisis Léxico y Morfológico}
 
-Esta fase constituye el nivel inicial del procesamiento lingüístico computacional. Su propósito fundamental es transformar el texto crudo en una secuencia estructurada de unidades discretas y manejables. Para lograrlo, se integran diversas tareas de análisis léxico y morfológico que preparan la información para las etapas posteriores.
+Esta fase, denominada \textit{Lexical and Morphological Analysis} en la Figura \ref{fig:FasesNLP}, constituye el nivel inicial del procesamiento lingüístico computacional. Su propósito fundamental es transformar el texto sin procesar en una secuencia estructurada de unidades discretas y manejables. En la práctica, se concreta en tres tareas principales: la tokenización del texto, el preprocesamiento y normalización de los tokens, y el etiquetado gramatical de cada unidad.
 
 \begin{enumerate}
     \item \textbf{Tokenización:} Representa el primer paso del procesamiento, mediante el cual se segmenta el flujo de texto en unidades atómicas significativas, denominadas \textit{tokens}.
@@ -62,7 +62,7 @@ Esta fase constituye el nivel inicial del procesamiento lingüístico computacio
 El análisis sintáctico examina la organización de las palabras dentro de una oración para verificar que se cumple con las reglas gramaticales del idioma. El objetivo fundamental de esta fase es la generación de un \textbf{árbol de análisis sintáctico}, el cual representa jerárquicamente la estructura gramatical del texto analizado. Esta representación estructurada permite a los sistemas computacionales interpretar las relaciones de dependencia y jerarquía entre los distintos elementos léxicos. Las tareas principales que abarca son:
 
 \begin{itemize}
-    \item \textbf{Etiquetado gramatical:} Se fundamenta en el proceso de \gls{pos} Tagging explicado en la fase de \textit{Preprocesamiento y Tokenización}. En esta etapa de análisis sintáctico, las categorías morfológicas previamente asignadas a cada token se utilizan para validar la corrección de la estructura jerárquica de la oración.
+    \item \textbf{Etiquetado gramatical:} Se fundamenta en el proceso de \gls{pos} Tagging explicado en la fase de \textit{Análisis Léxico y Morfológico}. En esta etapa de análisis sintáctico, las categorías morfológicas previamente asignadas a cada token se utilizan para validar la corrección de la estructura jerárquica de la oración.
     \item \textbf{Resolución de ambigüedad sintáctica:} Consiste en determinar la estructura gramatical correcta cuando una oración puede analizarse de múltiples formas. Por ejemplo, en la frase \textit{Vi al hombre con el telescopio}, el sistema debe resolver si el telescopio es el instrumento utilizado por el sujeto para ver, o si es un objeto que lleva consigo el hombre.
 \end{itemize}
 
@@ -503,7 +503,7 @@ Las puertas cuánticas para un único qubit son:
 \subsection{Procesamiento del Lenguaje Natural Cuántico}
 \label{chap:plnc}
 
-El procesamiento de datos clásicos utilizando algoritmos de aprendizaje automático a través de sistemas cuánticos, ha generado una línea de investigación de especial foco de interés estos últimos años. El \gls{qml} se ha utilizado con distintos propósitos: profundizar en el uso de los fenómenos cuánticos para sistemas de aprendizaje, explorar la capacidad de los computadores cuánticos en aprender sobre datos cuánticos, y la posibilidad de reformular e implementar algoritmos de \gls{ml} en hardware cuántico.
+El procesamiento de datos clásicos utilizando algoritmos de aprendizaje automático a través de sistemas cuánticos, ha generado una línea de investigación de especial foco de interés estos últimos años. El \gls{qml} se ha utilizado con distintos propósitos: profundizar en el uso de los fenómenos cuánticos para sistemas de aprendizaje, explorar la capacidad de los ordenadores cuánticos en aprender sobre datos cuánticos, y la posibilidad de reformular e implementar algoritmos de \gls{ml} en hardware cuántico.
 
 Como ocurrió anteriormente en el caso del \gls{ml} clásico, el rápido crecimiento de los algoritmos de \gls{qml}, tanto desde el lado del hardware como del software (en términos de dispositivos y algoritmos), ha involucrado al campo de \gls{pln}. Esto ha dado lugar al llamado \gls{plnc}, definido como la implementación del procesamiento del lenguaje natural en hardware cuántico.
 
