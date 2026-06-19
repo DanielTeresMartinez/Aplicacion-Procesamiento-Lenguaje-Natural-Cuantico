@@ -337,13 +337,13 @@ Un \gls{qubit} es el análogo cuántico al bit clásico \cite{ionos_qubits_2023}
 Gracias al principio de superposición mencionado anteriormente, un qubit $\ket{\Psi}$ no tiene por qué estar exclusivamente en el estado $\ket{0}$ o en el estado $\ket{1}$. En su lugar, su estado puede ser una \textbf{combinación lineal} de ambos vectores base. A este comportamiento se le denomina \textbf{superposición cuántica}, y permite que el qubit exista como una mezcla simultánea de ambos estados clásicos. En notación de Dirac, esto se representa algebraicamente como:
 
 \[
-    \ket{\Psi} = \alpha_0\ket{0} + \alpha_1\ket{1};
+    \ket{\Psi} = \alpha_0\ket{0} + \alpha_1\ket{1},
 \]
 
-Donde $\alpha_0$ y $\alpha_1$ son las \textbf{amplitudes de probabilidad}. De forma general, estas amplitudes se definen como números complejos (lo que, por definición matemática, también incluye a los números reales como un caso particular). Dado que estos coeficientes pueden tomar infinitos valores continuos, un qubit puede adoptar \textbf{infinitos} estados posibles, frente a los únicos dos valores (0 y 1) de un bit clásico. Para que este estado sea válido físicamente, su norma debe ser unitaria, asegurando que la suma de las probabilidades sea 1:
+Donde $\alpha_0$ y $\alpha_1$ son las \textbf{amplitudes de probabilidad} (cuyos módulos al cuadrado, $|\alpha_0|^2$ y $|\alpha_1|^2$, representan las probabilidades de colapsar a los estados $\ket{0}$ y $\ket{1}$ respectivamente, tomando valores reales en el intervalo $[0,1]$). De forma general, estas amplitudes se definen como números complejos (lo que, por definición matemática, también incluye a los números reales como un caso particular). Dado que estos coeficientes pueden tomar infinitos valores continuos, un qubit puede adoptar \textbf{infinitos} estados posibles, frente a los únicos dos valores (0 y 1) de un bit clásico. Para que este estado sea válido físicamente, su norma debe ser unitaria, asegurando que la suma de las probabilidades sea 1:
 
 \[
-    |\alpha_0|^2 + |\alpha_1|^2 = 1;
+    |\alpha_0|^2 + |\alpha_1|^2 = 1.
 \]
 
 Cabe destacar que no existe una forma directa de determinar los valores exactos de $\alpha_0$ y $\alpha_1$, ya que el estado cuántico interno no es directamente observable. Antes de realizar una medición, el qubit se encuentra en esta superposición inestable de los estados $\ket{0}$ y $\ket{1}$.
@@ -410,7 +410,7 @@ Con dicha asignación de etiquetas, queda la esfera que se muestra en la Figura 
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.5\linewidth]{imagenes/bloch-labels.jpg}
-    \caption{Imagen obtenida de \cite{wikipedia_bloch_sphere_2026}}
+    \caption{Esfera de Bloch con las etiquetas de los seis estados base principales: $\ket{0}$, $\ket{1}$ (eje Z), $\ket{+}$, $\ket{-}$ (eje X, base de Hadamard) y $\ket{+i}$, $\ket{-i}$ (eje Y, base circular). Fuente: \cite{wikipedia_bloch_sphere_2026}.}
     \label{fig:EsferaDeBlochReducido}
 \end{figure}
 \newpage
@@ -595,7 +595,7 @@ Los \gls{cvc} nacieron como la mejor estrategia para hacer frente a los ordenado
     \item \textbf{Medición} de un observable $\hat{B}$ en la salida. Este observable puede estar compuesto por varios observables, cada uno de manera local a un cable del circuito o bien a un conjunto de cables del circuito.
 \end{enumerate}
 
-Para ilustrar estos tres conceptos de forma más intuitiva, imaginemos un sistema cuántico muy básico diseñado para clasificar el sentimiento de una frase (positivo o negativo):
+Para ilustrar estos tres conceptos de forma más intuitiva imaginemos un sistema cuántico muy básico diseñado para clasificar el sentimiento de una frase (positivo o negativo):
 \begin{itemize}
     \item \textbf{1. Preparación:} Se recibe la información de entrada (por ejemplo, la frase ``Me encanta'') y se codifica en el ordenador cuántico, alterando los qubits desde su estado base $\ket{0}$ hacia un estado que represente matemáticamente dicha frase.
     \item \textbf{2. Circuito parametrizado:} Actúa de forma análoga a las neuronas de una red neuronal clásica. Se aplican puertas lógicas cuánticas que dependen de unos ángulos $\theta$. Durante el entrenamiento, el algoritmo irá ajustando estos parámetros $\theta$ para aprender a separar las frases positivas de las negativas.

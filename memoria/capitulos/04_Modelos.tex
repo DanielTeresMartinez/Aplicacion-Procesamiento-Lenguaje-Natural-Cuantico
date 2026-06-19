@@ -53,7 +53,7 @@ Word2Vec ofrece dos variantes arquitectónicas para aprender los vectores de pal
 
 En este trabajo se ha optado por implementar el modelo \textbf{Skip-gram}, ya que, como se verá en la siguiente sección, sus características lo hacen especialmente adecuado para la adaptación al entorno cuántico propuesto.
 
-\paragraph{Continuous Bag of Words (CBOW):}
+\paragraph{Continuous Bag of Words (CBOW)}
 
 El modelo \gls{cbow} toma como entrada las palabras del contexto que rodean a una posición central y predice cuál es la palabra que debería ocupar dicha posición. En otras palabras, dadas las palabras vecinas, el modelo intenta adivinar la palabra central, como se muestra en la Figura \ref{fig:cbow_example}.
 
@@ -66,9 +66,9 @@ El modelo \gls{cbow} toma como entrada las palabras del contexto que rodean a un
 
 Este enfoque resulta eficiente cuando el corpus es grande y las palabras frecuentes tienen representaciones ricas. Sin embargo, tiende a promediar la información del contexto, lo que puede penalizar los valores semánticos de palabras menos frecuentes, generando así una pérdida de información.
 
-\paragraph{Skip-gram:}
+\paragraph{Skip-gram}
 
-es un modelo diseñado para hacer lo opuesto a \gls{cbow}. En lugar de predecir la palabra central a partir del contexto que tiene en su ventana, toma una única palabra central como entrada e intenta predecir las palabras que aparecen a su alrededor.
+Es un modelo diseñado para hacer lo opuesto a \gls{cbow}. En lugar de predecir la palabra central a partir del contexto que tiene en su ventana, toma una única palabra central como entrada e intenta predecir las palabras que aparecen a su alrededor.
 
 El proceso de entrenamiento de esta red neuronal superficial funciona de la siguiente manera: dada la palabra central (la palabra de entrada), se selecciona aleatoriamente una palabra de su contexto inmediato. La red calcula cuál es la probabilidad de que cada palabra del vocabulario sea una palabra ``cercana'' a la palabra de entrada \cite{mccormick_skipgram_2016}.
 
@@ -122,7 +122,7 @@ Cada neurona de salida produce un valor entre 0 y 1 aplicando la función $\exp(
 
 \subsubsection{Mejoras aplicadas al modelo básico Skip-gram}
 
-Retomando el ejemplo anterior, con 300 dimensiones y un vocabulario de 10.000 palabras, la red neuronal dispone de dos matrices de pesos: una correspondiente a la capa oculta y otra a la capa de salida. Cada una de ellas contiene un total de $300 \times 10.000 = 3$ millones de parámetros. Para ajustar correctamente este volumen de parámetros y evitar al mismo tiempo el sobreajuste se debe disponer de conjuntos de datos de entrenamiento de gran tamaño, lo que convierte el entrenamiento del modelo básico en un proceso computacionalmente costoso.
+Retomando el ejemplo anterior de Skip-gram, con 300 dimensiones y un vocabulario de 10.000 palabras, la red neuronal dispone de dos matrices de pesos: una correspondiente a la capa oculta y otra a la capa de salida. Cada una de ellas contiene un total de $300 \times 10.000 = 3$ millones de parámetros. Para ajustar correctamente este volumen de parámetros y evitar al mismo tiempo el sobreajuste se debe disponer de conjuntos de datos de entrenamiento de gran tamaño, lo que convierte el entrenamiento del modelo básico en un proceso computacionalmente costoso.
 
 Para abordar este problema, Google publicó un segundo artículo \cite{mikolov_skipgram_phrases_2013} en el que se proponían dos innovaciones clave sobre el modelo básico:
 
@@ -171,7 +171,7 @@ Esta nueva función de optimización persigue maximizar la similitud entre las p
 donde $\sigma$ es la función sigmoide y $P_n(w)$ es la distribución de ruido a partir de la cual se extraen las muestras negativas. Esta distribución se calcula como la distribución unigrama de las palabras elevada a la potencia $\frac{3}{4}$, exponente elegido empíricamente en el trabajo original donde se introduce este algoritmo \cite{mikolov_skipgram_phrases_2013}:
 
 \[
-  P_n(w) = \frac{U(w)^{\frac{3}{4}}}{Z};
+  P_n(w) = \frac{U(w)^{\frac{3}{4}}}{Z},
 \]
 
 siendo $U(w)$ la frecuencia de aparición de la palabra $w$ en el corpus y $Z$ la constante de normalización que garantiza que la distribución sume 1.
@@ -364,7 +364,7 @@ Sin embargo, \gls{spsa} hereda del \gls{gd} el problema de operar en el espacio 
 
 Esta matriz actúa como un tensor métrico que transforma los pasos de descenso realizados en el espacio euclídeo de los parámetros en pasos de descenso en el espacio de distribuciones de probabilidad.
 
-La versión cuántica de este algoritmo, \gls{qng} \cite{stokes_qng_2020}, traslada este mismo principio al espacio de estados cuánticos. En dicho espacio, el tensor métrico invariante es el \textbf{tensor de Fubini-Study} $\mathbf{g}$, de dimensiones $d \times d$, definido como:
+La versión cuántica de este algoritmo, el algoritmo \textit{Quantum Natural Gradient Descent} (QNG) \cite{stokes_qng_2020}, traslada este mismo principio al espacio de estados cuánticos. En dicho espacio, el tensor métrico invariante es el \textbf{tensor de Fubini-Study} $\mathbf{g}$, de dimensiones $d \times d$, definido como:
 
 \[
   g_{ij}(\mathbf{x}) = -\frac{1}{2} \frac{\partial}{\partial \mathbf{x}_i} \frac{\partial}{\partial \mathbf{x}_j} F(\mathbf{x}', \mathbf{x}) \bigg|_{\mathbf{x}'=\mathbf{x}},
