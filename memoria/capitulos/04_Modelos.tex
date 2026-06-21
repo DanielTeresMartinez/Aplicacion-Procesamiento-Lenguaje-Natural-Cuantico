@@ -59,8 +59,8 @@ El modelo \gls{cbow} toma como entrada las palabras del contexto que rodean a un
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=0.8\linewidth]{imagenes/bowExample.png}
-  \caption{Ejemplo del funcionamiento del modelo \gls{cbow}: a partir de las palabras de contexto circundantes se predice la palabra objetivo central. Fuente: \cite{logunova_word2vec_serokell}.}
+  \includegraphics[width=0.8\linewidth]{imagenes/CbowExample.png}
+  \caption{Ejemplo del funcionamiento del modelo \gls{cbow}: a partir de las palabras de contexto circundantes se predice la palabra objetivo central. Fuente: \cite{talwar_cbow_2024}.}
   \label{fig:cbow_example}
 \end{figure}
 
@@ -273,41 +273,33 @@ donde $H(p)$ es la función de entropía binaria, representada en la Figura \ref
   \label{fig:entropia_binaria}
 \end{figure}
 
-\subsection{Definición de la función de evaluación y pérdida usadas}
+\subsection{Función de optimización}
 
-A continuación se procederá a explicar cuáles han sido las funciones de evaluación y de pérdidas que han sido utilizadas para entrenar a este modelo, ya que difieren completamente de la aproximación clásica seguida.
+A diferencia del modelo clásico, QWord2Vec no puede utilizar el \textit{Negative Sampling} como función de optimización, ya que el paradigma cuántico requiere una formulación diferente para guiar el entrenamiento del circuito parametrizado. La función de pérdida diseñada para este modelo combina dos términos complementarios que conjuntamente dirigen la optimización de los parámetros del circuito.
 
-\subsubsection{Evaluación de los datos de embeddings}
-
-Para evaluar la calidad de los \textit{embeddings} generados por QWord2Vec se emplea el coeficiente de correlación de Pearson, calculado a partir de las distancias entre los vectores producidos por ambos modelos: Word2Vec y QWord2Vec.
-
-Una vez completado el entrenamiento, se realiza una medición sobre los qubits destinados a los \textit{embeddings}, obteniendo así los vectores clásicos correspondientes a cada palabra. A partir de estos vectores se construye un \textit{vector distancia} cuyas componentes son las distancias euclídeas entre los vectores de \textit{embeddings} de todas las palabras del vocabulario. Este proceso se aplica tanto al modelo clásico como al cuántico, tomando el vector distancia de Word2Vec como referencia de comparación (\textit{ground truth}).
-
-El motivo por el que no se utiliza únicamente la entropía cruzada como métrica de evaluación es que los circuitos cuánticos con un elevado número de parámetros tienden a reducir su valor. Por ello, se añade el coeficiente de correlación de Pearson sobre los vectores distancia, puesto que constituye una métrica más adecuada y robusta para valorar la capacidad del modelo. En la siguiente subsección se describe en detalle la función de pérdida empleada durante el entrenamiento del circuito.
-
-\subsubsection{Función de pérdida}
-
-La función de pérdida diseñada para el modelo combina dos métricas. En primer lugar, emplea la \textit{entropía cruzada}, una métrica que evalúa el grado de acierto de las predicciones de un modelo frente a la realidad. Su propósito es penalizar los errores, de modo que cuanto más se alejen las predicciones de la etiqueta real, mayor será el valor de la pérdida. En el contexto de QWord2Vec, la entropía cruzada cuantifica el error entre la distribución de probabilidad estimada por el circuito cuántico $P(\theta)$ y la distribución objetivo $Y$ que dicta el contexto correcto de cada palabra central. Matemáticamente, se expresa de la siguiente manera:
+El primer término es la \textit{entropía cruzada}, que cuantifica el error entre la distribución de probabilidad estimada por el circuito cuántico $P(\theta)$ y la distribución objetivo $Y$ que codifica el contexto esperado de cada palabra central. Su propósito es penalizar las desviaciones de la salida del circuito respecto a las etiquetas de entrenamiento, de modo que cuanto más se aleje la predicción de la etiqueta real, mayor será la penalización. Matemáticamente, se expresa como:
 
 \[
   \mathcal{L}_{\text{CE}} = - \sum_{i=1}^{N} Y_i \log P_i(\theta),
 \]
 
-donde $N = 2^n$ es la dimensión del espacio de Hilbert (tamaño del vocabulario). El vector $Y$ de etiquetas se obtiene de la siguiente forma: Dada una palabra objetivo del corpus, se asigna un valor de $0.5$ a las dos palabras inmediatamente adyacentes a la palabra de referencia y se establecen a cero el resto de las posiciones del vector de etiquetas de tamaño $N = 2^n$. De este modo, el vector resultante suma $1$ y representa una distribución de probabilidad uniforme sobre los dos contextos posibles de cada palabra objetivo.
+donde $N = 2^n$ es la dimensión del espacio de Hilbert. El vector de etiquetas $Y$ se construye asignando un valor de $0.5$ a las dos palabras de contexto más frecuentes de cada palabra objetivo y $0$ al resto, de modo que el vector resultante constituya una distribución de probabilidad válida sobre los dos contextos más probables.
 
-A este componente clásico se añade también un segundo término basado en el coeficiente de correlación de Pearson, el cual actúa como mecanismo para garantizar la fidelidad de las representaciones espaciales en el espacio de Hilbert frente a la estructura geométrica euclídea del modelo clásico de referencia. De este modo, la función de pérdida global se expresa como:
+Sin embargo, emplear únicamente la entropía cruzada presenta una limitación: los circuitos cuánticos con un elevado número de parámetros tienden a encontrar configuraciones que reducen mecánicamente este valor sin que los \textit{embeddings} resultantes preserven una estructura geométrica coherente. Para contrarrestar este efecto, se introduce un segundo término de regularización basado en el coeficiente de correlación de Pearson entre las distancias euclídeas de los \textit{embeddings} de QWord2Vec y las de Word2Vec, el cual actúa como ancla geométrica que penaliza las configuraciones cuya estructura espacial en el espacio de Hilbert diverja excesivamente de la del modelo clásico de referencia. Para calcular este término, una vez obtenida la distribución de probabilidad de salida del circuito, se construye el vector de distancias euclídeas $D_\text{QW2V}$ entre todos los pares de representaciones vectoriales del vocabulario. El mismo proceso se aplica a los \textit{embeddings} de Word2Vec, obteniendo el vector homólogo $D_\text{W2V}$ que actúa como referencia geométrica.
+
+Con ambos componentes definidos, la función de pérdida global queda formulada como:
 
 \[
   \mathcal{L} = \mathcal{L}_{\text{CE}} - C \cdot \rho(D_{\text{QW2V}}, D_{\text{W2V}}),
 \]
 
-donde $C > 0$ es un parámetro de balanceo y $\rho(D_{\text{QW2V}}, D_{\text{W2V}})$ denota el coeficiente de correlación de Pearson, calculado como:
+donde $C > 0$ es un parámetro de balanceo que controla el peso relativo del término de regularización, y $\rho$ es el coeficiente de correlación de Pearson, calculado como:
 
 \[
   \rho(D_{\text{QW2V}}, D_{\text{W2V}}) = \frac{\operatorname{Cov}(D_{\text{QW2V}}, D_{\text{W2V}})}{\sigma(D_{\text{QW2V}}) \sigma(D_{\text{W2V}})},
 \]
 
-siendo $D_{\text{QW2V}}$ el vector de distancias euclídeas entre las representaciones vectoriales generadas por QWord2Vec para todas las palabras del vocabulario, $D_{\text{W2V}}$ el vector homólogo de distancias euclídeas de Word2Vec, $\operatorname{Cov}$ la covarianza y $\sigma$ la desviación estándar de sus respectivos vectores.
+siendo $\operatorname{Cov}$ la covarianza y $\sigma$ la desviación estándar de sus respectivos vectores de distancias. Maximizar $\rho$ implica que la geometría aprendida por el circuito cuántico se asemeja a la del espacio euclídeo, mientras que minimizar $\mathcal{L}_{\text{CE}}$ garantiza que el circuito predice correctamente los contextos de cada palabra. La combinación de ambos objetivos guía al optimizador hacia configuraciones que, al mismo tiempo, discriminan los contextos con precisión y preservan la coherencia geométrica del espacio de representación.
 
 
 \section{Propuestas de mejora sobre QWord2Vec}
