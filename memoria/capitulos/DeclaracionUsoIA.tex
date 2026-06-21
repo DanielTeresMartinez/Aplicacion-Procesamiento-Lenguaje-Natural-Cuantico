@@ -7,9 +7,9 @@ El uso de estas herramientas ha estado orientado a apoyar determinadas tareas de
 En particular, las herramientas de IA se han utilizado para las siguientes finalidades:
 
 \begin{itemize}
-  \item Revisión lingüística, mejora de estilo o reformulación de fragmentos redactados previamente por el estudiante.
-  \item Apoyo en la depuración, documentación o refactorización de código.
-  \item Generación de fragmentos de código auxiliares posteriormente revisados, adaptados y validados.
+      \item Revisión lingüística, mejora de estilo o reformulación de fragmentos redactados previamente por el estudiante.
+      \item Apoyo en la depuración, documentación o refactorización de código.
+      \item Generación de fragmentos de código auxiliares posteriormente revisados, adaptados y validados.
 \end{itemize}
 
 En todos los casos, los resultados proporcionados por estas herramientas han sido revisados críticamente. El estudiante ha comprobado la corrección técnica, la coherencia con los objetivos del trabajo, la adecuación al contexto académico y, cuando ha sido necesario, la validez de las fuentes, algoritmos, fragmentos de código o afirmaciones generadas.
@@ -23,32 +23,37 @@ El estudiante declara que ha utilizado estas herramientas de forma honesta y tra
 \section*{Detalle de uso y herramientas}
 
 \begin{description}
-  \item[Herramientas utilizadas:] \hfill \\
-        A lo largo del desarrollo de este trabajo se han empleado de forma alternada dos modelos LLM:
-        \begin{itemize}
-          \item \textbf{Claude}: concretamente el modelo \textit{Claude Sonnet 4.6}.
-          \item \textbf{Gemini}: concretamente el modelo \textit{Gemini 3.5 Flash}.
-        \end{itemize}
+      \item[Herramientas utilizadas:] \hfill \\
+            A lo largo del desarrollo de este trabajo se han empleado de forma alternada dos modelos LLM:
+            \begin{itemize}
+                  \item \textbf{Claude}: concretamente el modelo \textit{Claude Sonnet 4.6}.
+                  \item \textbf{Gemini}: concretamente el modelo \textit{Gemini 3.5 Flash}.
+            \end{itemize}
 
-  \item[Usos concretos realizados:] \hfill \\
-        Ambos modelos se han empleado principalmente como apoyo en la redacción de la memoria, mientras que \textit{Claude} se ha utilizado adicionalmente en la revisión de determinados fragmentos de código. Su integración se ha llevado a cabo mediante la tecnología de \textit{Skills}, que permite configurar agentes con instrucciones especializadas para tareas concretas. En particular, se han definido y utilizado tres skills diferenciadas:
+      \item[Usos concretos realizados:] \hfill \\
+            Ambos modelos se han empleado principalmente como apoyo en la redacción de la memoria, mientras que \textit{Claude} se ha utilizado adicionalmente en la revisión de determinados fragmentos de código. Su integración se ha llevado a cabo mediante la tecnología de \textit{Skills}, que permite configurar agentes con instrucciones especializadas para tareas concretas. En particular, se han definido y utilizado tres skills diferenciadas:
 
-        \begin{enumerate}
-          \item \textbf{Reorganización de texto}: esta skill recibía texto \textbf{redactado previamente por el estudiante} y lo mejoraba en cuanto a vocabulario, estructura y puntuación, generando un tono más formal y adecuado para un Trabajo Fin de Grado. Su aplicación estaba condicionada a que el estudiante hubiera elaborado con anterioridad el contenido del párrafo o sección correspondiente, en caso de no estarlo, no se llegaba a aplicar nunca.
-          \item \textbf{Inserción de imágenes}: el estudiante proporcionaba una imagen en cualquier formato y la skill se encargaba de convertirla a \texttt{.png}, insertarla en el lugar indicado junto con la atribución de la fuente original, y ajustar su tamaño para garantizar una visualización correcta dentro del documento.
-          \item \textbf{Inserción de referencias}: el estudiante indicaba la referencia bibliográfica a añadir (mediante una URL o los datos del artículo) y la skill, especializada en la nomenclatura de \textit{BibLaTeX}, se encargaba de incorporarla a la bibliografía del proyecto con las directivas adecuadas.
-        \end{enumerate}
+            \begin{enumerate}
+                  \item \textbf{Reorganización de texto}: esta skill recibía texto \textbf{redactado previamente por el estudiante} y lo mejoraba en cuanto a vocabulario, estructura y puntuación, generando un tono más formal y adecuado para un Trabajo Fin de Grado. Su aplicación estaba condicionada a que el estudiante hubiera elaborado con anterioridad el contenido del párrafo o sección correspondiente, en caso de no estarlo, no se llegaba a aplicar nunca.
+                  \item \textbf{Inserción de imágenes}: el estudiante proporcionaba una imagen en cualquier formato y la skill se encargaba de convertirla a \texttt{.png}, insertarla en el lugar indicado junto con la atribución de la fuente original, y ajustar su tamaño para garantizar una visualización correcta dentro del documento.
+                  \item \textbf{Inserción de referencias}: el estudiante indicaba la referencia bibliográfica a añadir (mediante una URL o los datos del artículo) y la skill, especializada en la nomenclatura de \textit{BibLaTeX}, se encargaba de incorporarla a la bibliografía del proyecto con las directivas adecuadas.
+            \end{enumerate}
 
-  \item[Partes del trabajo afectadas:] \hfill \\
-        Las tres skills descritas se emplearon de manera transversal a lo largo de todo el trabajo, contribuyendo a mejorar la redacción, la estructura y la documentación de la memoria. En cuanto al uso de \textit{Claude} en el ámbito del código, este se concentró principalmente en la revisión de fragmentos que no se ejecutaban correctamente, en la modularización del código en distintos archivos y en su documentación, lo que facilitó la mantenibilidad del proyecto.
+      \item[Partes del trabajo afectadas:] \hfill \\
+            Las tres skills descritas se emplearon de manera transversal a lo largo de todo el trabajo, contribuyendo a mejorar la redacción, la estructura y la documentación de la memoria. En cuanto al uso de \textit{Claude} en el ámbito del código, este se concentró principalmente en la revisión de fragmentos que no se ejecutaban correctamente, en la modularización del código en distintos archivos y en su documentación, lo que facilitó la mantenibilidad del proyecto.
 
-  \item[Validación realizada:] \hfill \\
-        En el caso de la skill de reorganización de texto, cada resultado generado por la herramienta fue revisado íntegramente por el estudiante, quien habitualmente modificaba aquellas palabras o expresiones que no se ajustaban con precisión a la idea que se pretendía transmitir.
+      \item[Validación realizada:] \hfill \\
+            En el caso de la skill de reorganización de texto, cada resultado generado por la herramienta fue revisado íntegramente por el estudiante, quien habitualmente modificaba aquellas palabras o expresiones que no se ajustaban con precisión a la idea que se pretendía transmitir.
 
-        Para la inserción de imágenes y referencias bibliográficas, se verificó que la información incluida correspondiera fielmente al artículo o página web consultados, garantizando así que los créditos se atribuyeran de forma adecuada.
+            Para la inserción de imágenes y referencias bibliográficas, se verificó que la información incluida correspondiera fielmente al artículo o página web consultados, garantizando así que los créditos se atribuyeran de forma adecuada.
 
-        En lo relativo a la revisión de código, se comprobó que la documentación generada describiera correctamente la funcionalidad de cada función y, en los casos en que se modificó algún fragmento, se ejecutó el código para verificar que el comportamiento resultante fuera el esperado.
+            En lo relativo a la revisión de código, se comprobó que la documentación generada describiera correctamente la funcionalidad de cada función y, en los casos en que se modificó algún fragmento, se ejecutó el código para verificar que el comportamiento resultante fuera el esperado.
 
-  \item[Fecha o periodo aproximado de uso:] \hfill \\
-        La redacción de este trabajo comenzó a mediados de octubre de 2025. Sin embargo, no fue hasta principios de febrero de 2026 cuando se empezó a incorporar el uso de estas herramientas de IA mediante la tecnología de \textit{Skills}, una funcionalidad introducida entre noviembre y diciembre de 2025.
+      \item[Fecha o periodo aproximado de uso:] \hfill \\
+            La redacción de este trabajo comenzó a mediados de octubre de 2025. Sin embargo, no fue hasta principios de febrero de 2026 cuando se empezó a incorporar el uso de estas herramientas de IA mediante la tecnología de \textit{Skills}, una funcionalidad introducida entre noviembre y diciembre de 2025.
 \end{description}
+
+
+\textbf{Enlace al repositorio de GitHub}: \url{https://github.com/DanielTeresMartinez/Aplicacion-Procesamiento-Lenguaje-Natural-Cuantico}
+
+
